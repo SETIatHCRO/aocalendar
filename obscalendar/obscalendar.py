@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
+PATH_ENV = 'OBSCALENDAR'
 
 
 class Entry:
@@ -94,7 +95,7 @@ class Entry:
 class Calendar:
     meta_fields = ['updated']
 
-    def __init__(self, calfile='now', location="ATA", output='INFO', path=''):
+    def __init__(self, calfile='now', location="ATA", output='INFO', path='getenv'):
         # All this seems to be needed.
         level = getattr(logging, output.upper())
         logger.setLevel(level)
@@ -105,7 +106,7 @@ class Calendar:
         ch.setFormatter(formatter)
         logger.addHandler(ch)
         #
-        self.read_calendar_contents(calfile=calfile, path=path)
+        self.read_calendar_contents(calfile=str(calfile), path=path)
         self.location = location
         logger.info(f"{__name__} ver. {__version__}")
     
@@ -116,15 +117,23 @@ class Calendar:
         else:
             refdate = cal_tools.interp_date(calfile, 'Time')
             calfile = f"cal{refdate.datetime.year}.json"
+        if path == 'getenv':
+            from os import getenv
+            path = getenv(PATH_ENV)
+            if path is None: path = ''
         return op.join(path, calfile), refdate
 
-    def read_calendar_contents(self, calfile, path='', skip_duplicates=True):
+    def read_calendar_contents(self, calfile, path='getenv', skip_duplicates=True):
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
         """
         self.calfile, self.refdate = self.__get_calfile(calfile=calfile, path=path)
-        with open(self.calfile, 'r') as fp:
-            inp = json.load(fp)
+        try:
+            with open(self.calfile, 'r') as fp:
+                inp = json.load(fp)
+        except FileNotFoundError:
+            logging.warning("No calendar file was found.")
+            return
         self.contents = {}
         self.straddle = {}
         self.all_fields = []

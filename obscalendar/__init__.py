@@ -1,2 +1,2 @@
 from importlib.metadata import version
-__version__ = version('odsutils')
+__version__ = version('obscalendar')

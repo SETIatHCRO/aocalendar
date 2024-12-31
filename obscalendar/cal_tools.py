@@ -78,20 +78,18 @@ def read_data_file(file_name, sep='auto'):
 def interp_date(day, fmt='%Y-%m-%d'):
     if day == 'today' or day == 'now' or day == 'current':
         day = Time.now()
-        if fmt[0] == '%':
-            day = day.datetime.strftime(fmt)
     elif day == 'yesterday':
         day = Time((Time.now().datetime - timedelta(days=1)))
-        if fmt[0] == '%':
-            day = day.datetime.strftime(fmt)
     elif day == 'tomorrow':
         day = Time((Time.now().datetime + timedelta(days=1)))
-        if fmt[0] == '%':
-            day = day.datetime.strftime(fmt)
+    elif len(day) == 4:  # assume just a year
+        day = Time(f"{day}-01-01")
+    elif len(day) == 7:  # assume YYYY-MM
+        day = Time(f"{day}-01")
     else:
         day = Time(day)
-        if fmt[0] == '%':
-            day = day.datetime.strftime(fmt)
+    if fmt[0] == '%':
+        day = day.datetime.strftime(fmt)
     return day
 
 
