@@ -200,7 +200,6 @@ class Calendar:
             return
         logging.info(f"Reading {self.calfile_fullpath}")
         #print(f"Reading {self.calfile}")
-
         for key, entries in inp.items():
             if key in self.meta_fields:
                 setattr(self, key, entries)
