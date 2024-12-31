@@ -54,10 +54,12 @@ class ObservingCalendarApp(tkinter.Tk):
         del_button.grid(row=2, column=2)
         upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", command = self.upd_event)
         upd_button.grid(row=2, column=3)
+        sch_button = tkinter.Button(self.frame_buttons, text="Schedule", command =self.schedule)
+        sch_button.grid(row=2, column=4)
         rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh calendar", command = self.refresh)
-        rrl_button.grid(row=2, column=4)
+        rrl_button.grid(row=2, column=5)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", command = self.reset)
-        rst_button.grid(row=2, column=5)
+        rst_button.grid(row=2, column=6)
 
         # Info
         self.frame_info.grid(row=2, column=0)
@@ -107,6 +109,9 @@ class ObservingCalendarApp(tkinter.Tk):
         self.action = None
         self.upddef = {}
         self.entry = None
+
+    def schedule(self):
+        print("SCHEDULE AN RA/DEC")
 
     def add_event(self, action='add'):
         if action == 'add':
@@ -180,7 +185,7 @@ class ObservingCalendarApp(tkinter.Tk):
         self.entry = simpledialog.askstring("Input", "YYYY-MM-DD:#", parent=self)
         if self.entry is None:
             return
-        this_entry_key, num = self.entry.split(':')
+        this_entry_key, num = obscalendar.split_entry(self.entry)
         self.upddef = {}
         this_entry = self.this_cal.contents[this_entry_key][int(num)]
         for field in this_entry.fields:

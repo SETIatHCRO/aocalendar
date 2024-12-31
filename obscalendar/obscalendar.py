@@ -1,15 +1,15 @@
 import json
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from datetime import datetime, timedelta
 from tabulate import tabulate
 from copy import copy
 import logging
-from astropy.coordinates import EarthLocation, Angle
+from astropy.coordinates import EarthLocation, Angle, AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
 from os import path as op
 from hashlib import sha256
-from numpy import floor
+from numpy import floor, where
 from . import __version__, cal_tools
 
 
@@ -23,6 +23,11 @@ PATH_ENV = 'OBSCALENDAR'
 SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 
 
+def split_entry(entry):
+    key, n = entry.split(':')
+    return key, int(n)
+
+
 class Entry:
     def __init__(self, **kwargs):
         self.meta_fields = ['fields']
@@ -34,6 +39,15 @@ class Entry:
                 setattr(self, key, None)
         if len(kwargs):
             self.update(**kwargs)
+
+    def __str__(self):
+        s = f"CALENDAR ENTRY {self.utc_start.datetime.strftime('%Y')}\n\n"
+        data = self.todict(printable=True)
+        table = []
+        for key, val in data.items():
+            table.append([key, val])
+        s += tabulate(table, headers=['Field', 'Value']) + '\n'
+        return s
 
     def update(self, **kwargs):
         self.msg, kwctr, self.valid = [], 0, True
@@ -279,11 +293,11 @@ class Calendar:
         ----------
 
         """
-        sorted_day, _, _ = self.__sort_day(day)
+        sorted_day, offset, keymap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
         lens = [len(getattr(x, header_col)) for x in sorted_day]
-        stroff = 2 + max(lens)
+        stroff = 2 + max(lens) + 3
         day = cal_tools.interp_date(day)
         start_of_day = Time(day)
         end_of_day = Time(start_of_day.datetime + timedelta(days=1))
@@ -308,14 +322,15 @@ class Calendar:
             for j in range(len(l)):
                 lstrow[x+j] = l[j]
             tickrow[x] = '|'
-        utcrow = ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
-        lstrow = ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
+        utcrow = ' ' + ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
+        lstrow = ' ' + ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
         if show_current:
             tickrow[current] = '0'
-        tickrow = ' ' * stroff + ''.join(tickrow)
+        tickrow = '   ' + ' ' * stroff + ''.join(tickrow)
 
         ss = f"\n\n\n{utcrow}\n{tickrow}\n"
-        for entry in sorted_day:
+        for i, entry in enumerate(sorted_day):
+            ind = keymap[i] - offset
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
                 starting = 0
@@ -329,7 +344,7 @@ class Calendar:
                     pass
             if show_current:
                 row[current] = 'X' if row[current] == '*' else '|'
-            ss += f" {getattr(entry, header_col):{stroff-2}s} {''.join(row)}\n"
+            ss += f" {ind}-{getattr(entry, header_col):{stroff-2}s} {''.join(row)}\n"
         ss += f"{tickrow}\n{lstrow}"
         return ss
 
@@ -357,15 +372,15 @@ class Calendar:
             self.contents.setdefault(day, [])
             self.contents[day].append(this_event)
         elif action == 'delete':
-            day = cal_tools.interp_date(entry.split(':')[0], fmt='%Y-%m-%d')
-            entrynum = int(entry.split(':')[1])
+            day, entrynum = split_entry(entry)
+            day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
             try:
                 del(self.contents[day][entrynum])
             except (KeyError, IndexError):
                 logger.warning(f"Invalid entry: {entry}")
         elif action == 'update':
-            day = cal_tools.interp_date(entry.split(':')[0], fmt='%Y-%m-%d')
-            entrynum = int(entry.split(':')[1])
+            day, entrynum = split_entry(entry)
+            day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
             try:
                 self.contents[day][entrynum].update(**kwargs)
             except (KeyError, IndexError):
@@ -386,9 +401,63 @@ class Calendar:
     def recurring(self):
         print("RECURRING")
 
-    def schedule(self):
-        print("SCHEDULE AN RA/DEC FOR GIVEN DAY")
-        print("CHECK FOR CONFLICTS")
+    def schedule(self, ra, dec, day='now', el_limit=15.0, **kwargs):
+        day = cal_tools.interp_date(day, fmt='Time')
+        if isinstance(ra, (float, int)):
+            ra = ra * u.hourangle
+        if isinstance(dec, (float, int)):
+            dec = dec * u.deg
+        ra = Angle(ra)
+        dec = Angle(dec)
+        start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
+        stop = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day) + timedelta(days=1))
+        dt = TimeDelta(600, format='sec')
+        current = copy(start)
+        times = []
+        while current < stop:
+            times.append(current)
+            current += dt
+        aa = AltAz(location=ATA, obstime=times)
+        coord = SkyCoord(ra, dec)
+        altazsky = coord.transform_to(aa)
+        el = altazsky.alt.value
+        g = where(el > el_limit)
+        kwargs['utc_start'] = times[g[0][0]].datetime.isoformat(timespec='seconds')
+        kwargs['utc_stop'] = times[g[0][-1]].datetime.isoformat(timespec='seconds')
+        rastr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s"
+        decstr = f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
+        radec = f"{rastr},{decstr}"
+        if 'name' not in kwargs:
+            kwargs['name'] = radec
+        if 'notes' not in kwargs:
+            kwargs['notes'] = radec
+        else:
+            kwargs['notes'] += f" -- {radec}"
+        this_entry = Entry(**kwargs)
+        self.conflicts(this_entry)
+        day = this_entry.utc_start.datetime.strftime('%Y-%m-%d')
+        results = self.conflicts(this_entry, is_new=True)
+        skip = False
+        if len(results['duplicate']):
+            suf = 'y' if len(results['duplicate']) == 1 else 'ies'
+            logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
+            skip = True
+        elif len(results['conflict']):
+            suf = 'y' if len(results['conflict']) == 1 else 'ies'
+            logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
+        if not skip:
+            self.contents[day].append(this_entry)
 
-    def conflict(self):
-        print("CHECK FOR OVERLAPS")
+    def conflicts(self, check_event, is_new=False):
+        day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
+        this_hash = check_event.hash()
+        results = {'duplicate': [], 'conflict': []}
+        for i, this_event in enumerate(self.contents[day]):
+            if this_event.hash == this_hash:
+                results['duplicate'].append(i)
+                if is_new:
+                    logger.warning(f"Entry is duplicated with {day}:{i}")
+                continue  # Skip it
+            if check_event.utc_start <= this_event.utc_stop and this_event.utc_start <= check_event.utc_stop:
+                results['conflict'].append(i)
+        return results
