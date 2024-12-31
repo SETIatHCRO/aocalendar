@@ -244,19 +244,26 @@ class Calendar:
         show_current = True if (current > -1 and current < numpoints) else False
 
         # Set up ticks/labels
-        tickrow, labelrow = [' '] * (numpoints + 1), [' '] * (numpoints + 1)
-        for h in range(0, 25, 2):  # Tick every 2 hours
+        tickrow, utcrow = [' '] * (numpoints + 1), [' '] * (numpoints + 1)
+        lstrow = copy(utcrow) + [' '] * 5
+        tl = list(range(0, 25, 2))  # Tick every 2 hours
+        utctimes = Time([start_of_day.datetime + timedelta(hours=x) for x in tl])
+        lsttimes = [f"{x.value:.1f}" for x in utctimes.sidereal_time('mean', longitude=ata)]
+        for h, l in zip(tl, lsttimes):
             x = int(h * 3600.0 / dt)
-            labelrow[x] = str(h)[-1]
+            utcrow[x] = str(h)[-1]
             if h > 9.9:
-                labelrow[x-1] = str(h)[0]
+                utcrow[x-1] = str(h)[0]
+            for j in range(len(l)):
+                lstrow[x+j] = l[j]
             tickrow[x] = '|'
-        labelrow = ' ' * stroff + ''.join(labelrow)
+        utcrow = ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
+        lstrow = ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
         if show_current:
             tickrow[current] = '0'
         tickrow = ' ' * stroff + ''.join(tickrow)
 
-        ss = f"\n\n\n{labelrow}\n{tickrow}\n"
+        ss = f"\n\n\n{utcrow}\n{tickrow}\n"
         for entry in sorted_day:
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
@@ -272,7 +279,7 @@ class Calendar:
             if show_current:
                 row[current] = 'X' if row[current] == '*' else '|'
             ss += f" {getattr(entry, header_col):{stroff-2}s} {''.join(row)}\n"
-        ss += f"{tickrow}"
+        ss += f"{tickrow}\n{lstrow}"
         return ss
 
     def edit(self, action, entry=None, **kwargs):

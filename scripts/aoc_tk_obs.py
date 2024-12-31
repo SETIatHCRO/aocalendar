@@ -13,7 +13,6 @@ class ObservingCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
         self.title("Allen Telescope Array Observing Calendar")
-        self.reset()
 
         # Set window size to 1200x900
         self.geometry("900x800")
@@ -55,8 +54,9 @@ class ObservingCalendarApp(tkinter.Tk):
 
         # Info
         self.frame_info.grid(row=2, column=0)
+        self.reset()
         info_text = tkinter.Text(self.frame_info)
-        info_text.grid(row=0, column=0, columnspan=5)
+        info_text.grid(row=0, column=0, columnspan=4)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile}")
 
         # Update
