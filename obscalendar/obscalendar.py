@@ -132,6 +132,7 @@ class Calendar:
             with open(self.calfile, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
+            self.all_fields = []
             logging.warning("No calendar file was found.")
             return
         self.contents = {}

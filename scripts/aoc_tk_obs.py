@@ -57,7 +57,7 @@ class ObservingCalendarApp(tkinter.Tk):
         self.frame_info.grid(row=2, column=0)
         info_text = tkinter.Text(self.frame_info)
         info_text.grid(row=0, column=0, columnspan=5)
-        info_text.insert(tkinter.INSERT, "CALENDAR DATE INFORMATION")
+        info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile}")
 
         # Update
         self.frame_update.grid(row=3, column=0)
