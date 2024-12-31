@@ -127,18 +127,18 @@ class Calendar:
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
         """
+        self.contents = {}
+        self.straddle = {}
+        self.all_fields = []
+        self.all_hash = []
         self.calfile, self.refdate = self.__get_calfile(calfile=calfile, path=path)
         try:
             with open(self.calfile, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
-            self.all_fields = []
             logging.warning("No calendar file was found.")
             return
-        self.contents = {}
-        self.straddle = {}
-        self.all_fields = []
-        self.all_hash = []
+
         for key, entries in inp.items():
             if key in self.meta_fields:
                 setattr(self, key, entries)
