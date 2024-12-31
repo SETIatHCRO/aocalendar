@@ -140,6 +140,7 @@ class Calendar:
             logging.warning("No calendar file was found.")
             return
         logging.info(f"Reading {self.calfile}")
+        #print(f"Reading {self.calfile}")
 
         for key, entries in inp.items():
             if key in self.meta_fields:

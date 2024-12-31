@@ -5,6 +5,7 @@ from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from obscalendar import obscalendar
 
+
 def t2iso(t):
     mn, dy, yr = t.split("/")
     return f"20{yr}-{mn}-{dy}"
@@ -69,7 +70,7 @@ class ObservingCalendarApp(tkinter.Tk):
 
     def show_date(self):
         datestr = t2iso(self.tkcal.get_date())
-        entry = f"SCHEDULE FOR {datestr}\n\n"
+        entry = f"{self.this_cal.calfile} SCHEDULE FOR {datestr}\n\n"
         try:
             entry += self.this_cal.format_day_contents(datestr, return_as='table')
             entry += self.this_cal.graph_day(datestr)
