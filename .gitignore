@@ -1,0 +1,5 @@
+.DS_Store
+build/
+*.json
+*.bak
+obscalendar.egg-info/
