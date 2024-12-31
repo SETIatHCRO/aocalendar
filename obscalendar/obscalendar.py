@@ -13,8 +13,9 @@ from numpy import floor
 from . import __version__, cal_tools
 
 
-ata = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
 logger = logging.getLogger(__name__)
+
+ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
 ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
@@ -53,16 +54,8 @@ class Entry:
             self.msg.append(f"Need at least one non-time entry.")
             self.valid = False
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
-
-        has_lst = True
-        for key in ['lst_start', 'lst_stop']:
-            try:
-                setattr(self, key, Angle(getattr(self, key)))
-            except (ValueError, AttributeError, TypeError):
-                has_lst = False
-                break
-        if not has_lst:
-            self.update_lst()
+        # Always recompute LST
+        self.update_lst()
 
     def row(self, cols='all', printable=True):
         if cols == 'all': cols = self.fields
@@ -90,13 +83,13 @@ class Entry:
         self.utc_start = Time(self.utc_start)
         self.utc_stop = Time(self.utc_stop)
         obstimes = Time([self.utc_start, self.utc_stop])
-        self.lst_start, self.lst_stop = obstimes.sidereal_time('mean', longitude=ata)
+        self.lst_start, self.lst_stop = obstimes.sidereal_time('mean', longitude=ATA)
 
 
 class Calendar:
     meta_fields = ['updated']
 
-    def __init__(self, calfile='now', location="ATA", output='INFO', path='getenv'):
+    def __init__(self, calfile='now', path='getenv', output='INFO'):
         # All this seems to be needed.
         level = getattr(logging, output.upper())
         logger.setLevel(level)
@@ -108,13 +101,41 @@ class Calendar:
         logger.addHandler(ch)
         #
         self.read_calendar_contents(calfile=str(calfile), path=path)
-        self.location = location
         logger.info(f"{__name__} ver. {__version__}")
     
     def __get_calfile(self, calfile, path):
+        """
+        Parameters
+        ----------
+        calfile : str
+            calfile or something interpretable by cal_tools.interp_date
+        path : str
+            path or 'getenv' - if calfile has path, gets overwritten
+
+        Attributes
+        ----------
+        path : str
+            Path to the calfile
+        calfile : str
+            Basename of calfile
+        calfile_fullpath : str
+            path/calfile
+        refdate : Time
+            reference date for calfile
+
+        """
+        if calfile == 'refresh':
+            return
         if calfile.endswith('.json'):
-            year = int(calfile.split('.')[0][-4:])
-            refdate = Time(datetime(year=year, month=1, day=1))
+            dn = op.dirname(calfile)
+            if len(dn):
+                path = dn
+            calfile = op.basename(calfile)
+            try:
+                year = int(calfile.split('.')[0][-4:])
+                refdate = Time(datetime(year=year, month=1, day=1))
+            except ValueError:
+                refdate = Time.now()
         else:
             refdate = cal_tools.interp_date(calfile, 'Time')
             calfile = f"cal{refdate.datetime.year}.json"
@@ -122,24 +143,48 @@ class Calendar:
             from os import getenv
             path = getenv(PATH_ENV)
             if path is None: path = ''
-        return op.join(path, calfile), refdate
+        self.path = path
+        self.calfile = calfile
+        self.calfile_fullpath = op.join(path, calfile)
+        self.refdate = refdate
 
     def read_calendar_contents(self, calfile, path='getenv', skip_duplicates=True):
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
+
+        Parameters
+        ----------
+        calfile : str
+            Can be a json file, or a date all the way from YYYY to YYYY-MM-DDT...
+        path : str
+            Path to find the file - 'getenv' will read the environmen variable OBSCALENDAR
+        skip_duplicates : bool
+            Flag to not include duplicated entries
+
+        Attributes
+        ----------
+        contents : dict
+            Contents of file
+        straddle : dict
+            Extra info for entries straddling a day
+        all_fields : list
+            List of all of the entry fields
+        all_hash : list
+            List of all entry hashes
+
         """
         self.contents = {}
         self.straddle = {}
         self.all_fields = []
         self.all_hash = []
-        self.calfile, self.refdate = self.__get_calfile(calfile=calfile, path=path)
+        self.__get_calfile(calfile=str(calfile), path=path)
         try:
-            with open(self.calfile, 'r') as fp:
+            with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
             logging.warning("No calendar file was found.")
             return
-        logging.info(f"Reading {self.calfile}")
+        logging.info(f"Reading {self.calfile_fullpath}")
         #print(f"Reading {self.calfile}")
 
         for key, entries in inp.items():
@@ -178,7 +223,7 @@ class Calendar:
 
     def write_calendar(self, calfile=None):
         if calfile is None:
-            calfile = self.calfile
+            calfile = self.calfile_fullpath
         logger.info(f"Writing {calfile}")
         full_contents = {}
         for md in self.meta_fields:
@@ -254,7 +299,7 @@ class Calendar:
         lstrow = copy(utcrow) + [' '] * 5
         tl = list(range(0, 25, 2))  # Tick every 2 hours
         utctimes = Time([start_of_day.datetime + timedelta(hours=x) for x in tl])
-        lsttimes = [f"{x.value:.1f}" for x in utctimes.sidereal_time('mean', longitude=ata)]
+        lsttimes = [f"{x.value:.1f}" for x in utctimes.sidereal_time('mean', longitude=ATA)]
         for h, l in zip(tl, lsttimes):
             x = int(h * 3600.0 / dt)
             utcrow[x] = str(h)[-1]
@@ -343,6 +388,7 @@ class Calendar:
 
     def schedule(self):
         print("SCHEDULE AN RA/DEC FOR GIVEN DAY")
+        print("CHECK FOR CONFLICTS")
 
     def conflict(self):
         print("CHECK FOR OVERLAPS")

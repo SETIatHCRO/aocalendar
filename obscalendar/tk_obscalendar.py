@@ -18,7 +18,11 @@ class ObservingCalendarApp(tkinter.Tk):
         # Set window size to 1200x900
         self.geometry("900x800")
 
-        self.this_cal = obscalendar.Calendar()
+        calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
+        path = kwargs['path'] if 'path' in kwargs else 'getenv'
+        output = kwargs['output'] if 'output' in kwargs else 'INFO'
+
+        self.this_cal = obscalendar.Calendar(calfile=calfile, path=path, output=output)
         self.refdate = self.this_cal.refdate.datetime
 
         # Create all of the frames
@@ -60,17 +64,17 @@ class ObservingCalendarApp(tkinter.Tk):
         self.reset()
         info_text = tkinter.Text(self.frame_info)
         info_text.grid(row=0, column=0, columnspan=4)
-        info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile}")
+        info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
 
         # Update
         self.frame_update.grid(row=3, column=0)
 
     def refresh(self):
-        self.this_cal.read_calendar_contents(calfile=self.this_cal.calfile, path='')
+        self.this_cal.read_calendar_contents(calfile='refresh')
 
     def show_date(self):
         datestr = t2iso(self.tkcal.get_date())
-        entry = f"{self.this_cal.calfile} SCHEDULE FOR {datestr}\n\n"
+        entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
             entry += self.this_cal.format_day_contents(datestr, return_as='table')
             entry += self.this_cal.graph_day(datestr)
@@ -183,9 +187,6 @@ class ObservingCalendarApp(tkinter.Tk):
             self.upddef[field] = getattr(this_entry, field)
         self.add_event(action='update')
 
-
-obscal = ObservingCalendarApp()
-obscal.mainloop()
 
 
 
