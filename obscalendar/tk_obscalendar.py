@@ -16,7 +16,7 @@ class ObservingCalendarApp(tkinter.Tk):
         self.title("Allen Telescope Array Observing Calendar")
 
         # Set window size to 1200x900
-        self.geometry("900x800")
+        self.geometry("900x1200")
 
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
@@ -111,7 +111,16 @@ class ObservingCalendarApp(tkinter.Tk):
         self.entry = None
 
     def schedule(self):
-        print("SCHEDULE AN RA/DEC")
+        rdu = simpledialog.askstring("Input", "RA,dec,utc", parent=self)
+        if rdu is None:
+            return
+        ra, dec, utc = rdu.split(',')
+        self.this_cal.schedule(ra=ra, dec=dec, day=utc)
+        # self.upddef = {}
+        # this_entry = self.this_cal.contents[this_entry_key][int(num)]
+        # for field in this_entry.fields:
+        #     self.upddef[field] = getattr(this_entry, field)
+        # self.add_event(action='update')
 
     def add_event(self, action='add'):
         if action == 'add':

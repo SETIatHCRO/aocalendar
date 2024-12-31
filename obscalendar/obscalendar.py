@@ -411,9 +411,17 @@ class Calendar:
 
     def schedule(self, ra, dec, day='now', el_limit=15.0, **kwargs):
         day = cal_tools.interp_date(day, fmt='Time')
-        if isinstance(ra, (float, int)):
+        try:
+            ra = float(ra)
+        except ValueError:
+            pass
+        try:
+            dec = float(dec)
+        except ValueError:
+            pass
+        if isinstance(ra, float):
             ra = ra * u.hourangle
-        if isinstance(dec, (float, int)):
+        if isinstance(dec, float):
             dec = dec * u.deg
         ra = Angle(ra)
         dec = Angle(dec)
@@ -429,16 +437,18 @@ class Calendar:
         coord = SkyCoord(ra, dec)
         altazsky = coord.transform_to(aa)
         g = where(altazsky.alt.value > el_limit)
-        kwargs['utc_start'] = times[g[0][0]].datetime.isoformat(timespec='seconds')
-        kwargs['utc_stop'] = times[g[0][-1]].datetime.isoformat(timespec='seconds')
-        rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
-        radec = f"{rastr},{decstr}"
-        if 'name' not in kwargs:  kwargs['name'] = radec
-        if 'notes' not in kwargs:
-            kwargs['notes'] = radec
-        else:
-            kwargs['notes'] += f" -- {radec}"
-        self.edit('add', **kwargs)            
+        print("ADDING")
+        if len(g[0]):
+            kwargs['utc_start'] = times[g[0][0]].datetime.isoformat(timespec='seconds')
+            kwargs['utc_stop'] = times[g[0][-1]].datetime.isoformat(timespec='seconds')
+            rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
+            radec = f"{rastr},{decstr}"
+            if 'name' not in kwargs:  kwargs['name'] = radec
+            if 'notes' not in kwargs:
+                kwargs['notes'] = radec
+            else:
+                kwargs['notes'] += f" -- {radec}"
+            self.edit('add', **kwargs)            
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
