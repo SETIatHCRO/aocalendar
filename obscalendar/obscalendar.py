@@ -413,33 +413,29 @@ class Calendar:
         day = cal_tools.interp_date(day, fmt='Time')
         try:
             ra = float(ra)
+            ra = ra * u.hourangle
         except ValueError:
             pass
         try:
             dec = float(dec)
+            dec = dec * u.deg
         except ValueError:
             pass
-        if isinstance(ra, float):
-            ra = ra * u.hourangle
-        if isinstance(dec, float):
-            dec = dec * u.deg
+
         ra = Angle(ra)
         dec = Angle(dec)
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
-        stop = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day) + timedelta(days=1))
-        dt = TimeDelta(600, format='sec')
-        current = copy(start)
-        times = []
+        stop = start + TimeDelta(24 * 3600, format='sec')
+        dt = TimeDelta(10 * 60, format='sec')  # Use 10min
+        current, times = copy(start), []
         while current < stop:
             times.append(current)
             current += dt
-        aa = AltAz(location=ATA, obstime=times)
-        coord = SkyCoord(ra, dec)
-        altazsky = coord.transform_to(aa)
-        arr = where(altazsky.alt.value > el_limit)[0]
-        if len(arr):
-            kwargs['utc_start'] = times[arr[0]].datetime.isoformat(timespec='seconds')
-            kwargs['utc_stop'] = times[arr[-1]].datetime.isoformat(timespec='seconds')
+        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
+        above = where(altazsky.alt.value > el_limit)[0]
+        if len(above):
+            kwargs['utc_start'] = times[above[0]].datetime.isoformat(timespec='seconds')
+            kwargs['utc_stop'] = times[above[-1]].datetime.isoformat(timespec='seconds')
             rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
             radec = f"{rastr},{decstr}"
             if 'name' not in kwargs:  kwargs['name'] = radec
@@ -449,7 +445,7 @@ class Calendar:
                 kwargs['notes'] += f" -- {radec}"
             self.edit('add', **kwargs)
         else:
-            logger.warning("Source never above the elevation limit.")
+            logger.warning(f"Source never above the elevation limit of {el_limit}.")
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
