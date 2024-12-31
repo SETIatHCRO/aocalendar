@@ -16,7 +16,7 @@ class ObservingCalendarApp(tkinter.Tk):
         self.title("Allen Telescope Array Observing Calendar")
 
         # Set window size to 1200x900
-        self.geometry("900x1200")
+        self.geometry("900x1000")
 
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
