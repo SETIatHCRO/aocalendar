@@ -436,11 +436,10 @@ class Calendar:
         aa = AltAz(location=ATA, obstime=times)
         coord = SkyCoord(ra, dec)
         altazsky = coord.transform_to(aa)
-        g = where(altazsky.alt.value > el_limit)
-        print("ADDING")
-        if len(g[0]):
-            kwargs['utc_start'] = times[g[0][0]].datetime.isoformat(timespec='seconds')
-            kwargs['utc_stop'] = times[g[0][-1]].datetime.isoformat(timespec='seconds')
+        arr = where(altazsky.alt.value > el_limit)[0]
+        if len(arr):
+            kwargs['utc_start'] = times[arr[0]].datetime.isoformat(timespec='seconds')
+            kwargs['utc_stop'] = times[arr[-1]].datetime.isoformat(timespec='seconds')
             rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
             radec = f"{rastr},{decstr}"
             if 'name' not in kwargs:  kwargs['name'] = radec
@@ -448,7 +447,9 @@ class Calendar:
                 kwargs['notes'] = radec
             else:
                 kwargs['notes'] += f" -- {radec}"
-            self.edit('add', **kwargs)            
+            self.edit('add', **kwargs)
+        else:
+            logger.warning("Source never above the elevation limit.")
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
