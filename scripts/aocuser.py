@@ -41,8 +41,10 @@ if args.add:
     aoc.edit('add', **vars(args))
     aoc.write_calendar()
 if args.update:
-    aoc.edit('update', entry=f"{args.calfile}:{args.update}", **vars(args))
+    entry_num = f"{args.calfile}:{args.update}"
+    aoc.edit('update', entry=entry_num, **vars(args))
     aoc.write_calendar()
 if args.delete:
-    aoc.edit('delete', entry=f"{args.calfile}:{args.delete}")
+    entry_num = f"{args.calfile}:{args.delete}"
+    aoc.edit('delete', entry=entry_num)
     aoc.write_calendar()
