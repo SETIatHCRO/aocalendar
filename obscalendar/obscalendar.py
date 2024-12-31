@@ -113,7 +113,7 @@ class Calendar:
     
     def __get_calfile(self, calfile, path):
         if calfile.endswith('.json'):
-            year = calfile.split('.')[0][4:]
+            year = int(calfile.split('.')[0][-4:])
             refdate = Time(datetime(year=year, month=1, day=1))
         else:
             refdate = cal_tools.interp_date(calfile, 'Time')
@@ -139,6 +139,7 @@ class Calendar:
         except FileNotFoundError:
             logging.warning("No calendar file was found.")
             return
+        logging.info(f"Reading {self.calfile}")
 
         for key, entries in inp.items():
             if key in self.meta_fields:

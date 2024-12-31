@@ -49,8 +49,10 @@ class ObservingCalendarApp(tkinter.Tk):
         del_button.grid(row=2, column=2)
         upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", command = self.upd_event)
         upd_button.grid(row=2, column=3)
-        upd_button = tkinter.Button(self.frame_buttons, text = "Reset", command = self.reset)
-        upd_button.grid(row=2, column=4)
+        rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh calendar", command = self.refresh)
+        rrl_button.grid(row=2, column=4)
+        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", command = self.reset)
+        rst_button.grid(row=2, column=5)
 
         # Info
         self.frame_info.grid(row=2, column=0)
@@ -61,6 +63,9 @@ class ObservingCalendarApp(tkinter.Tk):
 
         # Update
         self.frame_update.grid(row=3, column=0)
+
+    def refresh(self):
+        self.this_cal.read_calendar_contents(calfile=self.this_cal.calfile, path='')
 
     def show_date(self):
         datestr = t2iso(self.tkcal.get_date())
