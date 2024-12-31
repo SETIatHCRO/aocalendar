@@ -79,7 +79,7 @@ class Entry:
     
     def hash(self):
         txt = ''.join(self.row(cols='all', printable=True)).encode('utf-8')
-        return sha256(txt).hexdigest()[:8]
+        return sha256(txt).hexdigest()[:10]
     
     def todict(self, printable=True):
         entry = {}
@@ -258,13 +258,13 @@ class Calendar:
         sorted_dict = {}
         offset = 0
         if day in self.straddle:
-            for event in self.straddle[day]:
-                key = (event.utc_start, event.utc_stop)
+            for i, event in enumerate(self.straddle[day]):
+                key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = copy(event)
                 offset += 1
         if day in self.contents:
             for i, event in enumerate(self.contents[day]):
-                key = (event.utc_start, event.utc_stop)
+                key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = {'event': copy(event), 'index': i}
         sorted_day = []
         keymap = {}
@@ -296,8 +296,11 @@ class Calendar:
         sorted_day, offset, keymap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
-        lens = [len(getattr(x, header_col)) for x in sorted_day]
-        stroff = 2 + max(lens) + 3
+        cbuflt, cbufind, cbufrt = 2, 3, 2
+        stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max name
+        colhdr = [f"{cbuflt*' '}{keymap[i]+offset:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
+        stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
+
         day = cal_tools.interp_date(day)
         start_of_day = Time(day)
         end_of_day = Time(start_of_day.datetime + timedelta(days=1))
@@ -322,15 +325,14 @@ class Calendar:
             for j in range(len(l)):
                 lstrow[x+j] = l[j]
             tickrow[x] = '|'
-        utcrow = ' ' + ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
-        lstrow = ' ' + ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
+        utcrow = ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
+        lstrow = ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
         if show_current:
             tickrow[current] = '0'
-        tickrow = '   ' + ' ' * stroff + ''.join(tickrow)
+        tickrow = ' ' * stroff + ''.join(tickrow)
 
         ss = f"\n\n\n{utcrow}\n{tickrow}\n"
         for i, entry in enumerate(sorted_day):
-            ind = keymap[i] - offset
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
                 starting = 0
@@ -344,7 +346,7 @@ class Calendar:
                     pass
             if show_current:
                 row[current] = 'X' if row[current] == '*' else '|'
-            ss += f" {ind}-{getattr(entry, header_col):{stroff-2}s} {''.join(row)}\n"
+            ss += f"{colhdr[i]}{''.join(row)}\n"
         ss += f"{tickrow}\n{lstrow}"
         return ss
 
@@ -434,8 +436,6 @@ class Calendar:
         else:
             kwargs['notes'] += f" -- {radec}"
         this_entry = Entry(**kwargs)
-        self.conflicts(this_entry)
-        day = this_entry.utc_start.datetime.strftime('%Y-%m-%d')
         results = self.conflicts(this_entry, is_new=True)
         skip = False
         if len(results['duplicate']):
@@ -446,14 +446,16 @@ class Calendar:
             suf = 'y' if len(results['conflict']) == 1 else 'ies'
             logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
         if not skip:
+            day = this_entry.utc_start.datetime.strftime('%Y-%m-%d')
             self.contents[day].append(this_entry)
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
         this_hash = check_event.hash()
+        print(this_hash)
         results = {'duplicate': [], 'conflict': []}
         for i, this_event in enumerate(self.contents[day]):
-            if this_event.hash == this_hash:
+            if this_event.hash() == this_hash:
                 results['duplicate'].append(i)
                 if is_new:
                     logger.warning(f"Entry is duplicated with {day}:{i}")
