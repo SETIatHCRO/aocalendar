@@ -363,16 +363,22 @@ class Calendar:
         if action == 'add':
             this_event = Entry(**kwargs)
             this_hash = this_event.hash()
-            if this_hash in self.all_hash:
-                logger.warning(f"{entry} is a duplicate -- skipping add")
-                return
-            else:
-                self.all_hash.append(this_hash)
-            if not this_event.valid:
-                logger.warning(f"Entry invalid:\n{this_event.msg}")
-            day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
-            self.contents.setdefault(day, [])
-            self.contents[day].append(this_event)
+            results = self.conflicts(this_event, is_new=True)
+            skip = False
+            if len(results['duplicate']):
+                suf = 'y' if len(results['duplicate']) == 1 else 'ies'
+                logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
+                skip = True
+            elif len(results['conflict']):
+                suf = 'y' if len(results['conflict']) == 1 else 'ies'
+                logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
+            if not skip:
+                day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
+                self.contents.setdefault(day, [])
+                self.contents[day].append(this_event)
+                self.all_hash.append(this_hash)                
+                if not this_event.valid:
+                    logger.warning(f"Entry invalid:\n{this_event.msg}")
         elif action == 'delete':
             day, entrynum = split_entry(entry)
             day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
@@ -435,19 +441,7 @@ class Calendar:
             kwargs['notes'] = radec
         else:
             kwargs['notes'] += f" -- {radec}"
-        this_entry = Entry(**kwargs)
-        results = self.conflicts(this_entry, is_new=True)
-        skip = False
-        if len(results['duplicate']):
-            suf = 'y' if len(results['duplicate']) == 1 else 'ies'
-            logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
-            skip = True
-        elif len(results['conflict']):
-            suf = 'y' if len(results['conflict']) == 1 else 'ies'
-            logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
-        if not skip:
-            day = this_entry.utc_start.datetime.strftime('%Y-%m-%d')
-            self.contents[day].append(this_entry)
+        self.edit('add', **kwargs)            
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
