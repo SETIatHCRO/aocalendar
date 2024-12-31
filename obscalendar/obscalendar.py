@@ -19,6 +19,7 @@ ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'OBSCALENDAR'
+SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 
 
 class Entry:
@@ -211,9 +212,12 @@ class Calendar:
             keymap[i] = sorted_dict[key]['index']
         return sorted_day, offset, keymap
 
-    def format_day_contents(self, day='today', cols='all', return_as='table'):
-        if cols == 'all': cols = self.all_fields
-        hdr = ['#'] + cols      
+    def format_day_contents(self, day='today', cols='short', return_as='table'):
+        if cols == 'all':
+            cols = self.all_fields
+        elif cols == 'short':
+            cols = SHORT_LIST
+        hdr = ['#'] + cols
         sorted_day, offset, keymap = self.__sort_day(day)
         if return_as == 'table':
             return(tabulate([[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], headers=hdr))
