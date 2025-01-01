@@ -45,7 +45,7 @@ if args.list:
 if args.entry:
     print(aoc.contents[args.calfile][int(args.entry)])
 if args.graph:
-    print(aoc.graph_day(day=args.calfile), tz=TIMEZONE)
+    print(aoc.graph_day(day=args.calfile, tz=TIMEZONE))
     print("\n\n")
 if args.add:
     aoc.edit('add', **vars(args))
