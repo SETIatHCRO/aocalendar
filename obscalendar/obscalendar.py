@@ -9,7 +9,8 @@ from astropy.time import Time
 from astropy import units as u
 from os import path as op
 from hashlib import sha256
-from numpy import floor, where
+from numpy import floor, round
+from numpy import where as npwhere
 from . import __version__, cal_tools
 
 
@@ -21,6 +22,7 @@ ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'OBSCALENDAR'
 SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
+TIMEZONE = {'PST': 8, 'PDT': 7}
 
 
 def split_entry(entry):
@@ -284,7 +286,7 @@ class Calendar:
         elif return_as == 'list':
             return [[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
         
-    def graph_day(self, day='today', header_col='name'):
+    def graph_day(self, day='today', header_col='name', tz='PST'):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -311,27 +313,35 @@ class Calendar:
         show_current = True if (current > -1 and current < numpoints) else False
 
         # Set up ticks/labels
-        tickrow, utcrow = [' '] * (numpoints + 1), [' '] * (numpoints + 1)
-        lstrow = copy(utcrow) + [' '] * 5
-        tl = list(range(0, 25, 2))  # Tick every 2 hours
-        utctimes = Time([start_of_day.datetime + timedelta(hours=x) for x in tl])
-        lsttimes = [f"{x.value:.1f}" for x in utctimes.sidereal_time('mean', longitude=ATA)]
-        for h, l in zip(tl, lsttimes):
-            x = int(h * 3600.0 / dt)
-            utcrow[x] = str(h)[-1]
-            if h > 9.9:
-                utcrow[x-1] = str(h)[0]
+        tickrow, utcrow = [' '] * (numpoints + 1), [' '] * (numpoints + 5)
+        tzrow, lstrow = copy(utcrow), copy(utcrow)
+        utctimes = Time([start_of_day.datetime + timedelta(hours=int(x)) for x in range(0, 25, 2)])
+        lsttimes = utctimes.sidereal_time('mean', longitude=ATA)
+        for ht, lt in zip(utctimes, lsttimes):
+            hr = round(24.0 * (ht - utctimes[0]).value)
+            x = int(hr * 3600.0 / dt)
+            h = f"{hr:.0f}"
+            for j in range(len(h)):
+                utcrow[x+j] = h[j]
+            l = f"{lt.value:.1f}"
             for j in range(len(l)):
                 lstrow[x+j] = l[j]
+            zr = hr - TIMEZONE[tz] if int(hr - TIMEZONE[tz]) >= 0 else (24.0 + hr - TIMEZONE[tz])
+            z = f"{zr:.0f}"
+            for j in range(len(z)):
+                tzrow[x+j] = z[j]
             tickrow[x] = '|'
         utcstr = 'UTC  '
+        lststr = 'LST  ' 
+        tzstr = f"{tz}  "
         utcrow = ' ' * (stroff-len(utcstr)) + utcstr + ''.join(utcrow)
-        lstrow = ' ' * (stroff-len(utcstr)) + 'LST ' + ''.join(lstrow)
+        lstrow = ' ' * (stroff-len(utcstr)) + lststr + ''.join(lstrow)
+        tzrow = ' ' * (stroff-len(utcstr)) + tzstr + ''.join(tzrow)
         if show_current:
             tickrow[current] = '0'
         tickrow = ' ' * stroff + ''.join(tickrow)
 
-        ss = f"\n\n\n{utcrow}\n{tickrow}\n"
+        ss = f"\n\n\n{tzrow}\n{utcrow}\n{tickrow}\n"
         for i, entry in enumerate(sorted_day):
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
@@ -432,7 +442,7 @@ class Calendar:
             times.append(current)
             current += dt
         altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
-        above = where(altazsky.alt.value > el_limit)[0]
+        above = npwhere(altazsky.alt.value > el_limit)[0]
         if len(above):
             kwargs['utc_start'] = times[above[0]].datetime.isoformat(timespec='seconds')
             kwargs['utc_stop'] = times[above[-1]].datetime.isoformat(timespec='seconds')
