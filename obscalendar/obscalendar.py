@@ -305,7 +305,7 @@ class Calendar:
         end_of_day = Time(start_of_day.datetime + timedelta(days=1))
         interval_sec = 15.0 * 60.0  # every 15min
         numpoints = int(24.0 * 3600.0 / interval_sec)
-        dt = ((end_of_day - start_of_day) / (numpoints)).to('second').value
+        dt = ((end_of_day - start_of_day) / (numpoints-1)).to('second').value
 
         current = int((Time.now() - start_of_day).to('second').value / dt)
         show_current = True if (current > -1 and current < numpoints) else False
@@ -324,8 +324,9 @@ class Calendar:
             for j in range(len(l)):
                 lstrow[x+j] = l[j]
             tickrow[x] = '|'
-        utcrow = ' ' * (stroff-5) + 'UTC  ' + ''.join(utcrow)
-        lstrow = ' ' * (stroff-5) + 'LST ' + ''.join(lstrow)
+        utcstr = 'UTC  '
+        utcrow = ' ' * (stroff-len(utcstr)) + utcstr + ''.join(utcrow)
+        lstrow = ' ' * (stroff-len(utcstr)) + 'LST ' + ''.join(lstrow)
         if show_current:
             tickrow[current] = '0'
         tickrow = ' ' * stroff + ''.join(tickrow)
