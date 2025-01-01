@@ -324,7 +324,6 @@ class Calendar:
         trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
         trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=ATA)
         trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(tzoff*3600, format='sec')
-
         for i, utc in enumerate(trow['UTC']['times']):
             toff = int(round(24.0 * (utc - start_of_day).value) * 3600.0 / dt)
             tickrow[toff] = '|'
@@ -335,12 +334,12 @@ class Calendar:
                     t = f"{trow[tt]['times'][i].datetime.hour}"
                 for j in range(len(t)):
                     trow[tt]['labels'][toff+j] = t[j]
+        if show_current:
+            tickrow[current] = '0'
         tickrow = ' ' * stroff + ''.join(tickrow)
         for tt in trow:
             tstr = f"{tt}  "
             trow[tt]['labels'] = ' ' * (stroff - len(tstr)) + tstr + ''.join(trow[tt]['labels'])
-        if show_current:
-            tickrow[current] = '0'
         
         # Get table string
         if tz != 'UTC':
