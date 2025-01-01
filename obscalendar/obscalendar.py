@@ -1,6 +1,6 @@
 import json
 from astropy.time import Time, TimeDelta
-from datetime import datetime, timedelta
+from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
@@ -22,6 +22,7 @@ ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'OBSCALENDAR'
 SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
+DAYSEC = 24 * 3600
 
 
 def split_entry(entry):
@@ -301,46 +302,43 @@ class Calendar:
         colhdr = [f"{cbuflt*' '}{keymap[i]+offset:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
-        day = cal_tools.interp_date(day)
+        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
         start_of_day = Time(day)
-        end_of_day = Time(start_of_day.datetime + timedelta(days=1))
+        end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
         interval_sec = 15.0 * 60.0  # every 15min
-        numpoints = int(24.0 * 3600.0 / interval_sec)
+        numpoints = int(DAYSEC / interval_sec)
         dt = ((end_of_day - start_of_day) / (numpoints-1)).to('second').value
 
         current = int((Time.now() - start_of_day).to('second').value / dt)
         show_current = True if (current > -1 and current < numpoints) else False
 
         # Set up ticks/labels
-        tickrow, utcrow = [' '] * (numpoints + 1), [' '] * (numpoints + 5)
-        tzrow, lstrow = copy(utcrow), copy(utcrow)
-        utctimes = Time([start_of_day.datetime + timedelta(hours=int(x)) for x in range(0, 25, 2)])
-        lsttimes = utctimes.sidereal_time('mean', longitude=ATA)
-        for ht, lt in zip(utctimes, lsttimes):
-            hr = round(24.0 * (ht - utctimes[0]).value)
-            x = int(hr * 3600.0 / dt)
-            h = f"{hr:.0f}"
-            for j in range(len(h)):
-                utcrow[x+j] = h[j]
-            l = f"{lt.value:.1f}"
-            for j in range(len(l)):
-                lstrow[x+j] = l[j]
-            zr = (24 + hr + cal_tools.TIMEZONE[tz]) % 24
-            z = f"{zr:.0f}"
-            for j in range(len(z)):
-                tzrow[x+j] = z[j]
-            tickrow[x] = '|'
-        utcstr = 'UTC  '
-        lststr = 'LST  ' 
-        tzstr = f"{tz}  "
-        utcrow = ' ' * (stroff-len(utcstr)) + utcstr + ''.join(utcrow)
-        lstrow = ' ' * (stroff-len(utcstr)) + lststr + ''.join(lstrow)
-        tzrow = ' ' * (stroff-len(utcstr)) + tzstr + ''.join(tzrow)
+        sm = numpoints + 5
+        tickrow = [' '] * (numpoints + 1)
+        trow = {'UTC': {'labels': [' ']*sm}, 'LST': {'labels': [' ']*sm}, tz: {'labels': [' ']*sm}}
+        trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
+        trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=ATA)
+        trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(cal_tools.TIMEZONE[tz]*3600, format='sec')
+
+        for i, utc in enumerate(trow['UTC']['times']):
+            toff = int(round(24.0 * (utc - start_of_day).value) * 3600.0 / dt)
+            tickrow[toff] = '|'
+            for tt in trow:
+                if tt == 'LST':
+                    t = f"{trow[tt]['times'][i].value:.1f}"
+                else:
+                    t = f"{trow[tt]['times'][i].datetime.hour}"
+                for j in range(len(t)):
+                    trow[tt]['labels'][toff+j] = t[j]
+        tickrow = ' ' * stroff + ''.join(tickrow)
+        for tt in trow:
+            tstr = f"{tt}  "
+            trow[tt]['labels'] = ' ' * (stroff - len(tstr)) + tstr + ''.join(trow[tt]['labels'])
         if show_current:
             tickrow[current] = '0'
-        tickrow = ' ' * stroff + ''.join(tickrow)
-
-        ss = f"\n\n\n{tzrow}\n{utcrow}\n{tickrow}\n"
+        
+        # Get table string
+        ss = f"\n\n\n{trow[tz]['labels']}\n{trow['UTC']['labels']}\n{tickrow}\n"
         for i, entry in enumerate(sorted_day):
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
@@ -356,7 +354,7 @@ class Calendar:
             if show_current:
                 row[current] = 'X' if row[current] == '*' else '|'
             ss += f"{colhdr[i]}{''.join(row)}\n"
-        ss += f"{tickrow}\n{lstrow}"
+        ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
 
     def edit(self, action, entry=None, **kwargs):
