@@ -338,7 +338,7 @@ class Calendar:
             tickrow[current] = '0'
         
         # Get table string
-        ss = f"\n\n\n{trow[tz]['labels']}\n{trow['UTC']['labels']}\n{tickrow}\n"
+        ss = f"\n\n{' '*stroff}{day} at interval {interval_min:.0f}m\n{trow['UTC']['labels']}\n{trow[tz]['labels']}\n{tickrow}\n"
         for i, entry in enumerate(sorted_day):
             row = ['.'] * numpoints
             if entry.utc_start < start_of_day:
