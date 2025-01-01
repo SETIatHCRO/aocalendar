@@ -424,7 +424,26 @@ class Calendar:
     def recurring(self):
         print("RECURRING")
 
-    def schedule(self, ra, dec, day='now', el_limit=15.0, **kwargs):
+    def schedule(self, ra, dec, day='now', duration=12, el_limit=15.0, **kwargs):
+        """
+        Schedule an observation at a given RA/Dec on a given day for a given duration
+
+        Parameters
+        ----------
+        ra : float/int/str
+            RA in hours (can be a string interpretable by astropy Angles)
+        dec : float/int/str
+            Dec in degrees (can be a string interpretable by astropy Angles)
+        day : str/Time
+            Day of observation (UTC).  Interpreted by cal_tools.interp_dates
+        duration : float
+            Length of observation in hours
+        el_limit : float
+            Elevation limit to check in degrees
+        **kwargs
+            Other calendar Event fields
+
+        """
         day = cal_tools.interp_date(day, fmt='Time')
         try:
             ra = float(ra)
@@ -439,6 +458,7 @@ class Calendar:
 
         ra = Angle(ra)
         dec = Angle(dec)
+        duration = TimeDelta(duration * 3600.0, format='sec')
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
         stop = start + TimeDelta(24 * 3600, format='sec')
         dt = TimeDelta(10 * 60, format='sec')  # Use 10min
@@ -448,20 +468,29 @@ class Calendar:
             current += dt
         altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
         above = npwhere(altazsky.alt.value > el_limit)[0]
-        if len(above):
-            kwargs['utc_start'] = times[above[0]].datetime.isoformat(timespec='seconds')
-            kwargs['utc_stop'] = times[above[-1]].datetime.isoformat(timespec='seconds')
-            rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
-            radec = f"{rastr},{decstr}"
-            if 'name' not in kwargs:  kwargs['name'] = radec
-            if 'note' not in kwargs:
-                kwargs['note'] = radec
-            else:
-                kwargs['note'] += f" -- {radec}"
-            self.edit('add', **kwargs)
-        else:
+        if not len(above):
             logger.warning(f"Source never above the elevation limit of {el_limit}.")
-        logger.warning("Now should edit down the scheduled observation!")
+            return
+        srcstart = times[above[0]]
+        srcstop = times[above[-1]]
+        time_above = srcstop - srcstart
+        if time_above > duration:
+            srcstart = times[above[len(above) // 2]] - duration / 2.0
+            srcstop = times[above[len(above) // 2]] + duration / 2.0
+            logger.info(f"Scheduling middle {duration.to(u.hour).value:.1f}h of {time_above.to(u.hour).value:.1f}h above {el_limit}d")
+
+        kwargs['utc_start'] = srcstart.datetime.isoformat(timespec='seconds')
+        kwargs['utc_stop'] = srcstop.datetime.isoformat(timespec='seconds')
+        rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
+        radec = f"{rastr},{decstr}"
+        if 'name' not in kwargs:  kwargs['name'] = radec
+        if 'note' not in kwargs:
+            kwargs['note'] = radec
+        else:
+            kwargs['note'] += f" -- {radec}"
+        self.edit('add', **kwargs)
+            
+        logger.warning("Now should edit down the scheduled observation times!")
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
