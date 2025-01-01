@@ -477,6 +477,8 @@ class Calendar:
             srcstart = times[above[len(above) // 2]] - duration / 2.0
             srcstop = times[above[len(above) // 2]] + duration / 2.0
             logger.info(f"Scheduling middle {duration.to(u.hour).value:.1f}h of {time_above.to(u.hour).value:.1f}h above {el_limit}d")
+        else:
+            logger.info(f"Scheduling {time_above.to(u.hour).value:.1f}h above {el_limit}d of desired {duration.to(u.hour).value:.1f}h")
 
         kwargs['utc_start'] = srcstart.datetime.isoformat(timespec='seconds')
         kwargs['utc_stop'] = srcstop.datetime.isoformat(timespec='seconds')
