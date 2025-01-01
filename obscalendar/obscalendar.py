@@ -57,7 +57,8 @@ class Entry:
             if key in self.fields:
                 if key not in ['utc_start', 'utc_stop']:
                     kwctr += 1
-                setattr(self, key, val)
+                if val is not None:
+                    setattr(self, key, val)
             elif key not in self.meta_fields:
                 self.msg.append(f"{key} not valid field")
         for key in ['utc_start', 'utc_stop']:
@@ -485,12 +486,10 @@ class Calendar:
         rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
         radec = f"{rastr},{decstr}"
         if 'name' not in kwargs:  kwargs['name'] = radec
-        if 'note' not in kwargs:
-            kwargs['note'] = radec
-        else:
-            kwargs['note'] += f" -- {radec}"
+        kwargs.setdefault('note', '')
+        if not isinstance(kwargs['note'], str): kwargs['note'] = radec
+        else: kwargs['note'] += f" -- {radec}"
         self.edit('add', **kwargs)
-            
         logger.warning("Now should edit down the scheduled observation times!")
 
     def conflicts(self, check_event, is_new=False):

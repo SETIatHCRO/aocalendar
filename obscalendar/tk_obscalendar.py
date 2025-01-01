@@ -112,16 +112,49 @@ class ObservingCalendarApp(tkinter.Tk):
         self.entry = None
 
     def schedule(self):
-        rdu = simpledialog.askstring("Input", "RA,dec,utc", parent=self)
-        if rdu is None:
-            return
-        ra, dec, utc = rdu.split(',')
-        self.this_cal.schedule(ra=ra, dec=dec, day=utc)
-        # self.upddef = {}
-        # this_entry = self.this_cal.contents[this_entry_key][int(num)]
-        # for field in this_entry.fields:
-        #     self.upddef[field] = getattr(this_entry, field)
-        # self.add_event(action='update')
+        name_label = tkinter.Label(self.frame_update, text='Name')
+        name_label.grid(row=0, column=0)
+        self.name_entry = tkinter.Entry(self.frame_update)
+        self.name_entry.grid(row=0, column=1)
+        ID_label = tkinter.Label(self.frame_update, text='ID')
+        ID_label.grid(row=0, column=2)
+        self.ID_entry = tkinter.Entry(self.frame_update)
+        self.ID_entry.grid(row=0, column=3)
+
+        ra_label = tkinter.Label(self.frame_update, text='RA')
+        ra_label.grid(row=1, column=0)
+        self.ra_entry = tkinter.Entry(self.frame_update)
+        self.ra_entry.grid(row=1, column=1)
+        dec_label = tkinter.Label(self.frame_update, text='Dec')
+        dec_label.grid(row=1, column=2)
+        self.dec_entry = tkinter.Entry(self.frame_update)
+        self.dec_entry.grid(row=1, column=3)
+
+        day_label = tkinter.Label(self.frame_update, text='UTC day')
+        day_label.grid(row=2, column=0)
+        self.day_entry = tkinter.Entry(self.frame_update)
+        self.day_entry.grid(row=2, column=1)
+        duration_label = tkinter.Label(self.frame_update, text='duration [h]')
+        duration_label.grid(row=2, column=2)
+        self.duration_entry = tkinter.Entry(self.frame_update)
+        self.duration_entry.grid(row=2, column=3)
+
+        submit_button = tkinter.Button(self.frame_update, text='Submit', command=self.doschedule)
+        submit_button.grid(row=4, column=1)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button.grid(row=4, column=3)
+
+    def doschedule(self):
+        ra = self.ra_entry.get()
+        dec = self.dec_entry.get()
+        day = self.day_entry.get()
+        duration = self.duration_entry.get()
+        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration))
+        yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with schedule?')
+        if yn == 'yes' :
+            self.this_cal.write_calendar()
+        else :
+            messagebox.showinfo('Return', 'Not writing new calendar.')
 
     def add_event(self, action='add'):
         if action == 'add':
