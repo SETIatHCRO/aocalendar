@@ -2,7 +2,7 @@ from astropy.time import Time, TimeDelta
 
 
 INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
-TIMEZONE = {'PST': -8, 'PDT': -7}
+TIMEZONE = {'PST': -8, 'PDT': -7, 'EST': -5, 'EDT': -4}
 
 
 def same_date(e1, e2, timespec='day'):

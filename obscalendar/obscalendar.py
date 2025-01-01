@@ -286,7 +286,7 @@ class Calendar:
         elif return_as == 'list':
             return [[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
         
-    def graph_day(self, day='today', header_col='name', tz='PST', interval_min=10.0):
+    def graph_day(self, day='today', header_col='name', tz='sys', interval_min=10.0):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -294,6 +294,11 @@ class Calendar:
         ----------
 
         """
+        if tz == 'sys':
+            import time
+            gmt = time.gmtime()
+            tz = time.tzname[gmt.tm_isdst]
+        tzoff = cal_tools.TIMEZONE[tz]
         sorted_day, offset, keymap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
@@ -318,7 +323,7 @@ class Calendar:
         trow = {'UTC': {'labels': [' ']*sm}, 'LST': {'labels': [' ']*sm}, tz: {'labels': [' ']*sm}}
         trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
         trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=ATA)
-        trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(cal_tools.TIMEZONE[tz]*3600, format='sec')
+        trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(tzoff*3600, format='sec')
 
         for i, utc in enumerate(trow['UTC']['times']):
             toff = int(round(24.0 * (utc - start_of_day).value) * 3600.0 / dt)

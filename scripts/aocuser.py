@@ -2,7 +2,6 @@
 import argparse
 from obscalendar import obscalendar
 
-TIMEZONE = 'PST'
 
 ap = argparse.ArgumentParser()
 ap.add_argument('calfile', help="Calfile/date to use.", nargs='?', default='now')
@@ -45,7 +44,7 @@ if args.list:
 if args.entry:
     print(aoc.contents[args.calfile][int(args.entry)])
 if args.graph:
-    print(aoc.graph_day(day=args.calfile, tz=TIMEZONE, interval_min=10.0))
+    print(aoc.graph_day(day=args.calfile, interval_min=10.0))
     print("\n\n")
 if args.add:
     aoc.edit('add', **vars(args))
