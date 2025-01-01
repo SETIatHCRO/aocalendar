@@ -1,8 +1,8 @@
 from astropy.time import Time, TimeDelta
-from datetime import timedelta
 
 
 INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
+TIMEZONE = {'PST': -8, 'PDT': -7}
 
 
 def same_date(e1, e2, timespec='day'):
@@ -76,17 +76,21 @@ def read_data_file(file_name, sep='auto'):
 
 
 def interp_date(day, fmt='%Y-%m-%d'):
-    if '/' in day:
-        m = {'d': 24.0*3600.0, 'h': 3600.0, 'm': 60.0, 's': 1.0}
+    if '/' in day:  # date +/- offset
+        mult = {'d': 24.0*3600.0, 'h': 3600.0, 'm': 60.0, 's': 1.0}
         day, offs = day.split('/')
         day = interp_date(day, fmt='Time')
-        day += TimeDelta(float(offs[:-1]) * m[offs[-1]], format='sec')
+        try:
+            dt = mult[offs[-1]] * float(offs[:-1])
+        except KeyError:
+            dt = 60.0 * float(offs)  # default to minutes
+        day += TimeDelta(dt, format='sec')
     if day == 'today' or day == 'now' or day == 'current':
         day = Time.now()
     elif day == 'yesterday':
-        day = Time((Time.now().datetime - timedelta(days=1)))
+        day = Time.now() - TimeDelta(24.0*3600.0, format='sec')
     elif day == 'tomorrow':
-        day = Time((Time.now().datetime + timedelta(days=1)))
+        day = Time.now() + TimeDelta(24.0*3600.0, format='sec')
     elif len(str(day)) == 4:  # assume just a year
         day = Time(f"{day}-01-01")
     elif len(str(day)) == 7:  # assume YYYY-MM

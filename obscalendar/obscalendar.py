@@ -22,7 +22,6 @@ ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'OBSCALENDAR'
 SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
-TIMEZONE = {'PST': -8, 'PDT': -7}
 
 
 def split_entry(entry):
@@ -326,7 +325,7 @@ class Calendar:
             l = f"{lt.value:.1f}"
             for j in range(len(l)):
                 lstrow[x+j] = l[j]
-            zr = (24 + hr + TIMEZONE[tz]) % 24
+            zr = (24 + hr + cal_tools.TIMEZONE[tz]) % 24
             z = f"{zr:.0f}"
             for j in range(len(z)):
                 tzrow[x+j] = z[j]
