@@ -4,7 +4,7 @@ import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from obscalendar import obscalendar
-ZZ
+
 
 def t2iso(t):
     mdy = t.split("/")
