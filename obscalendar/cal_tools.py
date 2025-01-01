@@ -1,4 +1,4 @@
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from datetime import timedelta
 
 
@@ -76,15 +76,20 @@ def read_data_file(file_name, sep='auto'):
 
 
 def interp_date(day, fmt='%Y-%m-%d'):
+    if '/' in day:
+        m = {'d': 24.0*3600.0, 'h': 3600.0, 'm': 60.0, 's': 1.0}
+        day, offs = day.split('/')
+        day = interp_date(day, fmt='Time')
+        day += TimeDelta(float(offs[:-1]) * m[offs[-1]], format='sec')
     if day == 'today' or day == 'now' or day == 'current':
         day = Time.now()
     elif day == 'yesterday':
         day = Time((Time.now().datetime - timedelta(days=1)))
     elif day == 'tomorrow':
         day = Time((Time.now().datetime + timedelta(days=1)))
-    elif len(day) == 4:  # assume just a year
+    elif len(str(day)) == 4:  # assume just a year
         day = Time(f"{day}-01-01")
-    elif len(day) == 7:  # assume YYYY-MM
+    elif len(str(day)) == 7:  # assume YYYY-MM
         day = Time(f"{day}-01")
     else:
         day = Time(day)

@@ -2,21 +2,24 @@
 import argparse
 from obscalendar import obscalendar
 
+TIMEZONE = 'PST'
+
 ap = argparse.ArgumentParser()
 ap.add_argument('calfile', help="Calfile/date to use.", nargs='?', default='now')
 ap.add_argument('--path', help="Path to use", default='getenv')
 ap.add_argument('--output', help="Logging output level", default='INFO')
 # Actions
-ap.add_argument('--show', help="Show contents of day", action='store_true')
-ap.add_argument('--entry', help="Show an entry # on date", default=False)
-ap.add_argument('--graph', help="Graph calendar day", action='store_true')
-ap.add_argument('--add', help="Add an entry", action='store_true')
-ap.add_argument('--update', help="Update an entry # on date", default=False)
-ap.add_argument('--delete', help="Delete an entry # on date", default=False)
-ap.add_argument('--schedule', help="Schedule ra,dec observation", default=False)
+ap.add_argument('-l', '--list', help="List contents of day", action='store_true')
+ap.add_argument('-e', '--entry', help="Show an entry # on date", default=False)
+ap.add_argument('-g', '--graph', help="Graph calendar day", action='store_true')
+ap.add_argument('-a', '--add', help="Add an entry", action='store_true')
+ap.add_argument('-u', '--update', help="Update an entry # on date", default=False)
+ap.add_argument('-d', '--delete', help="Delete an entry # on date", default=False)
+ap.add_argument('-s', '--schedule', help="Schedule ra,dec observation", default=False)
+ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length starting now (at least add -n...)", default=False)
 # Event fields
-ap.add_argument('--name', help="Event field", default='name')
-ap.add_argument('--id', help="Event field", default='ID')
+ap.add_argument('-n', '--name', help="Event field", default='name')
+ap.add_argument('-i', '--id', help="Event field", default='ID')
 ap.add_argument('--utc_start', help="Event field", default=None)
 ap.add_argument('--utc_stop', help="Event field", default=None)
 ap.add_argument('--observer', help="Event field", default=None)
@@ -31,12 +34,18 @@ if args.add:
 
 aoc = obscalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
 
-if args.show:
+if args.quick:
+    from obscalendar import cal_tools
+    args.utc_start = cal_tools.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_stop = cal_tools.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
+    args.add = True
+
+if args.list:
     print(aoc.format_day_contents(day=args.calfile, cols='all', return_as='table'))
 if args.entry:
     print(aoc.contents[args.calfile][int(args.entry)])
 if args.graph:
-    print(aoc.graph_day(day=args.calfile))
+    print(aoc.graph_day(day=args.calfile), tz=TIMEZONE)
     print("\n\n")
 if args.add:
     aoc.edit('add', **vars(args))
