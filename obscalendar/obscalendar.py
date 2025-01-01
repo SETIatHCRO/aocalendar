@@ -286,7 +286,7 @@ class Calendar:
         elif return_as == 'list':
             return [[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
         
-    def graph_day(self, day='today', header_col='name', tz='PST'):
+    def graph_day(self, day='today', header_col='name', tz='PST', interval_min=10.0):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -305,7 +305,7 @@ class Calendar:
         day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
         start_of_day = Time(day)
         end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
-        interval_sec = 15.0 * 60.0  # every 15min
+        interval_sec = interval_min * 60.0
         numpoints = int(DAYSEC / interval_sec)
         dt = ((end_of_day - start_of_day) / (numpoints-1)).to('second').value
 

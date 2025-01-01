@@ -80,7 +80,7 @@ class ObservingCalendarApp(tkinter.Tk):
         entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
             entry += self.this_cal.format_day_contents(datestr, return_as='table')
-            entry += self.this_cal.graph_day(datestr)
+            entry += self.this_cal.graph_day(datestr, interval_min=15.0)
         except KeyError:
             entry += "No entry."
         info_text = tkinter.Text(self.frame_info, width=800)
