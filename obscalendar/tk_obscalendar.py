@@ -4,11 +4,12 @@ import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from obscalendar import obscalendar
-
+ZZ
 
 def t2iso(t):
-    mn, dy, yr = t.split("/")
-    return f"20{yr}-{mn}-{dy}"
+    mdy = t.split("/")
+    mn, dy, yr = [int(x) for x in mdy]
+    return f"20{yr:02d}-{mn:02d}-{dy:02d}"
 
 class ObservingCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
