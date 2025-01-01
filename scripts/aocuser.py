@@ -13,6 +13,7 @@ ap.add_argument('--graph', help="Graph calendar day", action='store_true')
 ap.add_argument('--add', help="Add an entry", action='store_true')
 ap.add_argument('--update', help="Update an entry # on date", default=False)
 ap.add_argument('--delete', help="Delete an entry # on date", default=False)
+ap.add_argument('--schedule', help="Schedule ra,dec observation", default=False)
 # Event fields
 ap.add_argument('--name', help="Event field", default='name')
 ap.add_argument('--id', help="Event field", default='ID')
@@ -47,4 +48,8 @@ if args.update:
 if args.delete:
     entry_num = f"{args.calfile}:{args.delete}"
     aoc.edit('delete', entry=entry_num)
+    aoc.write_calendar()
+if args.schedule:
+    ra, dec = args.schedule.split(',')
+    aoc.schedule(ra=ra, dec=dec, day=args.calfile)
     aoc.write_calendar()

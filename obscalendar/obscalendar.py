@@ -438,18 +438,21 @@ class Calendar:
             rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
             radec = f"{rastr},{decstr}"
             if 'name' not in kwargs:  kwargs['name'] = radec
-            if 'notes' not in kwargs:
-                kwargs['notes'] = radec
+            if 'note' not in kwargs:
+                kwargs['note'] = radec
             else:
-                kwargs['notes'] += f" -- {radec}"
+                kwargs['note'] += f" -- {radec}"
             self.edit('add', **kwargs)
         else:
             logger.warning(f"Source never above the elevation limit of {el_limit}.")
+        logger.warning("Now should edit down the scheduled observation!")
 
     def conflicts(self, check_event, is_new=False):
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
         this_hash = check_event.hash()
         results = {'duplicate': [], 'conflict': []}
+        if day not in self.contents:
+            return results
         for i, this_event in enumerate(self.contents[day]):
             if this_event.hash() == this_hash:
                 results['duplicate'].append(i)
