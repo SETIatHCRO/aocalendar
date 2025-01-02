@@ -8,7 +8,7 @@ ap.add_argument('calfile', help="Calfile/date to use.", nargs='?', default='now'
 ap.add_argument('--path', help="Path to use", default='getenv')
 ap.add_argument('--output', help="Logging output level", default='INFO')
 # Actions
-ap.add_argument('-l', '--list', help="List contents of day", action='store_true')
+ap.add_argument('-l', '--list', help="List events of day", action='store_true')
 ap.add_argument('-e', '--show_entry', help="Show an entry # on date", default=False)
 ap.add_argument('-g', '--graph', help="Graph calendar day", action='store_true')
 ap.add_argument('-a', '--add', help="Add an entry", action='store_true')
@@ -42,9 +42,9 @@ if args.quick:
     args.add = True
 
 if args.list:
-    print(aoc.format_day_contents(day=args.calfile, cols='all', return_as='table'))
+    print(aoc.format_day_events(day=args.calfile, cols='all', return_as='table'))
 if args.show_entry:
-    print(aoc.contents[args.calfile][int(args.show_entry)])
+    print(aoc.events[args.calfile][int(args.show_entry)])
 if args.graph:
     print(aoc.graph_day(day=args.calfile, interval_min=10.0))
     print("\n\n")

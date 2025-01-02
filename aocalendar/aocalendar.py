@@ -158,7 +158,7 @@ class Calendar:
         #ch.setFormatter(formatter)
         #logger.addHandler(ch)
         #
-        self.read_calendar_contents(calfile=str(calfile), path=path)
+        self.read_calendar_events(calfile=str(calfile), path=path)
         logger.info(f"{__name__} ver. {__version__}")
     
     def __get_calfile(self, calfile, path):
@@ -206,7 +206,7 @@ class Calendar:
         self.calfile_fullpath = op.join(path, calfile)
         self.refdate = refdate
 
-    def read_calendar_contents(self, calfile, path='getenv', skip_duplicates=True):
+    def read_calendar_events(self, calfile, path='getenv', skip_duplicates=True):
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
 
@@ -221,7 +221,7 @@ class Calendar:
 
         Attributes
         ----------
-        contents : dict
+        events : dict
             Contents of file
         straddle : dict
             Extra info for entries straddling a day
@@ -231,7 +231,7 @@ class Calendar:
             List of all entry hashes
 
         """
-        self.contents = {}
+        self.events = {}
         self.straddle = {}
         self.all_fields = []
         self.all_hash = []
@@ -249,7 +249,7 @@ class Calendar:
                 setattr(self, key, entries)
             else:
                 keydate = Time(key)
-                self.contents.setdefault(key, [])
+                self.events.setdefault(key, [])
                 for i, event in enumerate(entries):
                     this_event = Entry(**event)
                     if isinstance(this_event.fields, dict):
@@ -271,8 +271,8 @@ class Calendar:
                         logger.info(f"{keystr} in wrong day.")
                     else:
                         keystr = keydate.datetime.strftime("%Y-%m-%d")
-                    self.contents.setdefault(keystr, [])
-                    self.contents[keystr].append(this_event)
+                    self.events.setdefault(keystr, [])
+                    self.events[keystr].append(this_event)
                     endkeystr = this_event.utc_stop.datetime.strftime("%Y-%m-%d")
                     if endkeystr != keystr:
                         self.straddle.setdefault(endkeystr, [])
@@ -282,19 +282,19 @@ class Calendar:
         if calfile is None:
             calfile = self.calfile_fullpath
         logger.info(f"Writing {calfile}")
-        full_contents = {}
+        full_events = {}
         for md in self.meta_fields:
             if md == 'updated':
                 self.updated = Time.now().datetime.isoformat(timespec='seconds')
-            full_contents[md] = getattr(self, md)
-        for key, val in self.contents.items():
-            full_contents[key] = []
+            full_events[md] = getattr(self, md)
+        for key, val in self.events.items():
+            full_events[key] = []
             for event in val:
-                full_contents[key].append(event.todict(printable=True))
-            if not len(full_contents[key]):
-                del(full_contents[key])
+                full_events[key].append(event.todict(printable=True))
+            if not len(full_events[key]):
+                del(full_events[key])
         with open(calfile, 'w') as fp:
-           json.dump(full_contents, fp, indent=2)
+           json.dump(full_events, fp, indent=2)
 
     def __sort_day(self, day):
         day = aoc_tools.interp_date(day)
@@ -305,8 +305,8 @@ class Calendar:
                 key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = copy(event)
                 offset += 1
-        if day in self.contents:
-            for i, event in enumerate(self.contents[day]):
+        if day in self.events:
+            for i, event in enumerate(self.events[day]):
                 key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = {'event': copy(event), 'index': i}
         sorted_day = []
@@ -316,7 +316,7 @@ class Calendar:
             keymap[i] = sorted_dict[key]['index']
         return sorted_day, offset, keymap
 
-    def format_day_contents(self, day='today', cols='short', return_as='table'):
+    def format_day_events(self, day='today', cols='short', return_as='table'):
         if cols == 'all':
             cols = self.all_fields
         elif cols == 'short':
@@ -425,8 +425,8 @@ class Calendar:
             suf = 'y' if len(results['conflict']) == 1 else 'ies'
             logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
         day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
-        self.contents.setdefault(day, [])
-        self.contents[day].append(this_event)
+        self.events.setdefault(day, [])
+        self.events[day].append(this_event)
         self.all_hash.append(this_hash)                
         if not this_event.valid:
             logger.warning(f"Entry invalid:\n{this_event.msg}")
@@ -444,7 +444,7 @@ class Calendar:
         """
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
-            del(self.contents[day][nind])
+            del(self.events[day][nind])
             return True
         except (KeyError, IndexError):
             logger.warning(f"Invalid entry: {day}, {nind}")
@@ -463,12 +463,12 @@ class Calendar:
         """
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
-            self.contents[day][nind].update(**kwargs)
-            self.recent = self.contents[day][nind]
+            self.events[day][nind].update(**kwargs)
+            self.recent = self.events[day][nind]
         except (KeyError, IndexError):
             logger.warning(f"{day}, {nind} not found.")
             return False
-        this_hash = self.contents[day][nind].hash()
+        this_hash = self.events[day][nind].hash()
         if this_hash in self.all_hash:
             logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
@@ -561,9 +561,9 @@ class Calendar:
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
         this_hash = check_event.hash()
         results = {'duplicate': [], 'conflict': []}
-        if day not in self.contents:
+        if day not in self.events:
             return results
-        for i, this_event in enumerate(self.contents[day]):
+        for i, this_event in enumerate(self.events[day]):
             if this_event.hash() == this_hash:
                 results['duplicate'].append(i)
                 if is_new:

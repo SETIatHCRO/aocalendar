@@ -43,8 +43,14 @@ class AOCalendarApp(tkinter.Tk):
         # Calendar
         self.frame_calendar.grid(row=0, column=0)
         self.tkcal = Calendar(self.frame_calendar, selectmode='day', year=self.refdate.year, month=self.refdate.month, day=self.refdate.day,
-                              font="Arial 18", showweeknumbers=False, foreground='black', selectforeground='red')
+                              font="Arial 18", showweeknumbers=False, foreground='grey', selectforeground='blue', firstweekday='sunday')
         self.tkcal.grid(row=0, column=0)
+
+        for day, events in self.this_cal.events.items():
+            for event in events:
+                label = f"{event.name}:{event.pid}"
+                self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
+        self.tkcal.tag_config('obs', foreground='red')
 
         # Buttons
         self.frame_buttons.grid(row=1, column=0)    
@@ -74,7 +80,7 @@ class AOCalendarApp(tkinter.Tk):
         self.reset()
 
     def refresh(self):
-        self.this_cal.read_calendar_contents(calfile='refresh')
+        self.this_cal.read_calendar_events(calfile='refresh')
 
     def reset(self):
         self.aoc_action = ''
@@ -85,11 +91,12 @@ class AOCalendarApp(tkinter.Tk):
         self.aoc_nind = 0
 
     def show_date(self, datestr=None):
+        #print(self.tkcal.selection_get())
         if datestr is None:
             datestr = t2iso(self.tkcal.get_date())
         entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
-            entry += self.this_cal.format_day_contents(datestr, return_as='table')
+            entry += self.this_cal.format_day_events(datestr, return_as='table')
             entry += self.this_cal.graph_day(datestr, interval_min=15.0)
         except KeyError:
             entry += "No entry."
@@ -192,7 +199,7 @@ class AOCalendarApp(tkinter.Tk):
             return
         self.day, self.nind = entry.split(',')
         self.nind = int(self.nind)
-        this_entry = self.this_cal.contents[self.day][self.nind]
+        this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
         self.event_fields('Delete')
@@ -205,7 +212,7 @@ class AOCalendarApp(tkinter.Tk):
             return
         self.day, self.nind = entry.split(',')
         self.nind = int(self.nind)
-        this_entry = self.this_cal.contents[self.day][self.nind]
+        this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
         self.event_fields('Update')
@@ -257,7 +264,7 @@ class AOCalendarApp(tkinter.Tk):
         self.aoc_action = 'schedule'
         self.day = day
         self.nind = -1
-        this_entry = self.this_cal.contents[self.day][self.nind]
+        this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             thisef = getattr(this_entry, field)
             if thisef is None: thisef = ''
