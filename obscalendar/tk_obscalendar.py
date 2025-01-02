@@ -111,17 +111,20 @@ class ObservingCalendarApp(tkinter.Tk):
             }
         if self.aoc_action == 'add':
             self.day = cal_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
-            self.this_cal.add(**kwargs)
+            is_ok = self.this_cal.add(**kwargs)
         elif self.aoc_action in ['update', 'schedule']:
-            self.this_cal.update(day=self.day, nind=self.nind, **kwargs)
+            is_ok = self.this_cal.update(day=self.day, nind=self.nind, **kwargs)
         elif self.aoc_action == 'delete':
-            self.this_cal.delete(day=self.day, nind=self.nind)
-        self.show_date(self.day)
-        yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
-        if yn == 'yes' :
-            self.this_cal.write_calendar()
-        else :
-            messagebox.showinfo('Return', 'Not writing new calendar.')
+            is_ok = self.this_cal.delete(day=self.day, nind=self.nind)
+        if is_ok:
+            self.show_date(self.day)
+            yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
+            if yn == 'yes':
+                self.this_cal.write_calendar()
+            else:
+                messagebox.showinfo('Return', 'Not writing new calendar.')
+        else:
+            print("Did not succeed.")
 
     def event_fields(self, gobutton):
         name_label = tkinter.Label(self.frame_update, text='Name')

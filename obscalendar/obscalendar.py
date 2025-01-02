@@ -26,12 +26,32 @@ DAYSEC = 24 * 3600
 
 
 def aoc_entry(path='getenv', output='ERROR', **kwargs):
+    """
+    Simple access to AOCalendar to add entry.
+
+    Parameters
+    ----------
+    path : str
+        Path to use.  Default retrieves OBSCALENDAR from environment
+    output : str
+        Logging output to use.  Defaule is ERROR
+    kwargs : fields for entry.  Must have at least utc_start, utc_stop and one more.
+
+    Returns
+    -------
+    bool if successfully added or not
+
+    """
+    if 'utc_start' not in kwargs:
+        logger.error("utc_start not included.")
+        return False
     cal = Calendar(kwargs['utc_start'], path=path, output=output)
-    cal.add(**kwargs)
-    if cal.recent.valid:
+    is_added = cal.add(**kwargs)
+    if is_added and cal.recent.valid:
+        logger.info(cal.recent)
         cal.write_calendar()
         return True
-    logger.error(f"Entry add was invalid.\n{cal.recent.msg}")
+    logger.error(f"Entry add was unsuccessful.\n{cal.recent.msg}")
     return False
 
 
@@ -99,17 +119,28 @@ class Entry:
         entry = {}
         for col in self.fields:
             if printable and col in ['utc_start', 'utc_stop']:
-                entry[col] = getattr(self, col).datetime.isoformat(timespec='seconds')
+                try:
+                    entry[col] = getattr(self, col).datetime.isoformat(timespec='seconds')
+                except AttributeError:
+                    entry[col] = "INVALID"
             elif printable and col in ['lst_start', 'lst_stop']:
-                hms = getattr(self, col).hms
-                entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
+                try:
+                    hms = getattr(self, col).hms
+                    entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
+                except AttributeError:
+                    entry[col] = "INVALID"
             else:
                 entry[col] = str(getattr(self, col))
         return entry
 
     def update_lst(self):
-        self.utc_start = Time(self.utc_start)
-        self.utc_stop = Time(self.utc_stop)
+        try:
+            self.utc_start = Time(self.utc_start)
+            self.utc_stop = Time(self.utc_stop)
+        except ValueError:
+            self.valid = False
+            self.msg += '\nNo LST, unable to make Time'
+            return
         obstimes = Time([self.utc_start, self.utc_stop])
         self.lst_start, self.lst_stop = obstimes.sidereal_time('mean', longitude=ATA)
 
@@ -118,15 +149,14 @@ class Calendar:
     meta_fields = ['updated']
 
     def __init__(self, calfile='now', path='getenv', output='INFO'):
-        # All this seems to be needed.
+        # All this seems to be needed?
         level = getattr(logging, output.upper())
         logger.setLevel(level)
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
-        logger.addHandler(ch)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
+        #ch = logging.StreamHandler()
+        #ch.setLevel(level)
+        #formatter = logging.Formatter('%(levelname)s - %(message)s')
+        #ch.setFormatter(formatter)
+        #logger.addHandler(ch)
         #
         self.read_calendar_contents(calfile=str(calfile), path=path)
         logger.info(f"{__name__} ver. {__version__}")
@@ -387,21 +417,20 @@ class Calendar:
         self.recent = this_event
         this_hash = this_event.hash()
         results = self.conflicts(this_event, is_new=True)
-        skip = False
         if len(results['duplicate']):
             suf = 'y' if len(results['duplicate']) == 1 else 'ies'
-            logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
-            skip = True
-        elif len(results['conflict']):
+            logger.warning(f"Not adding -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
+            return False
+        if len(results['conflict']):
             suf = 'y' if len(results['conflict']) == 1 else 'ies'
             logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
-        if not skip:
-            day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
-            self.contents.setdefault(day, [])
-            self.contents[day].append(this_event)
-            self.all_hash.append(this_hash)                
-            if not this_event.valid:
-                logger.warning(f"Entry invalid:\n{this_event.msg}")
+        day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
+        self.contents.setdefault(day, [])
+        self.contents[day].append(this_event)
+        self.all_hash.append(this_hash)                
+        if not this_event.valid:
+            logger.warning(f"Entry invalid:\n{this_event.msg}")
+        return True
 
     def delete(self, day, nind):
         """
@@ -416,8 +445,10 @@ class Calendar:
         day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
             del(self.contents[day][nind])
+            return True
         except (KeyError, IndexError):
             logger.warning(f"Invalid entry: {day}, {nind}")
+            return False
 
     def update(self, day, nind, **kwargs):
         """
@@ -436,16 +467,24 @@ class Calendar:
             self.recent = self.contents[day][nind]
         except (KeyError, IndexError):
             logger.warning(f"{day}, {nind} not found.")
+            return False
         this_hash = self.contents[day][nind].hash()
         if this_hash in self.all_hash:
             logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
             self.all_hash.append(this_hash)
+        return True
 
     def add_from_file(self, file_name, sep='auto'):
         data = cal_tools.read_data_file(file_name=file_name, sep=sep)
+        added, rejected = 0, 0
         for entry in data:
-            self.edit('add', **entry)
+            is_ok = self.add(**entry)
+            if is_ok:
+                added += 1
+            else:
+                rejected += 1
+        logger.info(f"Added {added} and rejected {rejected}")
 
     def recurring(self):
         print("RECURRING")
