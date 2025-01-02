@@ -7,14 +7,14 @@ from setuptools import setup
 import glob
 
 setup_args = {
-    'name': "obscalendar",
-    'description': "Observation Calendar",
+    'name': "aocalendar",
+    'description': "ATA Observation Calendar",
     'license': "MIT",
     'author': "David DeBoer",
     'author_email': "david.r.deboer@gmail.edu",
     'version': '0.1.0',
     'scripts': glob.glob('scripts/*'),
-    'packages': ['obscalendar']
+    'packages': ['aocalendar']
 }
 
 if __name__ == '__main__':
