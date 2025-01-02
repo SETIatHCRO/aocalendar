@@ -1,4 +1,4 @@
 from importlib.metadata import version
-__version__ = version('obscalendar')
+__version__ = version('aocalendar')
 
-from . import obscalendar
+from . import aocalendar

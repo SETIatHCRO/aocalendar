@@ -12,7 +12,7 @@ def t2iso(t):
     mn, dy, yr = [int(x) for x in mdy]
     return f"20{yr:02d}-{mn:02d}-{dy:02d}"
 
-class ObservingCalendarApp(tkinter.Tk):
+class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
         self.title("Allen Telescope Array Observing Calendar")
