@@ -15,6 +15,7 @@ from . import __version__, cal_tools
 
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(levelname)s - %(message)s")
 
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
 ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
@@ -150,10 +151,9 @@ class Calendar:
 
     def __init__(self, calfile='now', path='getenv', output='INFO'):
         # All this seems to be needed?
-        level = getattr(logging, output.upper())
-        logger.setLevel(level)
-        #ch = logging.StreamHandler()
-        #ch.setLevel(level)
+        logger.setLevel(output.upper())
+        ch = logging.StreamHandler()
+        ch.setLevel(output.upper())
         #formatter = logging.Formatter('%(levelname)s - %(message)s')
         #ch.setFormatter(formatter)
         #logger.addHandler(ch)
