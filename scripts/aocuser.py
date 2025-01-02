@@ -19,7 +19,7 @@ ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length star
 ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=1.0)
 # Event fields
 ap.add_argument('-n', '--name', help="Event field", default=None)
-ap.add_argument('-i', '--id', help="Event field", default=None)
+ap.add_argument('-p', '--pid', help="Event field", default=None)
 ap.add_argument('--utc_start', help="Event field", default=None)
 ap.add_argument('--utc_stop', help="Event field", default=None)
 ap.add_argument('--observer', help="Event field", default=None)

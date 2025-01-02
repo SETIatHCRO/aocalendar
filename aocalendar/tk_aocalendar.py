@@ -101,7 +101,7 @@ class AOCalendarApp(tkinter.Tk):
         if self.aoc_action in ['add', 'update', 'schedule']:
             kwargs = {
                 'name': self.name_entry.get(),
-                'ID': self.ID_entry.get(),
+                'pid': self.pid_entry.get(),
                 'utc_start': self.start_entry.get(),
                 'utc_stop': self.stop_entry.get(),
                 'state': self.state_entry.get(),
@@ -132,11 +132,11 @@ class AOCalendarApp(tkinter.Tk):
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
         self.name_entry.insert(0, self.aoc_field_defaults['name'])
-        ID_label = tkinter.Label(self.frame_update, text='ID')
-        ID_label.grid(row=0, column=2)
-        self.ID_entry = tkinter.Entry(self.frame_update)
-        self.ID_entry.grid(row=0, column=3)
-        self.ID_entry.insert(0, self.aoc_field_defaults['ID'])
+        pid_label = tkinter.Label(self.frame_update, text='pid')
+        pid_label.grid(row=0, column=2)
+        self.pid_entry = tkinter.Entry(self.frame_update)
+        self.pid_entry.grid(row=0, column=3)
+        self.pid_entry.insert(0, self.aoc_field_defaults['pid'])
 
         start_label = tkinter.Label(self.frame_update, text='UTC start')
         start_label.grid(row=1, column=0)
@@ -215,10 +215,10 @@ class AOCalendarApp(tkinter.Tk):
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
-        ID_label = tkinter.Label(self.frame_update, text='ID')
-        ID_label.grid(row=0, column=2)
-        self.ID_entry = tkinter.Entry(self.frame_update)
-        self.ID_entry.grid(row=0, column=3)
+        pid_label = tkinter.Label(self.frame_update, text='pid')
+        pid_label.grid(row=0, column=2)
+        self.pid_entry = tkinter.Entry(self.frame_update)
+        self.pid_entry.grid(row=0, column=3)
 
         ra_label = tkinter.Label(self.frame_update, text='RA')
         ra_label.grid(row=1, column=0)
@@ -246,12 +246,12 @@ class AOCalendarApp(tkinter.Tk):
 
     def doschedule(self):
         name = self.name_entry.get()
-        id = self.ID_entry.get()
+        pid = self.pid_entry.get()
         ra = self.ra_entry.get()
         dec = self.dec_entry.get()
         day = self.day_entry.get()
         duration = self.duration_entry.get()
-        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration), name=name, ID=id)
+        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration), name=name, pid=pid)
         self.reset()
         self.show_date(day)
         self.aoc_action = 'schedule'

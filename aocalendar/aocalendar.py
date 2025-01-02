@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(levelname)s - %(message)s")
 
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
-ENTRY_FIELDS = {'name': "Name", 'ID': "ID",
+ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'AOCALENDAR'
-SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
+SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 DAYSEC = 24 * 3600
 
 
