@@ -4,9 +4,9 @@ ATA Observing calendar - calendar info is in json files delineated by year, e.g.
 
 ## Three ways to use
 
-- from aocalendar import aocalendar
+- `from aocalendar import aocalendar`
     provides access to all methods (see the script `aocuser.py` for examples)
-    Can use simple 'add' function `aocalendar.aoc\_entry` or make the \<class\> `aocalendar.Calendar`
+    Can use simple 'add' function `aocalendar.aoc_entry` or make the \<class\> `aocalendar.Calendar`
 
 - command line using `aocuser.py`
 
