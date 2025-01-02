@@ -1,4 +1,8 @@
 #! /usr/bin/env python
+# -*- mode: python; coding: utf-8 -*-
+# Copyright 2025 David R DeBoer
+# Licensed under the MIT license.
+
 import argparse
 from aocalendar import aocalendar
 

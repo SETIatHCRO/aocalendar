@@ -1,3 +1,7 @@
+# -*- mode: python; coding: utf-8 -*-
+# Copyright 2025 David R DeBoer
+# Licensed under the MIT license.
+
 from astropy.time import Time, TimeDelta
 
 

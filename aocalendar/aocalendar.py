@@ -1,3 +1,7 @@
+# -*- mode: python; coding: utf-8 -*-
+# Copyright 2025 David R DeBoer
+# Licensed under the MIT license.
+
 import json
 from astropy.time import Time, TimeDelta
 from datetime import datetime
@@ -57,6 +61,7 @@ def aoc_entry(path='getenv', output='ERROR', **kwargs):
 
 
 def cull_args(**kwargs):
+    """Remove non-Entry keys"""
     newkw = {}
     for key, val in kwargs.items():
         if key in ENTRY_FIELDS:
@@ -86,6 +91,7 @@ class Entry:
         return s
 
     def update(self, **kwargs):
+        """Update an entry using the supplied kwargs."""
         self.msg, kwctr, self.valid = [], 0, True
         for key, val in kwargs.items():
             if key in self.fields:
@@ -107,16 +113,37 @@ class Entry:
         self.update_lst()
 
     def row(self, cols='all', printable=True):
+        """
+        Return the entry as a list.
+
+        Parameters
+        ----------
+        cols : list or 'all'
+            Columns to include
+        printable : bool
+            Flag to make the entries all str
+
+        """
         if cols == 'all': cols = self.fields
         entry = self.todict(printable=printable)
         row = [entry[col] for col in cols]
         return row
     
     def hash(self):
+        """Return the hash of the entire."""
         txt = ''.join(self.row(cols='all', printable=True)).encode('utf-8')
         return sha256(txt).hexdigest()[:10]
     
     def todict(self, printable=True):
+        """
+        Return the dictionary of an event.
+
+        Parameter
+        ---------
+        printable : bool
+            Flag to make entries printable str
+
+        """
         entry = {}
         for col in self.fields:
             if printable and col in ['utc_start', 'utc_stop']:
@@ -135,6 +162,7 @@ class Entry:
         return entry
 
     def update_lst(self):
+        """Update the LSTs."""
         try:
             self.utc_start = Time(self.utc_start)
             self.utc_stop = Time(self.utc_stop)
@@ -279,6 +307,15 @@ class Calendar:
                         self.straddle[endkeystr].append(this_event)
 
     def write_calendar(self, calfile=None):
+        """
+        Write the calendar out to a file.
+
+        Parameter
+        ---------
+        calfile : str or None
+            If None, use self.calfile_fullpath
+
+        """
         if calfile is None:
             calfile = self.calfile_fullpath
         logger.info(f"Writing {calfile}")
@@ -317,6 +354,19 @@ class Calendar:
         return sorted_day, offset, keymap
 
     def format_day_events(self, day='today', cols='short', return_as='table'):
+        """
+        Return a formatted table or array of the events on a day.
+
+        Parameters
+        ----------
+        day : str/Time/etc
+            Day to use.
+        cols : str/list
+            Columns to use or 'all' or 'short'
+        return_as : str
+            Return as 'table' or 'list'
+
+        """
         if cols == 'all':
             cols = self.all_fields
         elif cols == 'short':
@@ -334,6 +384,14 @@ class Calendar:
 
         Parameters
         ----------
+        day : str/Time/etc
+            Day to use
+        header_col : str
+            header to use
+        tz : str
+            timezone to use for extra line tz or 'sys'
+        interval_min : float
+            interval for graph in min
 
         """
         if tz == 'sys':
@@ -558,6 +616,21 @@ class Calendar:
         logger.warning("Now should edit down the scheduled observation times!")
 
     def conflicts(self, check_event, is_new=False):
+        """
+        Check an event for conflicts.
+
+        Parameters
+        ----------
+        check_event : Entry
+            Entry to check
+        is_new : bool
+            Flag to alert that this entry is not yet in the calendar for duplicate check.
+
+        Return
+        ------
+        dict : results with keys 'duplcate' and 'conflict'
+
+        """
         day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
         this_hash = check_event.hash()
         results = {'duplicate': [], 'conflict': []}
