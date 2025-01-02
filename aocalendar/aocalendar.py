@@ -11,7 +11,7 @@ from os import path as op
 from hashlib import sha256
 from numpy import floor, round
 from numpy import where as npwhere
-from . import __version__, cal_tools
+from . import __version__, aoc_tools
 
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ class Calendar:
         Parameters
         ----------
         calfile : str
-            calfile or something interpretable by cal_tools.interp_date
+            calfile or something interpretable by aoc_tools.interp_date
         path : str
             path or 'getenv' - if calfile has path, gets overwritten
 
@@ -195,7 +195,7 @@ class Calendar:
             except ValueError:
                 refdate = Time.now()
         else:
-            refdate = cal_tools.interp_date(calfile, 'Time')
+            refdate = aoc_tools.interp_date(calfile, 'Time')
             calfile = f"cal{refdate.datetime.year}.json"
         if path == 'getenv':
             from os import getenv
@@ -266,7 +266,7 @@ class Calendar:
                         self.all_hash.append(this_hash)
                     if not this_event.valid:
                         logger.warning(f"Entry {key}:{i} invalid")
-                    if not cal_tools.same_date(keydate, this_event.utc_start, timespec='day'):
+                    if not aoc_tools.same_date(keydate, this_event.utc_start, timespec='day'):
                         keystr = this_event.utc_start.datetime.strftime("%Y-%m-%d")
                         logger.info(f"{keystr} in wrong day.")
                     else:
@@ -297,7 +297,7 @@ class Calendar:
            json.dump(full_contents, fp, indent=2)
 
     def __sort_day(self, day):
-        day = cal_tools.interp_date(day)
+        day = aoc_tools.interp_date(day)
         sorted_dict = {}
         offset = 0
         if day in self.straddle:
@@ -340,7 +340,7 @@ class Calendar:
             import time
             gmt = time.gmtime()
             tz = time.tzname[gmt.tm_isdst]
-        tzoff = cal_tools.TIMEZONE[tz]
+        tzoff = aoc_tools.TIMEZONE[tz]
         sorted_day, offset, keymap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
@@ -349,7 +349,7 @@ class Calendar:
         colhdr = [f"{cbuflt*' '}{keymap[i]+offset:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
-        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         start_of_day = Time(day)
         end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
         interval_sec = interval_min * 60.0
@@ -442,7 +442,7 @@ class Calendar:
             Index number of that day
 
         """
-        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
             del(self.contents[day][nind])
             return True
@@ -461,7 +461,7 @@ class Calendar:
         kwargs : fields to add
 
         """
-        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
             self.contents[day][nind].update(**kwargs)
             self.recent = self.contents[day][nind]
@@ -476,7 +476,7 @@ class Calendar:
         return True
 
     def add_from_file(self, file_name, sep='auto'):
-        data = cal_tools.read_data_file(file_name=file_name, sep=sep)
+        data = aoc_tools.read_data_file(file_name=file_name, sep=sep)
         added, rejected = 0, 0
         for entry in data:
             is_ok = self.add(**entry)
@@ -500,7 +500,7 @@ class Calendar:
         dec : float/int/str
             Dec in degrees (can be a string interpretable by astropy Angles)
         day : str/Time
-            Day of observation (UTC).  Interpreted by cal_tools.interp_dates
+            Day of observation (UTC).  Interpreted by aoc_tools.interp_dates
         duration : float
             Length of observation in hours
         el_limit : float
@@ -509,7 +509,7 @@ class Calendar:
             Other calendar Event fields
 
         """
-        day = cal_tools.interp_date(day, fmt='Time')
+        day = aoc_tools.interp_date(day, fmt='Time')
         try:
             ra = float(ra)
             ra = ra * u.hourangle

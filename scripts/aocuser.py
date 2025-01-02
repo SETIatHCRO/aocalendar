@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import argparse
-from obscalendar import obscalendar
+from aocalendar import aocalendar
 
 
 ap = argparse.ArgumentParser()
@@ -32,13 +32,13 @@ args = ap.parse_args()
 if args.add:
     args.calfile = args.utc_start
 
-aoc = obscalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
-kwargs = obscalendar.cull_args(**vars(args))
+aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
+kwargs = aocalendar.cull_args(**vars(args))
 
 if args.quick:
-    from obscalendar import cal_tools
-    args.utc_start = cal_tools.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
-    args.utc_stop = cal_tools.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
+    from aocalendar import aoc_tools
+    args.utc_start = aoc_tools.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_stop = aoc_tools.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
     args.add = True
 
 if args.list:

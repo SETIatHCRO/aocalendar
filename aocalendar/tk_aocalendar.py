@@ -4,7 +4,7 @@ import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from aocalendar import aocalendar
-from . import cal_tools
+from . import aoc_tools
 
 
 def t2iso(t):
@@ -110,7 +110,7 @@ class AOCalendarApp(tkinter.Tk):
                 'email': self.email_entry.get()
             }
         if self.aoc_action == 'add':
-            self.day = cal_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
+            self.day = aoc_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
             is_ok = self.this_cal.add(**kwargs)
         elif self.aoc_action in ['update', 'schedule']:
             is_ok = self.this_cal.update(day=self.day, nind=self.nind, **kwargs)
