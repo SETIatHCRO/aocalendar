@@ -25,6 +25,16 @@ SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'o
 DAYSEC = 24 * 3600
 
 
+def aoc_entry(path='getenv', output='ERROR', **kwargs):
+    cal = Calendar(kwargs['utc_start'], path=path, output=output)
+    cal.add(**kwargs)
+    if cal.recent.valid:
+        cal.write_calendar()
+        return True
+    logger.error(f"Entry add was invalid.\n{cal.recent.msg}")
+    return False
+
+
 def cull_args(**kwargs):
     newkw = {}
     for key, val in kwargs.items():
@@ -62,8 +72,6 @@ class Entry:
                     kwctr += 1
                 if val is not None:
                     setattr(self, key, val)
-            elif key not in self.meta_fields:
-                self.msg.append(f"{key} not valid field")
         for key in ['utc_start', 'utc_stop']:
             try:
                 setattr(self, key, Time(getattr(self, key)))
@@ -376,6 +384,7 @@ class Calendar:
 
         """
         this_event = Entry(**kwargs)
+        self.recent = this_event
         this_hash = this_event.hash()
         results = self.conflicts(this_event, is_new=True)
         skip = False
@@ -424,6 +433,7 @@ class Calendar:
         day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
             self.contents[day][nind].update(**kwargs)
+            self.recent = self.contents[day][nind]
         except (KeyError, IndexError):
             logger.warning(f"{day}, {nind} not found.")
         this_hash = self.contents[day][nind].hash()
