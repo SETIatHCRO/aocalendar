@@ -25,9 +25,12 @@ SHORT_LIST = ['name', 'ID', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'o
 DAYSEC = 24 * 3600
 
 
-def split_entry(entry):
-    key, n = entry.split(':')
-    return key, int(n)
+def cull_args(**kwargs):
+    newkw = {}
+    for key, val in kwargs.items():
+        if key in ENTRY_FIELDS:
+            newkw[key] = val
+    return newkw
 
 
 class Entry:
@@ -365,56 +368,69 @@ class Calendar:
         ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
 
-    def edit(self, action, entry=None, **kwargs):
+    def add(self, **kwargs):
         """
         Parameters
         ----------
-        action : str
-            One of 'add', 'delete', 'update
-        entry : str
-            If 'delete' or 'update' then 'YYYY-MM-DD:#'
+        kwargs : fields to add
 
         """
-        if action == 'add':
-            this_event = Entry(**kwargs)
-            this_hash = this_event.hash()
-            results = self.conflicts(this_event, is_new=True)
-            skip = False
-            if len(results['duplicate']):
-                suf = 'y' if len(results['duplicate']) == 1 else 'ies'
-                logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
-                skip = True
-            elif len(results['conflict']):
-                suf = 'y' if len(results['conflict']) == 1 else 'ies'
-                logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
-            if not skip:
-                day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
-                self.contents.setdefault(day, [])
-                self.contents[day].append(this_event)
-                self.all_hash.append(this_hash)                
-                if not this_event.valid:
-                    logger.warning(f"Entry invalid:\n{this_event.msg}")
-        elif action == 'delete':
-            day, entrynum = split_entry(entry)
-            day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
-            try:
-                del(self.contents[day][entrynum])
-            except (KeyError, IndexError):
-                logger.warning(f"Invalid entry: {entry}")
-        elif action == 'update':
-            day, entrynum = split_entry(entry)
-            day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
-            try:
-                self.contents[day][entrynum].update(**kwargs)
-            except (KeyError, IndexError):
-                logger.warning(f"{entry} not found.")
-            this_hash = self.contents[day][entrynum].hash()
-            if this_hash in self.all_hash:
-                logger.warning(f"You made {entry} a duplicate.")
-            else:
-                self.all_hash.append(this_hash)
+        this_event = Entry(**kwargs)
+        this_hash = this_event.hash()
+        results = self.conflicts(this_event, is_new=True)
+        skip = False
+        if len(results['duplicate']):
+            suf = 'y' if len(results['duplicate']) == 1 else 'ies'
+            logger.warning(f"Not addiing -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
+            skip = True
+        elif len(results['conflict']):
+            suf = 'y' if len(results['conflict']) == 1 else 'ies'
+            logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
+        if not skip:
+            day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
+            self.contents.setdefault(day, [])
+            self.contents[day].append(this_event)
+            self.all_hash.append(this_hash)                
+            if not this_event.valid:
+                logger.warning(f"Entry invalid:\n{this_event.msg}")
+
+    def delete(self, day, nind):
+        """
+        Parameters
+        ----------
+        day : str, etc
+            Day input for interp_date
+        nind : int
+            Index number of that day
+
+        """
+        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
+        try:
+            del(self.contents[day][nind])
+        except (KeyError, IndexError):
+            logger.warning(f"Invalid entry: {day}, {nind}")
+
+    def update(self, day, nind, **kwargs):
+        """
+        Parameters
+        ----------
+        day : str, etc
+            Day input for interp_date
+        nind : int
+            Index number of that day
+        kwargs : fields to add
+
+        """
+        day = cal_tools.interp_date(day, fmt='%Y-%m-%d')
+        try:
+            self.contents[day][nind].update(**kwargs)
+        except (KeyError, IndexError):
+            logger.warning(f"{day}, {nind} not found.")
+        this_hash = self.contents[day][nind].hash()
+        if this_hash in self.all_hash:
+            logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
-            logger.warning(f"Invalid edit action: {action}")
+            self.all_hash.append(this_hash)
 
     def add_from_file(self, file_name, sep='auto'):
         data = cal_tools.read_data_file(file_name=file_name, sep=sep)
@@ -489,7 +505,7 @@ class Calendar:
         kwargs.setdefault('note', '')
         if not isinstance(kwargs['note'], str): kwargs['note'] = radec
         else: kwargs['note'] += f" -- {radec}"
-        self.edit('add', **kwargs)
+        self.add(**kwargs)
         logger.warning("Now should edit down the scheduled observation times!")
 
     def conflicts(self, check_event, is_new=False):

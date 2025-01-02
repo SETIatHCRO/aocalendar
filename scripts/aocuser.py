@@ -9,12 +9,12 @@ ap.add_argument('--path', help="Path to use", default='getenv')
 ap.add_argument('--output', help="Logging output level", default='INFO')
 # Actions
 ap.add_argument('-l', '--list', help="List contents of day", action='store_true')
-ap.add_argument('-e', '--entry', help="Show an entry # on date", default=False)
+ap.add_argument('-e', '--show_entry', help="Show an entry # on date", default=False)
 ap.add_argument('-g', '--graph', help="Graph calendar day", action='store_true')
 ap.add_argument('-a', '--add', help="Add an entry", action='store_true')
 ap.add_argument('-u', '--update', help="Update an entry # on date", default=False)
 ap.add_argument('-d', '--delete', help="Delete an entry # on date", default=False)
-ap.add_argument('-s', '--schedule', help="Schedule ra,dec and set duration observation", default=False)
+ap.add_argument('-s', '--schedule', help="Schedule ra,dec and set duration of observation", default=False)
 ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length starting now (at least add -n...)", default=False)
 ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=1.0)
 # Event fields
@@ -33,6 +33,7 @@ if args.add:
     args.calfile = args.utc_start
 
 aoc = obscalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
+kwargs = obscalendar.cull_args(**vars(args))
 
 if args.quick:
     from obscalendar import cal_tools
@@ -42,26 +43,21 @@ if args.quick:
 
 if args.list:
     print(aoc.format_day_contents(day=args.calfile, cols='all', return_as='table'))
-if args.entry:
-    print(aoc.contents[args.calfile][int(args.entry)])
+if args.show_entry:
+    print(aoc.contents[args.calfile][int(args.show_entry)])
 if args.graph:
     print(aoc.graph_day(day=args.calfile, interval_min=10.0))
     print("\n\n")
 if args.add:
-    aoc.edit('add', **vars(args))
+    aoc.add(**kwargs)
     aoc.write_calendar()
 if args.update:
-    entry_num = f"{args.calfile}:{args.update}"
-    aoc.edit('update', entry=entry_num, **vars(args))
+    aoc.update(day=args.calfile, nind=int(args.update), **kwargs)
     aoc.write_calendar()
 if args.delete:
-    entry_num = f"{args.calfile}:{args.delete}"
-    aoc.edit('delete', entry=entry_num)
+    aoc.delete(day=args.calfile, nind=int(args.delete))
     aoc.write_calendar()
 if args.schedule:
-    from copy import copy
     ra, dec = args.schedule.split(',')
-    kwargs = copy(vars(args))
-    del(kwargs['duration'])
     aoc.schedule(ra=ra, dec=dec, day=args.calfile, duration=float(args.duration), **kwargs)
     aoc.write_calendar()

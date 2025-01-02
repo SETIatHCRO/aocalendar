@@ -4,6 +4,7 @@ import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from obscalendar import obscalendar
+from . import cal_tools
 
 
 def t2iso(t):
@@ -64,19 +65,28 @@ class ObservingCalendarApp(tkinter.Tk):
 
         # Info
         self.frame_info.grid(row=2, column=0)
-        self.reset()
         info_text = tkinter.Text(self.frame_info)
         info_text.grid(row=0, column=0, columnspan=4)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
 
         # Update
         self.frame_update.grid(row=3, column=0)
+        self.reset()
 
     def refresh(self):
         self.this_cal.read_calendar_contents(calfile='refresh')
 
-    def show_date(self):
-        datestr = t2iso(self.tkcal.get_date())
+    def reset(self):
+        self.aoc_action = ''
+        self.aoc_field_defaults = {}
+        for key in obscalendar.ENTRY_FIELDS:
+            self.aoc_field_defaults[key] = ''
+        self.aoc_day = ''
+        self.aoc_nind = 0
+
+    def show_date(self, datestr=None):
+        if datestr is None:
+            datestr = t2iso(self.tkcal.get_date())
         entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
             entry += self.this_cal.format_day_contents(datestr, return_as='table')
@@ -88,28 +98,114 @@ class ObservingCalendarApp(tkinter.Tk):
         info_text.insert(tkinter.CURRENT, entry)
 
     def submit(self):
-        kwargs = {
-            'name': self.name_entry.get(),
-            'ID': self.ID_entry.get(),
-            'utc_start': self.start_entry.get(),
-            'utc_stop': self.stop_entry.get(),
-            'state': self.state_entry.get(),
-            'note': self.note_entry.get(),
-            'observer': self.obs_entry.get(),
-            'email': self.email_entry.get()
-        }
-        self.this_cal.edit(self.action, entry=self.entry, **kwargs)
+        if self.aoc_action in ['add', 'update', 'schedule']:
+            kwargs = {
+                'name': self.name_entry.get(),
+                'ID': self.ID_entry.get(),
+                'utc_start': self.start_entry.get(),
+                'utc_stop': self.stop_entry.get(),
+                'state': self.state_entry.get(),
+                'note': self.note_entry.get(),
+                'observer': self.obs_entry.get(),
+                'email': self.email_entry.get()
+            }
+        if self.aoc_action == 'add':
+            self.day = cal_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
+            self.this_cal.add(**kwargs)
+        elif self.aoc_action in ['update', 'schedule']:
+            self.this_cal.update(day=self.day, nind=self.nind, **kwargs)
+        elif self.aoc_action == 'delete':
+            self.this_cal.delete(day=self.day, nind=self.nind)
+        self.show_date(self.day)
         yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
         if yn == 'yes' :
             self.this_cal.write_calendar()
         else :
             messagebox.showinfo('Return', 'Not writing new calendar.')
+
+    def event_fields(self, gobutton):
+        name_label = tkinter.Label(self.frame_update, text='Name')
+        name_label.grid(row=0, column=0)
+        self.name_entry = tkinter.Entry(self.frame_update)
+        self.name_entry.grid(row=0, column=1)
+        self.name_entry.insert(0, self.aoc_field_defaults['name'])
+        ID_label = tkinter.Label(self.frame_update, text='ID')
+        ID_label.grid(row=0, column=2)
+        self.ID_entry = tkinter.Entry(self.frame_update)
+        self.ID_entry.grid(row=0, column=3)
+        self.ID_entry.insert(0, self.aoc_field_defaults['ID'])
+
+        start_label = tkinter.Label(self.frame_update, text='UTC start')
+        start_label.grid(row=1, column=0)
+        self.start_entry = tkinter.Entry(self.frame_update)
+        self.start_entry.grid(row=1, column=1)
+        self.start_entry.insert(0, self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='minutes'))
+        stop_label = tkinter.Label(self.frame_update, text='UTC stop')
+        stop_label.grid(row=1, column=2)
+        self.stop_entry = tkinter.Entry(self.frame_update)
+        self.stop_entry.grid(row=1, column=3)
+        self.stop_entry.insert(0, self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
+
+        state_label = tkinter.Label(self.frame_update, text='State')
+        state_label.grid(row=2, column=0)
+        self.state_entry = tkinter.Entry(self.frame_update)
+        self.state_entry.grid(row=2, column=1)
+        self.state_entry.insert(0, self.aoc_field_defaults['state'])
+        note_label = tkinter.Label(self.frame_update, text='Note')
+        note_label.grid(row=2, column=2)
+        self.note_entry = tkinter.Entry(self.frame_update)
+        self.note_entry.grid(row=2, column=3)
+        self.note_entry.insert(0, self.aoc_field_defaults['note'])
+
+        obs_label = tkinter.Label(self.frame_update, text='Observer')
+        obs_label.grid(row=3, column=0)
+        self.obs_entry = tkinter.Entry(self.frame_update)
+        self.obs_entry.grid(row=3, column=1)
+        self.obs_entry.insert(0, self.aoc_field_defaults['observer'])
+        email_label = tkinter.Label(self.frame_update, text='E-mail')
+        email_label.grid(row=3, column=2)
+        self.email_entry = tkinter.Entry(self.frame_update)
+        self.email_entry.grid(row=3, column=3)
+        self.email_entry.insert(0, self.aoc_field_defaults['email'])
+
+        submit_button = tkinter.Button(self.frame_update, text=gobutton, command=self.submit)
+        submit_button.grid(row=4, column=1)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button.grid(row=4, column=3)
+
+    def add_event(self):
         self.reset()
-    
-    def reset(self):
-        self.action = None
-        self.upddef = {}
-        self.entry = None
+        self.aoc_action = 'add'
+        self.aoc_field_defaults['utc_start'] = self.this_cal.refdate
+        self.aoc_field_defaults['utc_stop'] = self.this_cal.refdate
+        self.aoc_field_defaults['state'] = 'primary'
+        self.event_fields('Add')
+
+    def del_event(self):
+        self.reset()
+        self.aoc_action = 'delete'
+        entry = simpledialog.askstring("Input", "YYYY-MM-DD,#", parent=self)
+        if entry is None:
+            return
+        self.day, self.nind = entry.split(',')
+        self.nind = int(self.nind)
+        this_entry = self.this_cal.contents[self.day][self.nind]
+        for field in this_entry.fields:
+            self.aoc_field_defaults[field] = getattr(this_entry, field)
+        self.event_fields('Delete')
+
+    def upd_event(self):
+        self.reset()
+        self.aoc_action = 'update'
+        entry = simpledialog.askstring("Input", "YYYY-MM-DD,#", parent=self)
+        if entry is None:
+            return
+        self.day, self.nind = entry.split(',')
+        self.nind = int(self.nind)
+        this_entry = self.this_cal.contents[self.day][self.nind]
+        for field in this_entry.fields:
+            self.aoc_field_defaults[field] = getattr(this_entry, field)
+        self.event_fields('Update')
 
     def schedule(self):
         name_label = tkinter.Label(self.frame_update, text='Name')
@@ -134,109 +230,35 @@ class ObservingCalendarApp(tkinter.Tk):
         day_label.grid(row=2, column=0)
         self.day_entry = tkinter.Entry(self.frame_update)
         self.day_entry.grid(row=2, column=1)
-        duration_label = tkinter.Label(self.frame_update, text='duration [h]')
+        duration_label = tkinter.Label(self.frame_update, text='length [h]')
         duration_label.grid(row=2, column=2)
         self.duration_entry = tkinter.Entry(self.frame_update)
         self.duration_entry.grid(row=2, column=3)
+        self.duration_entry.insert(0, '1')
 
-        submit_button = tkinter.Button(self.frame_update, text='Submit', command=self.doschedule)
+        submit_button = tkinter.Button(self.frame_update, text='Schedule', command=self.doschedule)
         submit_button.grid(row=4, column=1)
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
         cancel_button.grid(row=4, column=3)
 
     def doschedule(self):
+        name = self.name_entry.get()
+        id = self.ID_entry.get()
         ra = self.ra_entry.get()
         dec = self.dec_entry.get()
         day = self.day_entry.get()
         duration = self.duration_entry.get()
-        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration))
-        yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with schedule?')
-        if yn == 'yes' :
-            self.this_cal.write_calendar()
-        else :
-            messagebox.showinfo('Return', 'Not writing new calendar.')
-
-    def add_event(self, action='add'):
-        if action == 'add':
-            self.upddef = {}
-            for fld in obscalendar.ENTRY_FIELDS:
-                self.upddef[fld] = ''
-            self.upddef['utc_start'] = self.this_cal.refdate
-            self.upddef['utc_stop'] = self.this_cal.refdate
-            self.upddef['state'] = 'primary'
-            self.entry = None
-        self.action = action
-
-        #self.frame_update.grid(row=3, column=0, columnspan=2)
-        name_label = tkinter.Label(self.frame_update, text='Name')
-        name_label.grid(row=0, column=0)
-        self.name_entry = tkinter.Entry(self.frame_update)
-        self.name_entry.grid(row=0, column=1)
-        self.name_entry.insert(0, self.upddef['name'])
-        ID_label = tkinter.Label(self.frame_update, text='ID')
-        ID_label.grid(row=0, column=2)
-        self.ID_entry = tkinter.Entry(self.frame_update)
-        self.ID_entry.grid(row=0, column=3)
-        self.ID_entry.insert(0, self.upddef['ID'])
-
-        start_label = tkinter.Label(self.frame_update, text='UTC start')
-        start_label.grid(row=1, column=0)
-        self.start_entry = tkinter.Entry(self.frame_update)
-        self.start_entry.grid(row=1, column=1)
-        self.start_entry.insert(0, self.upddef['utc_start'].datetime.isoformat(timespec='minutes'))
-        stop_label = tkinter.Label(self.frame_update, text='UTC stop')
-        stop_label.grid(row=1, column=2)
-        self.stop_entry = tkinter.Entry(self.frame_update)
-        self.stop_entry.grid(row=1, column=3)
-        self.stop_entry.insert(0, self.upddef['utc_stop'].datetime.isoformat(timespec='minutes'))
-
-        state_label = tkinter.Label(self.frame_update, text='State')
-        state_label.grid(row=2, column=0)
-        self.state_entry = tkinter.Entry(self.frame_update)
-        self.state_entry.grid(row=2, column=1)
-        self.state_entry.insert(0, self.upddef['state'])
-        note_label = tkinter.Label(self.frame_update, text='Note')
-        note_label.grid(row=2, column=2)
-        self.note_entry = tkinter.Entry(self.frame_update)
-        self.note_entry.grid(row=2, column=3)
-        self.note_entry.insert(0, self.upddef['note'])
-
-        obs_label = tkinter.Label(self.frame_update, text='Observer')
-        obs_label.grid(row=3, column=0)
-        self.obs_entry = tkinter.Entry(self.frame_update)
-        self.obs_entry.grid(row=3, column=1)
-        self.obs_entry.insert(0, self.upddef['observer'])
-        email_label = tkinter.Label(self.frame_update, text='E-mail')
-        email_label.grid(row=3, column=2)
-        self.email_entry = tkinter.Entry(self.frame_update)
-        self.email_entry.grid(row=3, column=3)
-        self.email_entry.insert(0, self.upddef['email'])
-
-        submit_button = tkinter.Button(self.frame_update, text='Submit', command=self.submit)
-        submit_button.grid(row=4, column=1)
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
-        cancel_button.grid(row=4, column=3)
-
-    def del_event(self):
-        entry = simpledialog.askstring("Input", "YYYY-MM-DD:#", parent=self)
-        if entry is None:
-            return
-        self.this_cal.edit('delete', entry=entry)
-        self.this_cal.write_calendar()
-
-    def upd_event(self):
-        self.entry = simpledialog.askstring("Input", "YYYY-MM-DD:#", parent=self)
-        if self.entry is None:
-            return
-        this_entry_key, num = obscalendar.split_entry(self.entry)
-        self.upddef = {}
-        this_entry = self.this_cal.contents[this_entry_key][int(num)]
+        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration), name=name, ID=id)
+        self.reset()
+        self.show_date(day)
+        self.aoc_action = 'schedule'
+        self.day = day
+        self.nind = -1
+        this_entry = self.this_cal.contents[self.day][self.nind]
         for field in this_entry.fields:
-            self.upddef[field] = getattr(this_entry, field)
-        self.add_event(action='update')
-
-
-
-
+            thisef = getattr(this_entry, field)
+            if thisef is None: thisef = ''
+            self.aoc_field_defaults[field] = thisef
+        self.event_fields('Check Schedule')
 
 
