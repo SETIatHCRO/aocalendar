@@ -18,7 +18,7 @@ from numpy import floor, round
 from numpy import where as npwhere
 from . import __version__, aoc_tools
 try:
-    from ATATools.ata_sources import check_source
+    from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
     def check_source(src):
         return 'Not Available'
