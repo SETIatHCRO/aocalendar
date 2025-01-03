@@ -631,18 +631,13 @@ class Calendar:
 
         kwargs['utc_start'] = srcstart.datetime.isoformat(timespec='seconds')
         kwargs['utc_stop'] = srcstop.datetime.isoformat(timespec='seconds')
-        rastr, decstr = f"{ra.hms.h:.0f}h{ra.hms.m:.0f}m{ra.hms.s:.0f}s", f"{dec.dms.d:.0f}d{dec.dms.m:.0f}m{dec.dms.s:.0f}s"
-        radec = f"{rastr},{decstr}"
-        print("BEFORE")
-        print(kwargs)
-        if 'name' not in kwargs:  kwargs['name'] = radec
+
+        if 'name' not in kwargs or kwargs['name'] is None:  kwargs['name'] = source
         kwargs.setdefault('note', '')
-        if not isinstance(kwargs['note'], str): kwargs['note'] = radec
-        else: kwargs['note'] += f" -- {radec}"
+        if not isinstance(kwargs['note'], str): kwargs['note'] = source
+        else: kwargs['note'] += f" -- {source}"
         self.add(**kwargs)
         logger.warning("Now should edit down the scheduled observation times!")
-        print("AFTER")
-        print(kwargs)
         return True
 
     def conflicts(self, check_event, is_new=False):
