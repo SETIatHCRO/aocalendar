@@ -20,7 +20,7 @@ ap.add_argument('-u', '--update', help="Update an entry # on date", default=Fals
 ap.add_argument('-d', '--delete', help="Delete an entry # on date", default=False)
 ap.add_argument('-s', '--schedule', help="Schedule ra,dec/source and set duration of observation", default=False)
 ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length starting now (at least add -n...)", default=False)
-ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=1.0)
+ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=6.0)
 # Event fields
 ap.add_argument('-n', '--name', help="Event field", default=None)
 ap.add_argument('-p', '--pid', help="Event field", default=None)
@@ -64,9 +64,9 @@ if args.delete:
 if args.schedule:
     if ',' in args.schedule:
         ra, dec = args.schedule.split(',')
-        source = None
     else:
         ra, dec = None, None
-        source = args.schedule
-    aoc.schedule(ra=ra, dec=dec, source=source, day=args.calfile, duration=float(args.duration), **kwargs)
+        if args.name is None:
+            args.name = args.schedule
+    aoc.schedule(ra=ra, dec=dec, source=args.schedule, day=args.calfile, duration=float(args.duration), **kwargs)
     aoc.write_calendar()
