@@ -603,7 +603,7 @@ class Calendar:
             pass
         ra = Angle(ra)
         dec = Angle(dec)
-        source = source if source is not None else f"{str(ra)},{str(dec)}"
+        source = source if source is not None else f"{str(ra.hms)},{str(dec.dms)}"
 
         duration = TimeDelta(duration * 3600.0, format='sec')
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
