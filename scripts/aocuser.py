@@ -65,8 +65,10 @@ if args.schedule:
     if ',' in args.schedule:
         ra, dec = args.schedule.split(',')
     else:
+        print(args.name, args.schedule)
         ra, dec = None, None
         if args.name is None:
             args.name = args.schedule
+        print(args.name, args.schedule)
     aoc.schedule(ra=ra, dec=dec, source=args.schedule, day=args.calfile, duration=float(args.duration), **kwargs)
     aoc.write_calendar()
