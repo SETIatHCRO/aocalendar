@@ -633,8 +633,7 @@ class Calendar:
         kwargs['utc_stop'] = srcstop.datetime.isoformat(timespec='seconds')
 
         if 'name' not in kwargs or kwargs['name'] is None:  kwargs['name'] = source
-        kwargs.setdefault('note', '')
-        if not isinstance(kwargs['note'], str): kwargs['note'] = source
+        if 'note' not in kwargs or kwargs['note'] is None : kwargs['note'] = source
         else: kwargs['note'] += f" -- {source}"
         self.add(**kwargs)
         logger.warning("Now should edit down the scheduled observation times!")
