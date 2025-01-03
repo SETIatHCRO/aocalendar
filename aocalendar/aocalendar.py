@@ -349,18 +349,19 @@ class Calendar:
         if day in self.straddle:
             for i, event in enumerate(self.straddle[day]):
                 key = (event.utc_start, event.utc_stop, i)
-                sorted_dict[key] = copy(event)
                 offset += 1
+                sorted_dict[key] = {'event': copy(event), 'index': -offset}
         if day in self.events:
             for i, event in enumerate(self.events[day]):
                 key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = {'event': copy(event), 'index': i}
         sorted_day = []
         keymap = {}
-        for i, key in enumerate(sorted(sorted(sorted_dict))):
-            sorted_day.append(sorted_dict[key]['event'])
-            keymap[i] = sorted_dict[key]['index']
-        return sorted_day, offset, keymap
+        for i, key in enumerate(sorted(sorted_dict)):
+            if 'event' in sorted_dict[key]:
+                sorted_day.append(sorted_dict[key]['event'])
+                keymap[i] = sorted_dict[key]['index']
+        return sorted_day, keymap
 
     def format_day_events(self, day='today', cols='short', return_as='table'):
         """
@@ -381,11 +382,11 @@ class Calendar:
         elif cols == 'short':
             cols = SHORT_LIST
         hdr = ['#'] + cols
-        sorted_day, offset, keymap = self.__sort_day(day)
+        sorted_day, keymap = self.__sort_day(day)
         if return_as == 'table':
-            return(tabulate([[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], headers=hdr))
+            return(tabulate([[keymap[i]] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], headers=hdr))
         elif return_as == 'list':
-            return [[keymap[i]-offset] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
+            return [[keymap[i]] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
         
     def graph_day(self, day='today', header_col='name', tz='sys', interval_min=10.0):
         """
@@ -408,12 +409,12 @@ class Calendar:
             gmt = time.gmtime()
             tz = time.tzname[gmt.tm_isdst]
         tzoff = aoc_tools.TIMEZONE[tz]
-        sorted_day, offset, keymap = self.__sort_day(day)
+        sorted_day, keymap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
         cbuflt, cbufind, cbufrt = 2, 3, 2
         stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max name
-        colhdr = [f"{cbuflt*' '}{keymap[i]+offset:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
+        colhdr = [f"{cbuflt*' '}{keymap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
@@ -480,13 +481,13 @@ class Calendar:
         kwargs : fields to add
 
         """
-        utc_start_Time = aoc_tools.interp_date(kwargs['utc_start'])
+        kwargs['utc_start'] = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
         if 'lst_start' in kwargs and bool(kwargs['lst_start']):
-            kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], utc_start_Time)
+            kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], kwargs['utc_start'])
         if 'lst_stop' in kwargs and bool(kwargs['lst_stop']):
-            kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], utc_start_Time)
-            if kwargs['utc_stop'] < utc_start_Time:
-                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], utc_start_Time + TimeDelta(DAYSEC, format='sec'))
+            kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'])
+            if kwargs['utc_stop'] < kwargs['utc_start']:
+                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'] + TimeDelta(DAYSEC, format='sec'))
         this_event = Entry(**kwargs)
         self.recent_event = this_event
         this_hash = this_event.hash()
