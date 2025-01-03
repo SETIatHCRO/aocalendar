@@ -18,7 +18,7 @@ ap.add_argument('-g', '--graph', help="Graph calendar day", action='store_true')
 ap.add_argument('-a', '--add', help="Add an entry", action='store_true')
 ap.add_argument('-u', '--update', help="Update an entry # on date", default=False)
 ap.add_argument('-d', '--delete', help="Delete an entry # on date", default=False)
-ap.add_argument('-s', '--schedule', help="Schedule ra,dec and set duration of observation", default=False)
+ap.add_argument('-s', '--schedule', help="Schedule ra,dec/source and set duration of observation", default=False)
 ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length starting now (at least add -n...)", default=False)
 ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=1.0)
 # Event fields
@@ -62,6 +62,11 @@ if args.delete:
     aoc.delete(day=args.calfile, nind=int(args.delete))
     aoc.write_calendar()
 if args.schedule:
-    ra, dec = args.schedule.split(',')
-    aoc.schedule(ra=ra, dec=dec, day=args.calfile, duration=float(args.duration), **kwargs)
+    if ',' in args.schedule:
+        ra, dec = args.schedule.split(',')
+        source = None
+    else:
+        ra, dec = None, None
+        source = args.schedule
+    aoc.schedule(ra=ra, dec=dec, source=source, day=args.calfile, duration=float(args.duration), **kwargs)
     aoc.write_calendar()

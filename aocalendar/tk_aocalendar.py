@@ -228,24 +228,25 @@ class AOCalendarApp(tkinter.Tk):
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
 
-        ra_label = tkinter.Label(self.frame_update, text='RA')
-        ra_label.grid(row=1, column=0)
-        self.ra_entry = tkinter.Entry(self.frame_update)
-        self.ra_entry.grid(row=1, column=1)
-        dec_label = tkinter.Label(self.frame_update, text='Dec')
-        dec_label.grid(row=1, column=2)
-        self.dec_entry = tkinter.Entry(self.frame_update)
-        self.dec_entry.grid(row=1, column=3)
-
+        source_label = tkinter.Label(self.frame_update, text='RA,dec or source')
+        source_label.grid(row=1, column=0)
+        self.source_entry = tkinter.Entry(self.frame_update)
+        self.source_entry.grid(row=1, column=1)
         day_label = tkinter.Label(self.frame_update, text='UTC day')
-        day_label.grid(row=2, column=0)
+        day_label.grid(row=1, column=2)
         self.day_entry = tkinter.Entry(self.frame_update)
-        self.day_entry.grid(row=2, column=1)
+        self.day_entry.grid(row=1, column=3)
+        self.day_entry.insert(0, self.tkcal.selection_get().strftime('%Y-%m-%d'))
+
         duration_label = tkinter.Label(self.frame_update, text='length [h]')
-        duration_label.grid(row=2, column=2)
+        duration_label.grid(row=2, column=0)
         self.duration_entry = tkinter.Entry(self.frame_update)
-        self.duration_entry.grid(row=2, column=3)
+        self.duration_entry.grid(row=2, column=1)
         self.duration_entry.insert(0, '6')
+        note_label = tkinter.Label(self.frame_update, text='Note')
+        note_label.grid(row=2, column=2)
+        self.note_entry = tkinter.Entry(self.frame_update)
+        self.note_entry.grid(row=2, column=3)
 
         submit_button = tkinter.Button(self.frame_update, text='Schedule', command=self.doschedule)
         submit_button.grid(row=4, column=1)
@@ -255,21 +256,27 @@ class AOCalendarApp(tkinter.Tk):
     def doschedule(self):
         name = self.name_entry.get()
         pid = self.pid_entry.get()
-        ra = self.ra_entry.get()
-        dec = self.dec_entry.get()
+        source = self.source_entry.get()
+        if ',' in source:
+            ra, dec = source.split(',')
+            source = None
+        else:
+            ra, dec = None, None
         day = self.day_entry.get()
         duration = float(self.duration_entry.get())
-        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=duration, name=name, pid=pid)
+        note = self.note_entry.get()
+        scheduled = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=day, duration=duration, name=name, pid=pid)
         self.reset()
         self.show_date(day)
-        self.aoc_action = 'schedule'
-        self.day = day
-        self.nind = -1
-        this_entry = self.this_cal.events[self.day][self.nind]
-        for field in this_entry.fields:
-            thisef = getattr(this_entry, field)
-            if thisef is None: thisef = ''
-            self.aoc_field_defaults[field] = thisef
-        self.event_fields('OK')
+        if scheduled:
+            self.aoc_action = 'schedule'
+            self.day = day
+            self.nind = -1
+            this_entry = self.this_cal.events[self.day][self.nind]
+            for field in this_entry.fields:
+                thisef = getattr(this_entry, field)
+                if thisef is None: thisef = ''
+                self.aoc_field_defaults[field] = thisef
+            self.event_fields('OK')
 
 

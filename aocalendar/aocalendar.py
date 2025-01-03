@@ -17,6 +17,11 @@ from hashlib import sha256
 from numpy import floor, round
 from numpy import where as npwhere
 from . import __version__, aoc_tools
+try:
+    from ATATools.ata_sources import check_source
+except ImportError:
+    def check_source(src):
+        return 'Not Available'
 
 
 logger = logging.getLogger(__name__)
@@ -153,17 +158,20 @@ class Entry:
         """
         entry = {}
         for col in self.fields:
-            if printable and col in ['utc_start', 'utc_stop']:
-                try:
-                    entry[col] = getattr(self, col).datetime.isoformat(timespec='seconds')
-                except AttributeError:
-                    entry[col] = "INVALID"
-            elif printable and col in ['lst_start', 'lst_stop']:
-                try:
-                    hms = getattr(self, col).hms
-                    entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
-                except AttributeError:
-                    entry[col] = "INVALID"
+            if printable:
+                if col in ['utc_start', 'utc_stop']:
+                    try:
+                        entry[col] = getattr(self, col).datetime.isoformat(timespec='seconds')
+                    except AttributeError:
+                        entry[col] = "INVALID"
+                elif col in ['lst_start', 'lst_stop']:
+                    try:
+                        hms = getattr(self, col).hms
+                        entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
+                    except AttributeError:
+                        entry[col] = "INVALID"
+                else:
+                    entry[col] = str(getattr(self, col))
             else:
                 entry[col] = copy(getattr(self, col))
         return entry
@@ -551,12 +559,10 @@ class Calendar:
                 rejected += 1
         logger.info(f"Added {added} and rejected {rejected}")
 
-    def recurring(self):
-        print("RECURRING")
-
-    def schedule(self, ra, dec, day='now', duration=12, el_limit=15.0, **kwargs):
+    def schedule(self, ra=None, dec=None, source=None, day='now', duration=12, el_limit=15.0, **kwargs):
         """
-        Schedule an observation at a given RA/Dec on a given day for a given duration
+        Schedule an observation at a given ra/dec or source on a given day for a given duration.
+        If ra AND dec are both "true", ignores source
 
         Parameters
         ----------
@@ -564,6 +570,8 @@ class Calendar:
             RA in hours (can be a string interpretable by astropy Angles)
         dec : float/int/str
             Dec in degrees (can be a string interpretable by astropy Angles)
+        source : str/None
+            Source name (if ATATools.ata_sources is available)
         day : str/Time
             Day of observation (UTC).  Interpreted by aoc_tools.interp_dates
         duration : float
@@ -575,6 +583,14 @@ class Calendar:
 
         """
         day = aoc_tools.interp_date(day, fmt='Time')
+        if bool(ra) and bool(dec):
+            pass
+        else:
+            src = check_source(source)
+            if src == 'Not Available':
+                raise RuntimeError("Sources not available.")
+            ra = src['ra']
+            dec = src['dec']
         try:
             ra = float(ra)
             ra = ra * u.hourangle
@@ -585,9 +601,10 @@ class Calendar:
             dec = dec * u.deg
         except ValueError:
             pass
-
         ra = Angle(ra)
         dec = Angle(dec)
+        source = source if source is not None else f"{str(ra)},{str(dec)}"
+
         duration = TimeDelta(duration * 3600.0, format='sec')
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
         stop = start + TimeDelta(24 * 3600, format='sec')
@@ -599,11 +616,12 @@ class Calendar:
         altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
         above = npwhere(altazsky.alt.value > el_limit)[0]
         if not len(above):
-            logger.warning(f"Source never above the elevation limit of {el_limit}.")
-            return
+            logger.warning(f"{source} never above the elevation limit of {el_limit}.")
+            return False
         srcstart = times[above[0]]
         srcstop = times[above[-1]]
         time_above = srcstop - srcstart
+        logger.info(f"Scheduling {source}")
         if time_above > duration:
             srcstart = times[above[len(above) // 2]] - duration / 2.0
             srcstop = times[above[len(above) // 2]] + duration / 2.0
@@ -621,6 +639,7 @@ class Calendar:
         else: kwargs['note'] += f" -- {radec}"
         self.add(**kwargs)
         logger.warning("Now should edit down the scheduled observation times!")
+        return True
 
     def conflicts(self, check_event, is_new=False):
         """
