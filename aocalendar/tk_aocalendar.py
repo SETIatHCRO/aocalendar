@@ -9,11 +9,6 @@ from aocalendar import aocalendar
 from . import aoc_tools
 
 
-def t2iso(t):
-    mdy = t.split("/")
-    mn, dy, yr = [int(x) for x in mdy]
-    return f"20{yr:02d}-{mn:02d}-{dy:02d}"
-
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
@@ -93,9 +88,8 @@ class AOCalendarApp(tkinter.Tk):
         self.aoc_nind = 0
 
     def show_date(self, datestr=None):
-        #print(self.tkcal.selection_get())
         if datestr is None:
-            datestr = t2iso(self.tkcal.get_date())
+            datestr = self.tkcal.selection_get().strftime('%Y-%m-%d')
         entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
             entry += self.this_cal.format_day_events(datestr, return_as='table')
@@ -196,11 +190,11 @@ class AOCalendarApp(tkinter.Tk):
     def del_event(self):
         self.reset()
         self.aoc_action = 'delete'
-        entry = simpledialog.askstring("Input", "YYYY-MM-DD,#", parent=self)
+        self.day = self.tkcal.selection_get().strftime('%Y-%m-%d')
+        entry = simpledialog.askstring("Input", f"{self.day} entry #", parent=self)
         if entry is None:
             return
-        self.day, self.nind = entry.split(',')
-        self.nind = int(self.nind)
+        self.nind = int(entry)
         this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
@@ -209,11 +203,11 @@ class AOCalendarApp(tkinter.Tk):
     def upd_event(self):
         self.reset()
         self.aoc_action = 'update'
-        entry = simpledialog.askstring("Input", "YYYY-MM-DD,#", parent=self)
+        self.day = self.tkcal.selection_get().strftime('%Y-%m-%d')
+        entry = simpledialog.askstring("Input", f"{self.day} entry #", parent=self)
         if entry is None:
             return
-        self.day, self.nind = entry.split(',')
-        self.nind = int(self.nind)
+        self.nind = int(entry)
         this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
