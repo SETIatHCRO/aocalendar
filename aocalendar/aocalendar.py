@@ -165,7 +165,7 @@ class Entry:
                 except AttributeError:
                     entry[col] = "INVALID"
             else:
-                entry[col] = str(getattr(self, col))
+                entry[col] = copy(getattr(self, col))
         return entry
 
     def update_lst(self):
@@ -275,6 +275,7 @@ class Calendar:
             logger.warning("No calendar file was found.")
             return
         logger.info(f"Reading {self.calfile_fullpath}")
+        self.all_fields = list(ENTRY_FIELDS.keys())  # This is a cheat for now.
         #print(f"Reading {self.calfile}")
         for key, entries in inp.items():
             if key in self.meta_fields:
@@ -284,10 +285,6 @@ class Calendar:
                 self.events.setdefault(key, [])
                 for i, event in enumerate(entries):
                     this_event = Entry(**event)
-                    if isinstance(this_event.fields, dict):
-                        self.all_fields = list(this_event.fields.keys())
-                    else:
-                        self.all_fields = copy(this_event.fields)  # This is a bit of a cheat for now to keep order, should check/append.
                     this_hash = this_event.hash()
                     if this_hash in self.all_hash:
                         logger.warning(f"Entry {key}:{i} is a duplicate.")
@@ -535,6 +532,12 @@ class Calendar:
             logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
             self.all_hash.append(this_hash)
+        event_day = self.events[day][nind].utc_start.datetime.strftime('%Y-%m-%d')
+        if day != event_day:
+            logger.info(f"Changed day from {day} to {event_day}")
+            move_entry = self.events[day][nind].todict(printable=False)
+            self.add(**move_entry)
+            del(self.events[day][nind])
         return True
 
     def add_from_file(self, file_name, sep='auto'):

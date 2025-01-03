@@ -78,6 +78,11 @@ class AOCalendarApp(tkinter.Tk):
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
+        self.tkcal.calevent_remove('all')
+        for day, events in self.this_cal.events.items():
+            for event in events:
+                label = f"{event.name}:{event.pid}"
+                self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
 
     def reset(self):
         self.aoc_action = ''

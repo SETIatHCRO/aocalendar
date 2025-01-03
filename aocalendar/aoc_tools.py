@@ -9,34 +9,27 @@ INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
 TIMEZONE = {'PST': -8, 'PDT': -7, 'EST': -5, 'EDT': -4, 'UTC': 0}
 
 
-def same_date(e1, e2, timespec='day'):
-    """Can clearly be done better."""
-    if e1.datetime.year != e2.datetime.year:
-        return False
-    if timespec == 'year':
-        return True
-    if e1.datetime.month != e2.datetime.month:
-        return False
-    if timespec == 'month':
-        return True
-    if e1.datetime.day != e2.datetime.day:
-        return False
-    if timespec == 'day':
-        return True
-    if e1.datetime.hour != e2.datetime.hour:
-        return False
-    if timespec == 'hour':
-        return True
-    if e1.datetime.minute != e2.datetime.minute:
-        return False
-    if timespec == 'minute':
-        return True
-    if e1.datetime.second != e2.datetime.second:
-        return False
-    if timespec == 'second':
-        return True
-    raise ValueError(f"Invalid timespec: {timespec}")
+def same_date(t1, t2, timespec='day'):
+    """
+    Return bool on equality of e1 == e2 for timespec.
 
+    Parameters
+    ----------
+    t1 : interp_date
+        Date to be checked
+    t2 : interp_date
+        Date to be checked
+    timespec : str
+        Precision of check
+    
+    """
+    t1 = interp_date(t1, fmt='Time')
+    t2 = interp_date(t2, fmt='Time')
+    if timespec == 'exact':
+        return t1 == t2
+    fs = {'year': '%Y', 'month': '%Y-%m', 'day': '%Y-%m-%d',
+          'hour': '%Y-%m-%dT%H', 'minute': '%Y-%m-%dT%H:%M', 'second': '%Y-%m-%dT%H:%M:%S'}
+    return t1.datetime.strftime(fs[timespec]) == t2.datetime.strftime(fs[timespec])
 
 def read_data_file(file_name, sep='auto'):
     """
@@ -79,31 +72,46 @@ def read_data_file(file_name, sep='auto'):
     return data
 
 
-def interp_date(day, fmt='%Y-%m-%d'):
-    if '/' in day:  # date +/- offset
+def interp_date(iddate, fmt='%Y-%m-%d'):
+    """
+    Interpret 'iddate' and return time or formated string.
+
+    Parameters
+    ----------
+    iddate : datetime, Time, str
+        Day to be interpreted
+    fmt : str
+        Either a datetime format string (starting with %) or 'Time'
+
+    Return
+    ------
+    Time or str depending on fmt
+
+    """
+    if isinstance(iddate, str) and '/' in iddate:  # iddate +/- offset
         mult = {'d': 24.0*3600.0, 'h': 3600.0, 'm': 60.0, 's': 1.0}
-        day, offs = day.split('/')
-        day = interp_date(day, fmt='Time')
+        iddate, offs = iddate.split('/')
+        iddate = interp_date(iddate, fmt='Time')
         try:
             dt = mult[offs[-1]] * float(offs[:-1])
         except KeyError:
             dt = 60.0 * float(offs)  # default to minutes
-        day += TimeDelta(dt, format='sec')
-    if day == 'today' or day == 'now' or day == 'current':
-        day = Time.now()
-    elif day == 'yesterday':
-        day = Time.now() - TimeDelta(24.0*3600.0, format='sec')
-    elif day == 'tomorrow':
-        day = Time.now() + TimeDelta(24.0*3600.0, format='sec')
-    elif len(str(day)) == 4:  # assume just a year
-        day = Time(f"{day}-01-01")
-    elif len(str(day)) == 7:  # assume YYYY-MM
-        day = Time(f"{day}-01")
+        iddate += TimeDelta(dt, format='sec')
+    if iddate == 'today' or iddate == 'now' or iddate == 'current':
+        iddate = Time.now()
+    elif iddate == 'yesterday':
+        iddate = Time.now() - TimeDelta(24.0*3600.0, format='sec')
+    elif iddate == 'tomorrow':
+        iddate = Time.now() + TimeDelta(24.0*3600.0, format='sec')
+    elif len(str(iddate)) == 4:  # assume just a year
+        iddate = Time(f"{iddate}-01-01")
+    elif len(str(iddate)) == 7:  # assume YYYY-MM
+        iddate = Time(f"{iddate}-01")
     else:
-        day = Time(day)
+        iddate = Time(iddate)
     if fmt[0] == '%':
-        day = day.datetime.strftime(fmt)
-    return day
+        iddate = iddate.datetime.strftime(fmt)
+    return iddate
 
 
 def listify(x, d={}, sep=','):
