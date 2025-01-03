@@ -39,25 +39,31 @@ def aoc_entry(path='getenv', output='ERROR', **kwargs):
     path : str
         Path to use.  Default retrieves AOCALENDAR from environment
     output : str
-        Logging output to use.  Defaule is ERROR
+        Logging output to use.  Default is ERROR
     kwargs : fields for entry.  Must have at least utc_start, utc_stop and one more.
 
     Returns
     -------
-    bool if successfully added or not
+    str : if not successful then '', otherwise either 'ok' or csv-list of conflicts
 
     """
+    msg = ''
     if 'utc_start' not in kwargs:
         logger.error("utc_start not included.")
-        return False
+        return msg
     cal = Calendar(kwargs['utc_start'], path=path, output=output)
     is_added = cal.add(**kwargs)
-    if is_added and cal.recent.valid:
-        logger.info(cal.recent)
+    msg = ''
+    if is_added and cal.recent_event.valid:
+        logger.info(cal.recent_event)
         cal.write_calendar()
-        return True
-    logger.error(f"Entry add was unsuccessful.\n{cal.recent.msg}")
-    return False
+        if len(cal.results['conflict']):
+            msg = ','.join([str(x) for x in cal.results['conflict']])
+            logger.warning(f"Entry conflicts with {msg}")
+        else:
+            msg = 'ok'
+    logger.error(f"Entry add was unsuccessful.\n{cal.recent_event.msg}")
+    return msg
 
 
 def cull_args(**kwargs):
@@ -472,16 +478,16 @@ class Calendar:
 
         """
         this_event = Entry(**kwargs)
-        self.recent = this_event
+        self.recent_event = this_event
         this_hash = this_event.hash()
-        results = self.conflicts(this_event, is_new=True)
-        if len(results['duplicate']):
-            suf = 'y' if len(results['duplicate']) == 1 else 'ies'
-            logger.warning(f"Not adding -- duplicate with entr{suf}: {', '.join([str(x) for x in results['duplicate']])}.")
+        self.results = self.conflicts(this_event, is_new=True)
+        if len(self.results['duplicate']):
+            suf = 'y' if len(self.results['duplicate']) == 1 else 'ies'
+            logger.warning(f"Not adding -- duplicate with entr{suf}: {', '.join([str(x) for x in self.results['duplicate']])}.")
             return False
-        if len(results['conflict']):
-            suf = 'y' if len(results['conflict']) == 1 else 'ies'
-            logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in results['conflict']])}.")
+        if len(self.results['conflict']):
+            suf = 'y' if len(self.results['conflict']) == 1 else 'ies'
+            logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in self.results['conflict']])}.")
         day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
         self.events.setdefault(day, [])
         self.events[day].append(this_event)
@@ -640,7 +646,9 @@ class Calendar:
             if this_event.hash() == this_hash:
                 results['duplicate'].append(i)
                 if is_new:
-                    logger.warning(f"Entry is duplicated with {day}:{i}")
+                    msg = f"Entry is duplicated with {day}:{i}"
+                    logger.warning(msg)
+                    check_event.msg += msg
                 continue  # Skip it
             if check_event.utc_start <= this_event.utc_stop and this_event.utc_start <= check_event.utc_stop:
                 results['conflict'].append(i)
