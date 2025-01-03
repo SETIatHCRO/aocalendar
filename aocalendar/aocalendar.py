@@ -480,6 +480,13 @@ class Calendar:
         kwargs : fields to add
 
         """
+        utc_start_Time = aoc_tools.interp_date(kwargs['utc_start'])
+        if 'lst_start' in kwargs and bool(kwargs['lst_start']):
+            kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], utc_start_Time)
+        if 'lst_stop' in kwargs and bool(kwargs['lst_stop']):
+            kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], utc_start_Time)
+            if kwargs['utc_stop'] < utc_start_Time:
+                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], utc_start_Time + TimeDelta(DAYSEC, format='sec'))
         this_event = Entry(**kwargs)
         self.recent_event = this_event
         this_hash = this_event.hash()
@@ -559,6 +566,46 @@ class Calendar:
                 rejected += 1
         logger.info(f"Added {added} and rejected {rejected}")
 
+    def get_utc_from_lst(self, lst, day):
+        from numpy import argmax
+        usedec = ATA.lat - 10.0 * u.deg
+        _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, duration=24.0, dt=1.0)
+        alt = obs.alt.value
+        maxalt = argmax(alt)
+        return obs.obstime[maxalt]
+
+    def get_obs(self, ra, dec, source, day, duration, dt = 10.0):
+        day = aoc_tools.interp_date(day, fmt='Time')
+        if bool(str(ra)) and bool(str(dec)):
+            pass
+        else:
+            src = check_source(source)
+            if src == 'Not Available':
+                raise RuntimeError("Sources not available.")
+            ra = src['ra']
+            dec = src['dec']
+        if isinstance(ra, (str, float, int)):
+            ra = float(ra)
+            ra = ra * u.hourangle
+        if isinstance(ra, (str, float, int)):
+            dec = float(dec)
+            dec = dec * u.deg
+
+        ra = Angle(ra)
+        dec = Angle(dec)
+        source = source if source is not None else f"{ra.to_string()},{dec.to_string()}"
+
+        duration = TimeDelta(duration * 3600.0, format='sec')
+        start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
+        stop = start + TimeDelta(24 * 3600, format='sec')
+        dt = TimeDelta(dt * 60, format='sec')  # Use 10min
+        current, times = copy(start), []
+        while current < stop:
+            times.append(current)
+            current += dt
+        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
+        return source, altazsky
+
     def schedule(self, ra=None, dec=None, source=None, day='now', duration=12, el_limit=15.0, **kwargs):
         """
         Schedule an observation at a given ra/dec or source on a given day for a given duration.
@@ -582,49 +629,20 @@ class Calendar:
             Other calendar Event fields
 
         """
-        day = aoc_tools.interp_date(day, fmt='Time')
-        if bool(ra) and bool(dec):
-            pass
-        else:
-            src = check_source(source)
-            if src == 'Not Available':
-                raise RuntimeError("Sources not available.")
-            ra = src['ra']
-            dec = src['dec']
-        try:
-            ra = float(ra)
-            ra = ra * u.hourangle
-        except ValueError:
-            pass
-        try:
-            dec = float(dec)
-            dec = dec * u.deg
-        except ValueError:
-            pass
-        ra = Angle(ra)
-        dec = Angle(dec)
-        source = source if source is not None else f"{ra.to_string()},{dec.to_string()}"
+        source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day, duration=duration)
+        duration = obs.obstime[-1] - obs.obstime[0]
 
-        duration = TimeDelta(duration * 3600.0, format='sec')
-        start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
-        stop = start + TimeDelta(24 * 3600, format='sec')
-        dt = TimeDelta(10 * 60, format='sec')  # Use 10min
-        current, times = copy(start), []
-        while current < stop:
-            times.append(current)
-            current += dt
-        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
-        above = npwhere(altazsky.alt.value > el_limit)[0]
+        above = npwhere(obs.alt.value > el_limit)[0]
         if not len(above):
             logger.warning(f"{source} never above the elevation limit of {el_limit}.")
             return False
-        srcstart = times[above[0]]
-        srcstop = times[above[-1]]
+        srcstart = obs.obstime[above[0]]
+        srcstop = obs.obstime[above[-1]]
         time_above = srcstop - srcstart
         logger.info(f"Scheduling {source}")
         if time_above > duration:
-            srcstart = times[above[len(above) // 2]] - duration / 2.0
-            srcstop = times[above[len(above) // 2]] + duration / 2.0
+            srcstart = obs.obstime[above[len(above) // 2]] - duration / 2.0
+            srcstop = obs.obstime[above[len(above) // 2]] + duration / 2.0
             logger.info(f"Scheduling middle {duration.to(u.hour).value:.1f}h of {time_above.to(u.hour).value:.1f}h above {el_limit}d")
         else:
             logger.info(f"Scheduling {time_above.to(u.hour).value:.1f}h above {el_limit}d of desired {duration.to(u.hour).value:.1f}h")

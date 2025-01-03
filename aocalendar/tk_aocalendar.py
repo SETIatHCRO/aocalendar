@@ -116,6 +116,8 @@ class AOCalendarApp(tkinter.Tk):
                 'pid': self.pid_entry.get().strip(),
                 'utc_start': self.start_entry.get().strip(),
                 'utc_stop': self.stop_entry.get().strip(),
+                'lst_start': self.lstart_entry.get().strip(),
+                'lst_stop': self.lstop_entry.get().strip(),
                 'state': self.state_entry.get().strip(),
                 'note': self.note_entry.get().strip(),
                 'observer': self.obs_entry.get().strip(),
@@ -161,38 +163,51 @@ class AOCalendarApp(tkinter.Tk):
         self.stop_entry.grid(row=1, column=3)
         self.stop_entry.insert(0, self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
 
+        lstart_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST start'))
+        lstart_label.grid(row=2, column=0)
+        self.lstart_entry = tkinter.Entry(self.frame_update)
+        self.lstart_entry.grid(row=2, column=1)
+        self.lstart_entry.insert(0, self.aoc_field_defaults['lst_start'])
+        lstop_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST stop'))
+        lstop_label.grid(row=2, column=2)
+        self.lstop_entry = tkinter.Entry(self.frame_update)
+        self.lstop_entry.grid(row=2, column=3)
+        self.lstop_entry.insert(0, self.aoc_field_defaults['lst_stop'])
+
         state_label = tkinter.Label(self.frame_update, text=frame_label_fmt('State'))
-        state_label.grid(row=2, column=0)
+        state_label.grid(row=3, column=0)
         self.state_entry = tkinter.Entry(self.frame_update)
-        self.state_entry.grid(row=2, column=1)
+        self.state_entry.grid(row=3, column=1)
         self.state_entry.insert(0, self.aoc_field_defaults['state'])
         note_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Note'))
-        note_label.grid(row=2, column=2)
+        note_label.grid(row=3, column=2)
         self.note_entry = tkinter.Entry(self.frame_update)
-        self.note_entry.grid(row=2, column=3)
+        self.note_entry.grid(row=3, column=3)
         self.note_entry.insert(0, self.aoc_field_defaults['note'])
 
         obs_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Observer'))
-        obs_label.grid(row=3, column=0)
+        obs_label.grid(row=4, column=0)
         self.obs_entry = tkinter.Entry(self.frame_update)
-        self.obs_entry.grid(row=3, column=1)
+        self.obs_entry.grid(row=4, column=1)
         self.obs_entry.insert(0, self.aoc_field_defaults['observer'])
         email_label = tkinter.Label(self.frame_update, text=frame_label_fmt('E-mail'))
-        email_label.grid(row=3, column=2)
+        email_label.grid(row=4, column=2)
         self.email_entry = tkinter.Entry(self.frame_update)
-        self.email_entry.grid(row=3, column=3)
+        self.email_entry.grid(row=4, column=3)
         self.email_entry.insert(0, self.aoc_field_defaults['email'])
 
         submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
-        submit_button.grid(row=4, column=1)
+        submit_button.grid(row=5, column=1)
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
-        cancel_button.grid(row=4, column=3)
+        cancel_button.grid(row=5, column=3)
 
     def add_event(self):
         self.reset()
         self.aoc_action = 'add'
         self.aoc_field_defaults['utc_start'] = self.this_cal.refdate
         self.aoc_field_defaults['utc_stop'] = self.this_cal.refdate
+        self.aoc_field_defaults['lst_start'] = ''
+        self.aoc_field_defaults['lst_stop'] = ''
         self.aoc_field_defaults['state'] = 'primary'
         self.event_fields('Add')
 
@@ -220,6 +235,8 @@ class AOCalendarApp(tkinter.Tk):
         this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
+        self.aoc_field_defaults['lst_start'] = 'XXX'
+        self.aoc_field_defaults['lst_stop'] = 'XXX'
         self.event_fields('Update')
 
     def schedule(self):
