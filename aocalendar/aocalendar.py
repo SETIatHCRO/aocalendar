@@ -8,6 +8,7 @@ from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
+from sys import stdout
 from astropy.coordinates import EarthLocation, Angle, AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
@@ -19,7 +20,7 @@ from . import __version__, aoc_tools
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(levelname)s - %(message)s")
+logger.setLevel('DEBUG')  # Set to lowest
 
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
 ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
@@ -184,16 +185,13 @@ class Calendar:
     meta_fields = ['updated']
 
     def __init__(self, calfile='now', path='getenv', output='INFO'):
-        # All this seems to be needed?
-        logger.setLevel(output.upper())
-        ch = logging.StreamHandler()
-        ch.setLevel(output.upper())
-        #formatter = logging.Formatter('%(levelname)s - %(message)s')
-        #ch.setFormatter(formatter)
-        #logger.addHandler(ch)
-        #
-        self.read_calendar_events(calfile=str(calfile), path=path)
+        console_handler = logging.StreamHandler(stdout)
+        console_handler.setLevel(output.upper())
+        console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
+        logger.addHandler(console_handler)
         logger.info(f"{__name__} ver. {__version__}")
+
+        self.read_calendar_events(calfile=str(calfile), path=path)
     
     def __get_calfile(self, calfile, path):
         """
@@ -274,9 +272,9 @@ class Calendar:
             with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
-            logging.warning("No calendar file was found.")
+            logger.warning("No calendar file was found.")
             return
-        logging.info(f"Reading {self.calfile_fullpath}")
+        logger.info(f"Reading {self.calfile_fullpath}")
         #print(f"Reading {self.calfile}")
         for key, entries in inp.items():
             if key in self.meta_fields:
