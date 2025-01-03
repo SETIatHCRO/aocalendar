@@ -240,7 +240,7 @@ class AOCalendarApp(tkinter.Tk):
         duration_label.grid(row=2, column=2)
         self.duration_entry = tkinter.Entry(self.frame_update)
         self.duration_entry.grid(row=2, column=3)
-        self.duration_entry.insert(0, '1')
+        self.duration_entry.insert(0, '6')
 
         submit_button = tkinter.Button(self.frame_update, text='Schedule', command=self.doschedule)
         submit_button.grid(row=4, column=1)
@@ -253,8 +253,8 @@ class AOCalendarApp(tkinter.Tk):
         ra = self.ra_entry.get()
         dec = self.dec_entry.get()
         day = self.day_entry.get()
-        duration = self.duration_entry.get()
-        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=float(duration), name=name, pid=pid)
+        duration = float(self.duration_entry.get())
+        self.this_cal.schedule(ra=ra, dec=dec, day=day, duration=duration, name=name, pid=pid)
         self.reset()
         self.show_date(day)
         self.aoc_action = 'schedule'
@@ -265,6 +265,6 @@ class AOCalendarApp(tkinter.Tk):
             thisef = getattr(this_entry, field)
             if thisef is None: thisef = ''
             self.aoc_field_defaults[field] = thisef
-        self.event_fields('Check Schedule')
+        self.event_fields('OK')
 
 
