@@ -9,6 +9,10 @@ from aocalendar import aocalendar
 from . import aoc_tools
 
 
+def frame_label_fmt(txt, n=20):
+    return f"{txt:>{n}s}"
+
+
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
@@ -108,14 +112,14 @@ class AOCalendarApp(tkinter.Tk):
     def submit(self):
         if self.aoc_action in ['add', 'update', 'schedule']:
             kwargs = {
-                'name': self.name_entry.get(),
-                'pid': self.pid_entry.get(),
-                'utc_start': self.start_entry.get(),
-                'utc_stop': self.stop_entry.get(),
-                'state': self.state_entry.get(),
-                'note': self.note_entry.get(),
-                'observer': self.obs_entry.get(),
-                'email': self.email_entry.get()
+                'name': self.name_entry.get().strip(),
+                'pid': self.pid_entry.get().strip(),
+                'utc_start': self.start_entry.get().strip(),
+                'utc_stop': self.stop_entry.get().strip(),
+                'state': self.state_entry.get().strip(),
+                'note': self.note_entry.get().strip(),
+                'observer': self.obs_entry.get().strip(),
+                'email': self.email_entry.get().strip()
             }
         if self.aoc_action == 'add':
             self.day = aoc_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
@@ -135,51 +139,51 @@ class AOCalendarApp(tkinter.Tk):
             print("Did not succeed.")
 
     def event_fields(self, gobutton):
-        name_label = tkinter.Label(self.frame_update, text='Name')
+        name_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Name'))
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
         self.name_entry.insert(0, self.aoc_field_defaults['name'])
-        pid_label = tkinter.Label(self.frame_update, text='pid')
+        pid_label = tkinter.Label(self.frame_update, text=frame_label_fmt('pid'))
         pid_label.grid(row=0, column=2)
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
         self.pid_entry.insert(0, self.aoc_field_defaults['pid'])
 
-        start_label = tkinter.Label(self.frame_update, text='UTC start')
+        start_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC start'))
         start_label.grid(row=1, column=0)
         self.start_entry = tkinter.Entry(self.frame_update)
         self.start_entry.grid(row=1, column=1)
         self.start_entry.insert(0, self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='minutes'))
-        stop_label = tkinter.Label(self.frame_update, text='UTC stop')
+        stop_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC stop'))
         stop_label.grid(row=1, column=2)
         self.stop_entry = tkinter.Entry(self.frame_update)
         self.stop_entry.grid(row=1, column=3)
         self.stop_entry.insert(0, self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
 
-        state_label = tkinter.Label(self.frame_update, text='State')
+        state_label = tkinter.Label(self.frame_update, text=frame_label_fmt('State'))
         state_label.grid(row=2, column=0)
         self.state_entry = tkinter.Entry(self.frame_update)
         self.state_entry.grid(row=2, column=1)
         self.state_entry.insert(0, self.aoc_field_defaults['state'])
-        note_label = tkinter.Label(self.frame_update, text='Note')
+        note_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Note'))
         note_label.grid(row=2, column=2)
         self.note_entry = tkinter.Entry(self.frame_update)
         self.note_entry.grid(row=2, column=3)
         self.note_entry.insert(0, self.aoc_field_defaults['note'])
 
-        obs_label = tkinter.Label(self.frame_update, text='Observer')
+        obs_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Observer'))
         obs_label.grid(row=3, column=0)
         self.obs_entry = tkinter.Entry(self.frame_update)
         self.obs_entry.grid(row=3, column=1)
         self.obs_entry.insert(0, self.aoc_field_defaults['observer'])
-        email_label = tkinter.Label(self.frame_update, text='E-mail')
+        email_label = tkinter.Label(self.frame_update, text=frame_label_fmt('E-mail'))
         email_label.grid(row=3, column=2)
         self.email_entry = tkinter.Entry(self.frame_update)
         self.email_entry.grid(row=3, column=3)
         self.email_entry.insert(0, self.aoc_field_defaults['email'])
 
-        submit_button = tkinter.Button(self.frame_update, text=gobutton, command=self.submit)
+        submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
         submit_button.grid(row=4, column=1)
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
         cancel_button.grid(row=4, column=3)
@@ -219,31 +223,31 @@ class AOCalendarApp(tkinter.Tk):
         self.event_fields('Update')
 
     def schedule(self):
-        name_label = tkinter.Label(self.frame_update, text='Name')
+        name_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Name'))
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
-        pid_label = tkinter.Label(self.frame_update, text='pid')
+        pid_label = tkinter.Label(self.frame_update, text=frame_label_fmt('pid'))
         pid_label.grid(row=0, column=2)
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
 
-        source_label = tkinter.Label(self.frame_update, text='RA,dec or source')
+        source_label = tkinter.Label(self.frame_update, text=frame_label_fmt('RA,dec or source'))
         source_label.grid(row=1, column=0)
         self.source_entry = tkinter.Entry(self.frame_update)
         self.source_entry.grid(row=1, column=1)
-        day_label = tkinter.Label(self.frame_update, text='UTC day')
+        day_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC day'))
         day_label.grid(row=1, column=2)
         self.day_entry = tkinter.Entry(self.frame_update)
         self.day_entry.grid(row=1, column=3)
         self.day_entry.insert(0, self.tkcal.selection_get().strftime('%Y-%m-%d'))
 
-        duration_label = tkinter.Label(self.frame_update, text='length [h]')
+        duration_label = tkinter.Label(self.frame_update, text=frame_label_fmt('length [h]'))
         duration_label.grid(row=2, column=0)
         self.duration_entry = tkinter.Entry(self.frame_update)
         self.duration_entry.grid(row=2, column=1)
         self.duration_entry.insert(0, '6')
-        note_label = tkinter.Label(self.frame_update, text='Note')
+        note_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Note'))
         note_label.grid(row=2, column=2)
         self.note_entry = tkinter.Entry(self.frame_update)
         self.note_entry.grid(row=2, column=3)
@@ -254,18 +258,20 @@ class AOCalendarApp(tkinter.Tk):
         cancel_button.grid(row=4, column=3)
 
     def doschedule(self):
-        name = self.name_entry.get()
-        pid = self.pid_entry.get()
-        source = self.source_entry.get()
+        name = self.name_entry.get().strip()
+        if not name:
+            name = None
+        pid = self.pid_entry.get().strip()
+        source = self.source_entry.get().strip()
         if ',' in source:
             ra, dec = source.split(',')
             source = None
         else:
             ra, dec = None, None
-        day = self.day_entry.get()
+        day = self.day_entry.get().strip()
         duration = float(self.duration_entry.get())
-        note = self.note_entry.get()
-        scheduled = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=day, duration=duration, name=name, pid=pid)
+        note = self.note_entry.get().strip()
+        scheduled = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=day, duration=duration, name=name, pid=pid, note=note)
         self.reset()
         self.show_date(day)
         if scheduled:
