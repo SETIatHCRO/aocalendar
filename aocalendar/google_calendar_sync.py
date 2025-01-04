@@ -98,12 +98,12 @@ class SyncCal:
 
     def update_aoc(self):
         # Add new ones in google calendar to aocalendar
-        print(f"Adding {len(self.gc_added)}")
+        print(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
         for hkey in self.gc_added:
             if hkey not in self.aocal.hashmap and hkey not in self.aoc_removed:
                 add_entry = self.gc_new_cal.events[self.gc_new_cal.hashmap[hkey][0]][self.gc_new_cal.hashmap[hkey][1]].todict(printable=False, include_meta=True)
                 self.aocal.add(**add_entry)
-        print(f"Removing {len(self.gc_removed)}")
+        print(f"Removing {len(self.gc_removed)} from {self.aocal.calfile}")
         for hkey in self.gc_removed:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
@@ -112,19 +112,17 @@ class SyncCal:
 
     def udpate_gc(self):
         ctr = 0
-        print("SKIPPING ACTUAL ADD")
         for hh, entry in self.aocal.hashmap.items():
             if hh not in self.gc_new_cal.hashmap:
                 start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
                 end = self.aocal.events[entry[0]][entry[1]].utc_stop.datetime
-                #creator = self.aocal[entry[0]][entry[1]].email
+                # creator = self.aocal[entry[0]][entry[1]].email
                 summary = self.aocal.events[entry[0]][entry[1]].name
                 ctr += 1
                 event = Event(summary, start=start, end=end, timezone='GMT')
-                # event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
-        print(f"Added {ctr} to Google Calendar")
+                event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+        print(f"Adding {ctr} to Google Calendar {self.google_cal_name}")
         ctr = 0
-        print("SKIPPING ACTUAL DELETE")
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.hashmap:
                 entry = self.gc_new_cal.hashmap[hh]
@@ -134,12 +132,11 @@ class SyncCal:
                     print(f"DIDN'T FIND {entry}")
                     continue
                 try:
-                    pass
-                    #self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+                    self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
                 except AttributeError:  # Don't know what errors...
                     continue
                 ctr += 1
-        print(f"Removed {ctr} from Google Calendar")
+        print(f"Removing {ctr} from Google Calendar {self.google_cal_name}")
 
     def shuffle_aoc_files(self):
         # Now move calendars to OLD etc

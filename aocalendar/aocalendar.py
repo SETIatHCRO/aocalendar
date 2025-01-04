@@ -336,7 +336,6 @@ class Calendar:
                 logger.warning("No calendar file was found.")
                 return
         logger.info(f"Reading {self.calfile_fullpath}")
-        #print(f"Reading {self.calfile}")
         for key, entries in inp.items():
             if key in self.meta_fields:
                 setattr(self, key, entries)
@@ -547,12 +546,15 @@ class Calendar:
 
         """
         kwargs['utc_start'] = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
-        if 'lst_start' in kwargs and boolcheck(kwargs['lst_start']):
-            kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], kwargs['utc_start'])
-        if 'lst_stop' in kwargs and boolcheck(kwargs['lst_stop']):
-            kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'])
-            if kwargs['utc_stop'] < kwargs['utc_start']:
-                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'] + TimeDelta(DAYSEC, format='sec'))
+        if boolcheck(kwargs['utc_stop']):
+            kwargs['utc_stop'] = aoc_tools.interp_date(kwargs['utc_stop'], fmt='Time')
+        else:
+            if 'lst_start' in kwargs and boolcheck(kwargs['lst_start']):
+                kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], kwargs['utc_start'])
+            if 'lst_stop' in kwargs and boolcheck(kwargs['lst_stop']):
+                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'])
+                if kwargs['utc_stop'] < kwargs['utc_start']:
+                    kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'] + TimeDelta(DAYSEC, format='sec'))
         this_event = Entry(**kwargs)
         self.recent_event = this_event
         this_hash = this_event.hash()
