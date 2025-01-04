@@ -32,6 +32,7 @@ ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'AOCALENDAR'
+AOC_PREFIX = 'aocal'
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 DAYSEC = 24 * 3600
 
@@ -83,18 +84,29 @@ def cull_args(**kwargs):
 
 class Entry:
     def __init__(self, **kwargs):
-        self.meta_fields = ['fields']
+        self.meta_fields = ['created', 'modifield', 'event_id']
         self.fields = kwargs['fields'] if 'fields' in kwargs else ENTRY_FIELDS
         for key in self.fields:
             if isinstance(self.fields, dict):
                 setattr(self, key, self.fields[key])
             else:
                 setattr(self, key, None)
+        if created is None: created = 'now'
+        kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
+        self.created = aoc_tools.interp_date(kwargs['created'], fmt='Time')
+        self.modified = self.created
+        self.event_id = copy(kwargs['event_id']) if 'event_id' in kwargs else 'AOC'
+        for key in self.meta_fields:  # Handled them above
+            if key in kwargs: del(kwargs[key])
         if len(kwargs):
             self.update(**kwargs)
 
     def __str__(self):
-        s = f"CALENDAR ENTRY {self.utc_start.datetime.strftime('%Y')}\n\n"
+        s = f"CALENDAR ENTRY {self.utc_start.datetime.strftime('%Y')}\n"
+        s+= f"created: {self.created.datetime.isoformat(timespec='seconds')}"
+        if self.modified != self.created:
+            s+= f"  --  modified: {self.modified.datetime.isoformat(timespec='seconds')}"
+        s += "\n\n"
         data = self.todict(printable=True)
         table = []
         for key, val in data.items():
@@ -111,9 +123,14 @@ class Entry:
                     kwctr += 1
                 if val is not None:
                     setattr(self, key, val)
+            elif key in self.meta_fields:
+                if key == 'modified':
+                    self.modified = aoc_tools.interp_date(val)
+                elif key == 'event_id':
+                    self.event_id = val
         for key in ['utc_start', 'utc_stop']:
             try:
-                setattr(self, key, Time(getattr(self, key)))
+                setattr(self, key, aoc_tools.interp_date(getattr(self, key)))
             except ValueError:
                 self.msg.append(f'Need valid {key} - got {getattr(self, key)}')
                 self.valid = False
@@ -121,10 +138,11 @@ class Entry:
             self.msg.append(f"Need at least one non-time entry.")
             self.valid = False
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
+        self.modified = aoc_tools.interp_date('now', fmt='Time')
         # Always recompute LST
         self.update_lst()
 
-    def row(self, cols='all', printable=True):
+    def row(self, cols='all', printable=True, include_meta=False):
         """
         Return the entry as a list.
 
@@ -137,7 +155,7 @@ class Entry:
 
         """
         if cols == 'all': cols = self.fields
-        entry = self.todict(printable=printable)
+        entry = self.todict(printable=printable, include_meta=include_meta)
         row = [entry[col] for col in cols]
         return row
     
@@ -146,7 +164,7 @@ class Entry:
         txt = ''.join(self.row(cols='all', printable=True)).encode('utf-8')
         return sha256(txt).hexdigest()[:10]
     
-    def todict(self, printable=True):
+    def todict(self, printable=True, include_meta=False):
         """
         Return the dictionary of an event.
 
@@ -174,6 +192,15 @@ class Entry:
                     entry[col] = str(getattr(self, col))
             else:
                 entry[col] = copy(getattr(self, col))
+        if include_meta:
+            if printable:
+                entry['created'] = self.created.datetime.isoformat(timespec='seconds')
+                entry['modified'] = self.modified.datetime.isoformat(timespec='seconds')
+            else:
+                entry['created'] = self.created
+                entry['modified'] = self.modified
+            entry['event_id'] = self.event_id
+
         return entry
 
     def update_lst(self):
@@ -190,7 +217,7 @@ class Entry:
 
 
 class Calendar:
-    meta_fields = ['updated']
+    meta_fields = ['created', 'updated']
 
     def __init__(self, calfile='now', path='getenv', output='INFO', start_new=False):
         """
@@ -248,7 +275,7 @@ class Calendar:
                 refdate = Time.now()
         else:
             refdate = aoc_tools.interp_date(calfile, 'Time')
-            calfile = f"cal{refdate.datetime.year}.json"
+            calfile = f"{AOC_PREFIX}{refdate.datetime.year}.json"
         if path == 'getenv':
             from os import getenv
             path = getenv(PATH_ENV)
@@ -285,7 +312,7 @@ class Calendar:
         """
         self.events = {}
         self.straddle = {}
-        self.all_fields = []
+        self.all_fields =  list(ENTRY_FIELDS.keys())  # This is a cheat for now.
         self.all_hash = []
         self.__get_calfile(calfile=str(calfile), path=path)
         try:
@@ -294,13 +321,13 @@ class Calendar:
         except FileNotFoundError:
             if start_new:
                 with open(self.calfile_fullpath, 'w') as fp:
-                    print(f'{{\n  "updated":  "{Time.now}"\n}}', file=fp)
+                    atime = Time.now().datetime.isoformat(timespec="seconds")
+                    print(f'{{\n  "created":  "{atime}",\n  "updated":  "{atime}"\n}}', file=fp)
                 logger.info("No calendar file was found -- started new.")
             else:
                 logger.warning("No calendar file was found.")
-            return
+                return
         logger.info(f"Reading {self.calfile_fullpath}")
-        self.all_fields = list(ENTRY_FIELDS.keys())  # This is a cheat for now.
         #print(f"Reading {self.calfile}")
         for key, entries in inp.items():
             if key in self.meta_fields:
@@ -353,11 +380,21 @@ class Calendar:
         for key, val in self.events.items():
             full_events[key] = []
             for event in val:
-                full_events[key].append(event.todict(printable=True))
+                full_events[key].append(event.todict(printable=True, include_meta=True))
             if not len(full_events[key]):
                 del(full_events[key])
         with open(calfile, 'w') as fp:
            json.dump(full_events, fp, indent=2)
+
+    def make_hash_keymap(self):
+        """
+        For purposes of checking calendars etc, make a hash-key to entry (day, #) map
+
+        """
+        self.hashmap = {}
+        for day, events in self.events.items():
+            for i, event in enumerate(events):
+                self.hashmap[event.hash()] = (day, i)
 
     def __sort_day(self, day):
         day = aoc_tools.interp_date(day)
@@ -373,12 +410,12 @@ class Calendar:
                 key = (event.utc_start, event.utc_stop, i)
                 sorted_dict[key] = {'event': copy(event), 'index': i}
         sorted_day = []
-        keymap = {}
+        indmap = {}
         for i, key in enumerate(sorted(sorted_dict)):
             if 'event' in sorted_dict[key]:
                 sorted_day.append(sorted_dict[key]['event'])
-                keymap[i] = sorted_dict[key]['index']
-        return sorted_day, keymap
+                indmap[i] = sorted_dict[key]['index']
+        return sorted_day, indmap
 
     def format_day_events(self, day='today', cols='short', return_as='table'):
         """
@@ -399,11 +436,11 @@ class Calendar:
         elif cols == 'short':
             cols = SHORT_LIST
         hdr = ['#'] + cols
-        sorted_day, keymap = self.__sort_day(day)
+        sorted_day, indmap = self.__sort_day(day)
         if return_as == 'table':
-            return(tabulate([[keymap[i]] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], headers=hdr))
+            return(tabulate([[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], headers=hdr))
         elif return_as == 'list':
-            return [[keymap[i]] + event.row(cols, printable=True) for i, event in enumerate(sorted_day)], hdr
+            return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
         
     def graph_day(self, day='today', header_col='name', tz='sys', interval_min=10.0):
         """
@@ -426,12 +463,12 @@ class Calendar:
             gmt = time.gmtime()
             tz = time.tzname[gmt.tm_isdst]
         tzoff = aoc_tools.TIMEZONE[tz]
-        sorted_day, keymap = self.__sort_day(day)
+        sorted_day, indmap = self.__sort_day(day)
         if not len(sorted_day):
             return ' '
         cbuflt, cbufind, cbufrt = 2, 3, 2
         stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max name
-        colhdr = [f"{cbuflt*' '}{keymap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
+        colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
@@ -554,6 +591,7 @@ class Calendar:
 
         """
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
+        kwargs['modified'] = kwargs['modified'] if 'modified' in kwargs else 'now'
         try:
             self.events[day][nind].update(**kwargs)
             self.recent = self.events[day][nind]
@@ -569,6 +607,7 @@ class Calendar:
         if day != event_day:
             logger.info(f"Changed day from {day} to {event_day}")
             move_entry = self.events[day][nind].todict(printable=False)
+            move_entry['created'] = 'now'
             self.add(**move_entry)
             del(self.events[day][nind])
         return True
