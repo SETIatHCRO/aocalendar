@@ -192,14 +192,26 @@ class Entry:
 class Calendar:
     meta_fields = ['updated']
 
-    def __init__(self, calfile='now', path='getenv', output='INFO'):
+    def __init__(self, calfile='now', path='getenv', output='INFO', start_new=False):
+        """
+        Parameters
+        ----------
+        calfile : str
+            interpreted by __get_calfile
+        path : str
+            interpreted by __get_calfile
+        output : str
+            Logging output level
+        start_new : bool
+            Flag to start empty one if file not found.
+        """
         console_handler = logging.StreamHandler(stdout)
         console_handler.setLevel(output.upper())
         console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
         logger.addHandler(console_handler)
         logger.info(f"{__name__} ver. {__version__}")
 
-        self.read_calendar_events(calfile=str(calfile), path=path)
+        self.read_calendar_events(calfile=str(calfile), path=path, start_new=start_new)
     
     def __get_calfile(self, calfile, path):
         """
@@ -246,7 +258,7 @@ class Calendar:
         self.calfile_fullpath = op.join(path, calfile)
         self.refdate = refdate
 
-    def read_calendar_events(self, calfile, path='getenv', skip_duplicates=True):
+    def read_calendar_events(self, calfile, path='getenv', skip_duplicates=True, start_new=False):
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
 
@@ -280,7 +292,12 @@ class Calendar:
             with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
-            logger.warning("No calendar file was found.")
+            if start_new:
+                with open(self.calfile_fullpath, 'w') as fp:
+                    print(f'{{\n  "updated":  "{Time.now}"\n}}', file=fp)
+                logger.info("No calendar file was found -- started new.")
+            else:
+                logger.warning("No calendar file was found.")
             return
         logger.info(f"Reading {self.calfile_fullpath}")
         self.all_fields = list(ENTRY_FIELDS.keys())  # This is a cheat for now.
