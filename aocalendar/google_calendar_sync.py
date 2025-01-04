@@ -120,8 +120,9 @@ class SyncCal:
                 summary = self.aocal.events[entry[0]][entry[1]].name
                 ctr += 1
                 event = Event(summary, start=start, end=end)
-                event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
-        print(f"Added {ctr} to GoogleCalendar")
+                print("SKIPPING ACTUAL ADD")
+                # event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+        print(f"Added {ctr} to Google Calendar")
         ctr = 0
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.all_hash:
@@ -132,7 +133,8 @@ class SyncCal:
                     print(f"DIDN'T FIND {entry}")
                     continue
                 try:
-                    self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+                    print("SKIPPING ACTUAL DELETE")
+                    #self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
                 except AttributeError:  # Don't know what errors...
                     continue
                 ctr += 1
