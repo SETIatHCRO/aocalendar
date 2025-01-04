@@ -114,10 +114,10 @@ class SyncCal:
         ctr = 0
         for hh, entry in self.aocal.hashmap.items():
             if hh not in self.gc_new_cal.all_hash:
-                start = self.aocal[entry[0]][entry[1]].utc_start.datetime
-                end = self.aocal[entry[0]][entry[1]].utc_stop.datetime
+                start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
+                end = self.aocal.events[entry[0]][entry[1]].utc_stop.datetime
                 #creator = self.aocal[entry[0]][entry[1]].email
-                summary = self.aocal[entry[0]][entry[1]].name
+                summary = self.aocal.events[entry[0]][entry[1]].name
                 ctr += 1
                 event = Event(summary, start=start, end=end)
                 event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
@@ -127,7 +127,7 @@ class SyncCal:
             if hh in self.gc_new_cal.all_hash:
                 entry = self.gc_new_cal.hashmap[hh]
                 try:
-                    event_id = self.gc_new_cal[entry[0]][entry[1]].event_id
+                    event_id = self.gc_new_cal.events[entry[0]][entry[1]].event_id
                 except (KeyError, AttributeError):
                     print(f"DIDN'T FIND {entry}")
                     continue
