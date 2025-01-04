@@ -165,9 +165,9 @@ class Entry:
         row = [entry[col] for col in cols]
         return row
     
-    def hash(self):
-        """Return the hash of the entire."""
-        txt = ''.join(self.row(cols='all', printable=True)).encode('utf-8')
+    def hash(self, cols='all'):
+        """Return the hash of the entry"""
+        txt = ''.join(self.row(cols=cols, printable=True)).encode('utf-8')
         return sha256(txt).hexdigest()[:10]
     
     def todict(self, printable=True, include_meta=False):
@@ -394,7 +394,7 @@ class Calendar:
         with open(calfile, 'w') as fp:
            json.dump(full_events, fp, indent=2)
 
-    def make_hash_keymap(self):
+    def make_hash_keymap(self, cols='all'):
         """
         For purposes of checking calendars etc, make a hash-key to entry (day, #) map
 
@@ -402,7 +402,7 @@ class Calendar:
         self.hashmap = {}
         for day, events in self.events.items():
             for i, event in enumerate(events):
-                self.hashmap[event.hash()] = (day, i)
+                self.hashmap[event.hash(cols=cols)] = (day, i)
 
     def __sort_day(self, day):
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')

@@ -17,13 +17,13 @@ ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'sum
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
 # Using updated for created, since the google one is "bad"
 # need to get start/end to right time zone, which is ok since they use UTC also
-ATTRIB2PUSH = {'email': 'creator', 'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
+ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 class SyncCal:
     def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH):
         self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
-        self.attrib2push = attrib2push
+        self.attrib2push = list(attrib2push.keys())
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
@@ -38,19 +38,19 @@ class SyncCal:
 
         self.gc_new_cal = aocalendar.Calendar(gcname_new, path='getenv', start_new=True)
         self.gc_old_cal = aocalendar.Calendar(gcname_old, path='getenv', start_new=True)
-        self.gc_old_cal.make_hash_keymap()
+        self.gc_old_cal.make_hash_keymap(cols=self.attrib2push)
 
     def get_aoc_aocal(self):
         self.aocal = aocalendar.Calendar(start_new=True)
-        self.aocal.make_hash_keymap()
+        self.aocal.make_hash_keymap(cols=self.attrib2push)
         archive_cal_filename = self.aocal.calfile_fullpath.split('.')[0] + '_OLD.json'
         self.aoarc = aocalendar.Calendar(archive_cal_filename, start_new=True)
-        self.aoarc.make_hash_keymap()
+        self.aoarc.make_hash_keymap(cols=self.attrib2push)
 
     def get_google_calendar(self, show=False):
         if DEBUG_SKIP_GC:
             try:
-                self.gc_new_cal.make_hash_keymap()
+                self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
             except AttributeError:
                 print("NEED TO READ IN AOC calendars.")
             return
@@ -74,7 +74,7 @@ class SyncCal:
             for day in self.gc_new_cal.events:
                 print(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.ENTRY_FIELDS.keys())) + '\n')
         self.gc_new_cal.write_calendar()
-        self.gc_new_cal.make_hash_keymap()
+        self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
     def gc_added_removed(self):
         self.gc_added = []  # hash in self.gc_new_cal that weren't in self.gc_old_cal
@@ -108,10 +108,11 @@ class SyncCal:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
         self.aocal.write_calendar()
-        self.aocal.make_hash_keymap()
+        self.aocal.make_hash_keymap(cols=self.attrib2push)
 
     def udpate_gc(self):
         ctr = 0
+        print("SKIPPING ACTUAL ADD")
         for hh, entry in self.aocal.hashmap.items():
             if hh not in self.gc_new_cal.all_hash:
                 start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
@@ -119,11 +120,11 @@ class SyncCal:
                 #creator = self.aocal[entry[0]][entry[1]].email
                 summary = self.aocal.events[entry[0]][entry[1]].name
                 ctr += 1
-                event = Event(summary, start=start, end=end)
-                print("SKIPPING ACTUAL ADD")
+                event = Event(summary, start=start, end=end, timezone='GMT')
                 # event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
         print(f"Added {ctr} to Google Calendar")
         ctr = 0
+        print("SKIPPING ACTUAL DELETE")
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.all_hash:
                 entry = self.gc_new_cal.hashmap[hh]
@@ -133,7 +134,7 @@ class SyncCal:
                     print(f"DIDN'T FIND {entry}")
                     continue
                 try:
-                    print("SKIPPING ACTUAL DELETE")
+                    pass
                     #self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
                 except AttributeError:  # Don't know what errors...
                     continue
