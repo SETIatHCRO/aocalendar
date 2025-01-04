@@ -37,6 +37,13 @@ SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', '
 DAYSEC = 24 * 3600
 
 
+def boolcheck(x):
+    try:
+        return bool(x)
+    except ValueError:
+        return True
+
+
 def aoc_entry(path='getenv', output='ERROR', **kwargs):
     """
     Simple access to AOCalendar to add entry.
@@ -91,7 +98,6 @@ class Entry:
                 setattr(self, key, self.fields[key])
             else:
                 setattr(self, key, None)
-        if created is None: created = 'now'
         kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
         self.created = aoc_tools.interp_date(kwargs['created'], fmt='Time')
         self.modified = self.created
@@ -125,12 +131,12 @@ class Entry:
                     setattr(self, key, val)
             elif key in self.meta_fields:
                 if key == 'modified':
-                    self.modified = aoc_tools.interp_date(val)
+                    self.modified = aoc_tools.interp_date(val, fmt='Time')
                 elif key == 'event_id':
                     self.event_id = val
         for key in ['utc_start', 'utc_stop']:
             try:
-                setattr(self, key, aoc_tools.interp_date(getattr(self, key)))
+                setattr(self, key, aoc_tools.interp_date(getattr(self, key), fmt='Time'))
             except ValueError:
                 self.msg.append(f'Need valid {key} - got {getattr(self, key)}')
                 self.valid = False
@@ -232,10 +238,11 @@ class Calendar:
         start_new : bool
             Flag to start empty one if file not found.
         """
-        console_handler = logging.StreamHandler(stdout)
-        console_handler.setLevel(output.upper())
-        console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
-        logger.addHandler(console_handler)
+        if not len(logger.handlers):
+            console_handler = logging.StreamHandler(stdout)
+            console_handler.setLevel(output.upper())
+            console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
+            logger.addHandler(console_handler)
         logger.info(f"{__name__} ver. {__version__}")
 
         self.read_calendar_events(calfile=str(calfile), path=path, start_new=start_new)
@@ -320,9 +327,10 @@ class Calendar:
                 inp = json.load(fp)
         except FileNotFoundError:
             if start_new:
+                atime = Time.now().datetime.isoformat(timespec="seconds")
+                inp = {'created': atime, 'updated': atime}
                 with open(self.calfile_fullpath, 'w') as fp:
-                    atime = Time.now().datetime.isoformat(timespec="seconds")
-                    print(f'{{\n  "created":  "{atime}",\n  "updated":  "{atime}"\n}}', file=fp)
+                    json.dump(inp, fp)                    
                 logger.info("No calendar file was found -- started new.")
             else:
                 logger.warning("No calendar file was found.")
@@ -397,7 +405,7 @@ class Calendar:
                 self.hashmap[event.hash()] = (day, i)
 
     def __sort_day(self, day):
-        day = aoc_tools.interp_date(day)
+        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         sorted_dict = {}
         offset = 0
         if day in self.straddle:
@@ -536,9 +544,9 @@ class Calendar:
 
         """
         kwargs['utc_start'] = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
-        if 'lst_start' in kwargs and bool(kwargs['lst_start']):
+        if 'lst_start' in kwargs and boolcheck(kwargs['lst_start']):
             kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], kwargs['utc_start'])
-        if 'lst_stop' in kwargs and bool(kwargs['lst_stop']):
+        if 'lst_stop' in kwargs and boolcheck(kwargs['lst_stop']):
             kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'])
             if kwargs['utc_stop'] < kwargs['utc_start']:
                 kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'] + TimeDelta(DAYSEC, format='sec'))
@@ -633,7 +641,7 @@ class Calendar:
 
     def get_obs(self, ra, dec, source, day, duration, dt = 10.0):
         day = aoc_tools.interp_date(day, fmt='Time')
-        if bool(str(ra)) and bool(str(dec)):
+        if boolcheck(ra) and boolcheck(dec):
             pass
         else:
             src = check_source(source)
