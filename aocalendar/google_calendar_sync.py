@@ -114,7 +114,7 @@ class SyncCal:
         ctr = 0
         print("SKIPPING ACTUAL ADD")
         for hh, entry in self.aocal.hashmap.items():
-            if hh not in self.gc_new_cal.all_hash:
+            if hh not in self.gc_new_cal.hashmap:
                 start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
                 end = self.aocal.events[entry[0]][entry[1]].utc_stop.datetime
                 #creator = self.aocal[entry[0]][entry[1]].email
@@ -126,7 +126,7 @@ class SyncCal:
         ctr = 0
         print("SKIPPING ACTUAL DELETE")
         for hh in self.aoc_removed:
-            if hh in self.gc_new_cal.all_hash:
+            if hh in self.gc_new_cal.hashmap:
                 entry = self.gc_new_cal.hashmap[hh]
                 try:
                     event_id = self.gc_new_cal.events[entry[0]][entry[1]].event_id

@@ -362,10 +362,13 @@ class Calendar:
                         keystr = keydate.datetime.strftime("%Y-%m-%d")
                     self.events.setdefault(keystr, [])
                     self.events[keystr].append(this_event)
-                    endkeystr = this_event.utc_stop.datetime.strftime("%Y-%m-%d")
-                    if endkeystr != keystr:
-                        self.straddle.setdefault(endkeystr, [])
-                        self.straddle[endkeystr].append(this_event)
+                    try:
+                        endkeystr = this_event.utc_stop.datetime.strftime("%Y-%m-%d")
+                        if endkeystr != keystr:
+                            self.straddle.setdefault(endkeystr, [])
+                            self.straddle[endkeystr].append(this_event)
+                    except AttributeError:  # Problem with utc_stop, probably INVALID
+                        continue
 
     def write_calendar(self, calfile=None):
         """
