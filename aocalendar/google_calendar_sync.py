@@ -140,9 +140,7 @@ class SyncCal:
         except OSError:
             pass
 
-
-
-def show_stuff():
+def show_stuff(gc):
     from tabulate import tabulate
 
     data = []
