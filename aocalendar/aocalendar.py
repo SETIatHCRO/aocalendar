@@ -594,7 +594,7 @@ class Calendar:
 
         ra = Angle(ra)
         dec = Angle(dec)
-        source = source if source is not None else f"{ra.to_string()},{dec.to_string()}"
+        source = source if source is not None else f"{ra.to_string(precision=0)},{dec.to_string(precision=0)}"
 
         duration = TimeDelta(duration * 3600.0, format='sec')
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))

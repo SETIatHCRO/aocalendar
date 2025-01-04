@@ -204,8 +204,8 @@ class AOCalendarApp(tkinter.Tk):
     def add_event(self):
         self.reset()
         self.aoc_action = 'add'
-        self.aoc_field_defaults['utc_start'] = self.this_cal.refdate
-        self.aoc_field_defaults['utc_stop'] = self.this_cal.refdate
+        self.aoc_field_defaults['utc_start'] = aoc_tools.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
+        self.aoc_field_defaults['utc_stop'] = aoc_tools.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
         self.aoc_field_defaults['lst_start'] = ''
         self.aoc_field_defaults['lst_stop'] = ''
         self.aoc_field_defaults['state'] = 'primary'
@@ -222,6 +222,8 @@ class AOCalendarApp(tkinter.Tk):
         this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
+        self.aoc_field_defaults['lst_start'] = f"{self.aoc_field_defaults['lst_start'].to_string(precision=0)}"
+        self.aoc_field_defaults['lst_stop'] = f"{self.aoc_field_defaults['lst_stop'].to_string(precision=0)}"
         self.event_fields('Delete')
 
     def upd_event(self):
@@ -235,8 +237,8 @@ class AOCalendarApp(tkinter.Tk):
         this_entry = self.this_cal.events[self.day][self.nind]
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
-        self.aoc_field_defaults['lst_start'] = 'XXX'
-        self.aoc_field_defaults['lst_stop'] = 'XXX'
+        self.aoc_field_defaults['lst_start'] = f"{self.aoc_field_defaults['lst_start'].to_string(precision=0)} - can't update"
+        self.aoc_field_defaults['lst_stop'] = f"{self.aoc_field_defaults['lst_stop'].to_string(precision=0)} - can't update"
         self.event_fields('Update')
 
     def schedule(self):
