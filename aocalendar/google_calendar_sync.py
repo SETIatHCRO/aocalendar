@@ -103,7 +103,7 @@ class SyncCal:
                 self.aocal.add(**add_entry)
         print(f"Removing {len(self.gc_removed)}")
         for hkey in self.gc_removed:
-            if hkey in self.cal.hashmap and hkey not in self.aoc_added:
+            if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
         self.aocal.write_calendar()
 
