@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from aocalendar import google_calendar_sync
 
 gcal = google_calendar_sync.SyncCal()
