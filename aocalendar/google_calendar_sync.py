@@ -17,17 +17,19 @@ ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'sum
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
 # Using updated for created, since the google one is "bad"
 # need to get start/end to right time zone, which is ok since they use UTC also
+ATTRIB2PUSH = {'email': 'creator', 'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 class SyncCal:
-    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP):
-        self.cal_id = cal_id
+    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH):
+        self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
+        self.attrib2push = attrib2push
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
         else:
             self.gc = GoogleCalendar()
-            ata = self.gc.get_calendar_list_entry(ATA_CAL_ID)
+            ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
     def get_gc_aocal(self):
@@ -53,7 +55,7 @@ class SyncCal:
                 print("NEED TO READ IN AOC calendars.")
             return
 
-        for event in self.gc.get_events(calendar_id=ATA_CAL_ID):
+        for event in self.gc.get_events(calendar_id=self.gc_cal_id):
             entry = {}
             for key, val in self.attrib2keep.items():
                 this_field = copy(getattr(event, key))
@@ -106,16 +108,35 @@ class SyncCal:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
         self.aocal.write_calendar()
+        self.aocal.make_hash_keymap()
 
     def udpate_gc(self):
-        #ADD
-        # start = datetime(year=2025, month=1, day=3, hour=18, minute=0)
-        # end = datetime(year=2025, month=1, day=3, hour=18, minute=30)
-        # event = Event("TEST", start=start, end=end)
-        # event = gc.add_event(event, calendar_id=ATA_CAL_ID)
-        #DELETE
-        #gc.delete_event(delevent.id, calendar_id=ATA_CAL_ID)
-        print("UPDATE GC")
+        ctr = 0
+        for hh, entry in self.aocal.hashmap.items():
+            if hh not in self.gc_new_cal.all_hash:
+                start = self.aocal[entry[0]][entry[1]].utc_start.datetime
+                end = self.aocal[entry[0]][entry[1]].utc_stop.datetime
+                #creator = self.aocal[entry[0]][entry[1]].email
+                summary = self.aocal[entry[0]][entry[1]].name
+                ctr += 1
+                event = Event(summary, start=start, end=end)
+                event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+        print(f"Added {ctr} to GoogleCalendar")
+        ctr = 0
+        for hh in self.aoc_removed:
+            if hh in self.gc_new_cal.all_hash:
+                entry = self.gc_new_cal.hashmap[hh]
+                try:
+                    event_id = self.gc_new_cal[entry[0]][entry[1]].event_id
+                except (KeyError, AttributeError):
+                    print(f"DIDN'T FIND {entry}")
+                    continue
+                try:
+                    self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+                except AttributeError:  # Don't know what errors...
+                    continue
+                ctr += 1
+        print(f"Removed {ctr} from Google Calendar")
 
     def shuffle_aoc_files(self):
         # Now move calendars to OLD etc
