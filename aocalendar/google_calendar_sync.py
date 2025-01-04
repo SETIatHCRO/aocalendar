@@ -9,7 +9,7 @@ from aocalendar import aocalendar
 from copy import copy
 import os, shutil
 
-DEBUG_SKIP_GC = True
+DEBUG_SKIP_GC = False
 
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
