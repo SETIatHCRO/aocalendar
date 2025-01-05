@@ -25,7 +25,7 @@ class SyncCal:
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
         self.output = output.upper()
-        self.file_logging = file_logging.upper() if file_logging else file_logging
+        self.file_logging = file_logging.upper() if isinstance(file_logging, str) else file_logging
         self.path = path
 
         if DEBUG_SKIP_GC:
