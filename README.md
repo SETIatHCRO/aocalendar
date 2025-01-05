@@ -1,6 +1,10 @@
 # ATA Observation Calendar
 
-ATA Observing calendar - calendar info is in json files delineated by year, e.g. cal2024.json generally located at the environment variable 'AOCALENDAR'.
+Curates a working calendar for observations and has methods to schedule by source (if ATATools available), RA/Dec and LST.
+
+Calendar info is in json files delineated by year, e.g. aocal2024.json generally located at the directory defined by the environment variable 'AOCALENDAR'.
+
+The calendar can be synced with a Google Calendar via the script `aoc_sync_calendars.py`
 
 ## Three ways to use
 
@@ -13,7 +17,7 @@ ATA Observing calendar - calendar info is in json files delineated by year, e.g.
 
 - gui using `aoctkuser.py`
 
-Events can be added by scheduling a RA/Dec or source, or by LST bounds as well as by UTC.  To specify via LST, leave UTC_stop blank and include LST_start, LST_stop.  UTC_start is needed regardless.  If LST, it only uses the day and not the time (that is the LST on that UTC day, not after the provided UTC time).
+Events can be added by scheduling a RA/Dec or source, or by LST bounds as well as by UTC.  To specify via LST, leave UTC_stop blank and include LST_start, LST_stop.  UTC_start is needed regardless.  If LST, it only uses the day contained in UTC_start and not the time (that is the LST on that UTC day, not after the provided UTC time).
 
 For command line:
 
