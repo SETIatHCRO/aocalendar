@@ -226,7 +226,7 @@ class Entry:
 class Calendar:
     meta_fields = ['created', 'updated']
 
-    def __init__(self, calfile='now', path='getenv', output='INFO', file_logging=False, start_new=False):
+    def __init__(self, calfile='now', path='getenv', output='INFO', file_logging=False, file_logging_path='getenv', start_new=False):
         """
         Parameters
         ----------
@@ -247,7 +247,8 @@ class Calendar:
             console_handler.set_name('Console')
             logger.addHandler(console_handler)
         if file_logging and 'File' not in handler_names:
-            path = getenv(PATH_ENV)
+            if file_logging_path == 'getenv':
+                path = getenv(PATH_ENV)
             if path is None: path = ''
             file_handler = logging.FileHandler(op.join(path, 'aoclog'), mode='a')
             file_handler.setLevel(file_logging.upper())
