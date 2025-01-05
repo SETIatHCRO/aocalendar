@@ -16,6 +16,7 @@ from os import path as op
 from hashlib import sha256
 from numpy import floor, round
 from numpy import where as npwhere
+from os import getenv
 from . import __version__, aoc_tools
 try:
     from ATATools.ata_sources import check_source  # type: ignore
@@ -225,7 +226,7 @@ class Entry:
 class Calendar:
     meta_fields = ['created', 'updated']
 
-    def __init__(self, calfile='now', path='getenv', output='INFO', start_new=False):
+    def __init__(self, calfile='now', path='getenv', output='INFO', file_logging=False, start_new=False):
         """
         Parameters
         ----------
@@ -238,11 +239,21 @@ class Calendar:
         start_new : bool
             Flag to start empty one if file not found.
         """
-        if not len(logger.handlers):
+        handler_names = [x.get_name() for x in logger.handlers]
+        if 'Console' not in handler_names:
             console_handler = logging.StreamHandler(stdout)
             console_handler.setLevel(output.upper())
             console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
+            console_handler.set_name('Console')
             logger.addHandler(console_handler)
+        if file_logging and 'File' not in handler_names:
+            path = getenv(PATH_ENV)
+            if path is None: path = ''
+            file_handler = logging.FileHandler(op.join(path, 'aoclog'), mode='a')
+            file_handler.setLevel(file_logging.upper())
+            file_handler.setFormatter(logging.Formatter("{asctime} - {levelname} - {message}", style='{'))
+            file_handler.set_name('File')
+            logger.addHandler(file_handler)
         logger.info(f"{__name__} ver. {__version__}")
 
         self.read_calendar_events(calfile=str(calfile), path=path, start_new=start_new)
@@ -284,7 +295,6 @@ class Calendar:
             refdate = aoc_tools.interp_date(calfile, 'Time')
             calfile = f"{AOC_PREFIX}{refdate.datetime.year}.json"
         if path == 'getenv':
-            from os import getenv
             path = getenv(PATH_ENV)
             if path is None: path = ''
         self.path = path

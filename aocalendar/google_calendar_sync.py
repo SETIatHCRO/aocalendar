@@ -20,10 +20,12 @@ ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'sum
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 class SyncCal:
-    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH):
+    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, output='INFO', file_logging=False):
         self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
+        self.output = output.upper()
+        self.file_logging = file_logging.upper()
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
@@ -36,7 +38,7 @@ class SyncCal:
         gcname_old = f"{self.google_cal_name.replace(' ', '_')}_OLD.json"
         gcname_new = f"{self.google_cal_name.replace(' ', '_')}_NEW.json"
 
-        self.gc_new_cal = aocalendar.Calendar(gcname_new, path='getenv', start_new=True)
+        self.gc_new_cal = aocalendar.Calendar(gcname_new, path='getenv', output=self.output, file_logging=self.file_logging, start_new=True)
         self.gc_old_cal = aocalendar.Calendar(gcname_old, path='getenv', start_new=True)
         self.gc_old_cal.make_hash_keymap(cols=self.attrib2push)
 
