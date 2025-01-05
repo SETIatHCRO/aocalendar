@@ -16,7 +16,8 @@ ATA Observing calendar - calendar info is in json files delineated by year, e.g.
 Events can be added by scheduling a RA/Dec or source, or by LST bounds as well as by UTC.  To specify via LST, leave UTC_stop blank and include LST_start, LST_stop.  UTC_start is needed regardless.  If LST, it only uses the day and not the time (that is the LST on that UTC day, not after the provided UTC time).
 
 For command line:
-usage: aocuser.py [-h] [--path PATH] [--output OUTPUT] [-l] [-e SHOW_ENTRY] [-g] [-a] [-u UPDATE] [-d DELETE] [-s SCHEDULE] [-q QUICK] [--duration DURATION] [-n NAME] [-p PID] [--utc_start UTC_START] [--utc_stop UTC_STOP] [--lst_start LST_START] [--lst_stop LST_STOP] [--observer OBSERVER] [--email EMAIL] [--note NOTE] [--state STATE] [calfile]
+
+`usage: aocuser.py [-h] [--path PATH] [--output OUTPUT] [-l] [-e SHOW_ENTRY] [-g] [-a] [-u UPDATE] [-d DELETE] [-s SCHEDULE] [-q QUICK] [--duration DURATION] [-n NAME] [-p PID] [--utc_start UTC_START] [--utc_stop UTC_STOP] [--lst_start LST_START] [--lst_stop LST_STOP] [--observer OBSERVER] [--email EMAIL] [--note NOTE] [--state STATE] [calfile]
 
 positional arguments:
   calfile               Calfile/date to use.
@@ -50,4 +51,4 @@ options:
   --observer OBSERVER   Event field
   --email EMAIL         Event field
   --note NOTE           Event field
-  --state STATE         Event field
+  --state STATE         Event field`
