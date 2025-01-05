@@ -20,13 +20,13 @@ ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'sum
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 class SyncCal:
-    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, output='INFO', file_logging=False, file_logging_path='getenv'):
+    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False):
         self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
         self.output = output.upper()
         self.file_logging = file_logging.upper()
-        self.file_logging_path = file_logging_path
+        self.path = path
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
@@ -39,16 +39,15 @@ class SyncCal:
         gcname_old = f"{self.google_cal_name.replace(' ', '_')}_OLD.json"
         gcname_new = f"{self.google_cal_name.replace(' ', '_')}_NEW.json"
 
-        self.gc_new_cal = aocalendar.Calendar(gcname_new, path='getenv', output=self.output, file_logging=self.file_logging,
-                                              file_logging_path=self.file_logging_path, start_new=True)
-        self.gc_old_cal = aocalendar.Calendar(gcname_old, path='getenv', start_new=True)
+        self.gc_new_cal = aocalendar.Calendar(gcname_new, output=self.output, path=self.path, file_logging=self.file_logging, start_new=True)
+        self.gc_old_cal = aocalendar.Calendar(gcname_old, path=self.path, start_new=True)
         self.gc_old_cal.make_hash_keymap(cols=self.attrib2push)
 
     def get_aoc_aocal(self):
-        self.aocal = aocalendar.Calendar(start_new=True)
+        self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
         self.aocal.make_hash_keymap(cols=self.attrib2push)
         archive_cal_filename = self.aocal.calfile_fullpath.split('.')[0] + '_OLD.json'
-        self.aoarc = aocalendar.Calendar(archive_cal_filename, start_new=True)
+        self.aoarc = aocalendar.Calendar(archive_cal_filename, path=self.path, start_new=True)
         self.aoarc.make_hash_keymap(cols=self.attrib2push)
 
     def get_google_calendar(self, show=False):
