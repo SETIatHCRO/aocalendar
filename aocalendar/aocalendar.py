@@ -342,9 +342,9 @@ class Calendar:
                 inp = {'created': atime, 'updated': atime}
                 with open(self.calfile_fullpath, 'w') as fp:
                     json.dump(inp, fp)                    
-                logger.info("No calendar file was found -- started new.")
+                logger.info(f"No calendar file was found at {self.calfile_fullpath} -- started new.")
             else:
-                logger.warning("No calendar file was found.")
+                logger.warning(f"No calendar file was found at {self.calfile_fullpath}.")
                 return
         logger.info(f"Reading {self.calfile_fullpath}")
         for key, entries in inp.items():
@@ -549,6 +549,32 @@ class Calendar:
         ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
 
+    def check_kwargs(self, kwargs):
+        try:
+            utc_start = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
+        except KeyError:
+            logger.error(f"Need a utc_start.")
+            return kwargs
+        utc_stop = kwargs['utc_stop'] if 'utc_stop' in kwargs else None
+        utc_stop = aoc_tools.interp_date(utc_stop, fmt='Time') if boolcheck(utc_stop) else None
+        if utc_stop is None:
+            lst_start = kwargs['lst_start'] if 'lst_start' in kwargs else None
+            if lst_start is None:
+                logger.error("Need an lst_start if no utc_stop")
+                return kwargs
+            else:
+                utc_start = self.get_utc_from_lst(lst_start, utc_start)
+            lst_stop = kwargs['lst_stop'] if 'lst_stop' in kwargs else None
+            if lst_stop is None:
+                logger.error("Need an lst_stop if no utc_stop")
+                return kwargs
+            else:
+                utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
+                if utc_stop < utc_start:
+                    utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
+        kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
+        return kwargs
+
     def add(self, **kwargs):
         """
         Parameters
@@ -556,16 +582,7 @@ class Calendar:
         kwargs : fields to add
 
         """
-        kwargs['utc_start'] = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
-        if boolcheck(kwargs['utc_stop']):
-            kwargs['utc_stop'] = aoc_tools.interp_date(kwargs['utc_stop'], fmt='Time')
-        else:
-            if 'lst_start' in kwargs and boolcheck(kwargs['lst_start']):
-                kwargs['utc_start'] = self.get_utc_from_lst(kwargs['lst_start'], kwargs['utc_start'])
-            if 'lst_stop' in kwargs and boolcheck(kwargs['lst_stop']):
-                kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'])
-                if kwargs['utc_stop'] < kwargs['utc_start']:
-                    kwargs['utc_stop'] = self.get_utc_from_lst(kwargs['lst_stop'], kwargs['utc_start'] + TimeDelta(DAYSEC, format='sec'))
+        kwargs = self.check_kwargs(kwargs)
         this_event = Entry(**kwargs)
         self.recent_event = this_event
         this_hash = this_event.hash()
@@ -666,11 +683,17 @@ class Calendar:
             ra = src['ra']
             dec = src['dec']
         if isinstance(ra, (str, float, int)):
-            ra = float(ra)
-            ra = ra * u.hourangle
+            try:
+                ra = float(ra)
+                ra = ra * u.hourangle
+            except (TypeError, ValueError):
+                pass
         if isinstance(ra, (str, float, int)):
-            dec = float(dec)
-            dec = dec * u.deg
+            try:
+                dec = float(dec)
+                dec = dec * u.deg
+            except (TypeError, ValueError):
+                pass
 
         ra = Angle(ra)
         dec = Angle(dec)
