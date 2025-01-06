@@ -4,19 +4,20 @@
 
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
-from datetime import datetime
 from aocalendar import aocalendar
 from copy import copy
 import os, shutil
+import logging
+from . import __version__, logger_setup
 
-DEBUG_SKIP_GC = False
+logger = logging.getLogger(__name__)
+logger.setLevel('DEBUG')  # Set to lowest
 
+DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
 ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'name',
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
-# Using updated for created, since the google one is "bad"
-# need to get start/end to right time zone, which is ok since they use UTC also
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 class SyncCal:
@@ -27,6 +28,8 @@ class SyncCal:
         self.output = output.upper()
         self.file_logging = file_logging.upper() if isinstance(file_logging, str) else file_logging
         self.path = path
+        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=self.path)
+        logger.info(f"{__name__} ver. {__version__}")
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
@@ -35,7 +38,20 @@ class SyncCal:
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
+    def sequence(self):
+        """Sequence through the actions to sync the calendars."""
+
+        self.get_gc_aocal()
+        self.get_aoc_aocal()
+        self.get_google_calendar()
+        self.gc_added_removed()
+        self.aoc_added_removed()
+        self.update_aoc()
+        self.udpate_gc()
+        self.shuffle_aoc_files()
+
     def get_gc_aocal(self):
+        """Read in the aocals containing the google data -- NEW should be a new one which gets populated via self.get_google_calendar"""
         gcname_old = f"{self.google_cal_name.replace(' ', '_')}_OLD.json"
         gcname_new = f"{self.google_cal_name.replace(' ', '_')}_NEW.json"
 
@@ -44,6 +60,7 @@ class SyncCal:
         self.gc_old_cal.make_hash_keymap(cols=self.attrib2push)
 
     def get_aoc_aocal(self):
+        """Read in the working aocal, as well as the previous for diff."""
         self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
         self.aocal.make_hash_keymap(cols=self.attrib2push)
         archive_cal_filename = self.aocal.calfile_fullpath.split('.')[0] + '_OLD.json'
@@ -51,6 +68,7 @@ class SyncCal:
         self.aoarc.make_hash_keymap(cols=self.attrib2push)
 
     def get_google_calendar(self, show=False):
+        """Read in the google calendar and populate the gc aocal"""
         if DEBUG_SKIP_GC:
             try:
                 self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
@@ -80,6 +98,7 @@ class SyncCal:
         self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
     def gc_added_removed(self):
+        """Get the diffs between the OLD and NEW google aocals"""
         self.gc_added = []  # hash in self.gc_new_cal that weren't in self.gc_old_cal
         self.gc_removed = []  # hash in self.gc_old_cal that aren't in self.gc_new_cal
         for hh in self.gc_new_cal.hashmap:
@@ -90,6 +109,7 @@ class SyncCal:
                 self.gc_removed.append(hh)
 
     def aoc_added_removed(self):
+        """Get the diffs between the OLD and NEW aocals"""
         self.aoc_added = []
         self.aoc_removed = []
         for hh in self.aocal.hashmap:
@@ -100,6 +120,7 @@ class SyncCal:
                 self.aoc_removed.append(hh)
 
     def update_aoc(self):
+        """Update the aocal with the google calendar diffs -- aocal is now correct."""
         # Add new ones in google calendar to aocalendar
         print(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
         for hkey in self.gc_added:
@@ -114,35 +135,42 @@ class SyncCal:
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
     def udpate_gc(self):
-        ctr = 0
+        """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""
+        ctr = 0  # count additions to Google Calendar
         for hh, entry in self.aocal.hashmap.items():
             if hh not in self.gc_new_cal.hashmap:
                 start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
                 end = self.aocal.events[entry[0]][entry[1]].utc_stop.datetime
                 # creator = self.aocal[entry[0]][entry[1]].email
+                # description = self.aocal[entry[0]][entry[1]].pid
                 summary = self.aocal.events[entry[0]][entry[1]].name
-                ctr += 1
                 event = Event(summary, start=start, end=end, timezone='GMT')
-                event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+                try:
+                    event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+                except RuntimeError:  # Don't know what errors might happen...?
+                    print(f"Error adding {entry}")
+                    continue
+                ctr += 1
         print(f"Adding {ctr} to Google Calendar {self.google_cal_name}")
-        ctr = 0
+        ctr = 0  # count removals from Google Calendar
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.hashmap:
                 entry = self.gc_new_cal.hashmap[hh]
                 try:
                     event_id = self.gc_new_cal.events[entry[0]][entry[1]].event_id
-                except (KeyError, AttributeError):
-                    print(f"DIDN'T FIND {entry}")
+                except AttributeError:
+                    print(f"Event {entry} didn't have an event_id")
                     continue
                 try:
                     self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
-                except AttributeError:  # Don't know what errors...
+                except RuntimeError:  # Don't know what errors might happen...?
+                    print(f"Error deleting {entry}")
                     continue
                 ctr += 1
         print(f"Removing {ctr} from Google Calendar {self.google_cal_name}")
 
     def shuffle_aoc_files(self):
-        # Now move calendars to OLD etc
+        """Move the NEW calendars to OLD and delete the NEW google aocal"""
         try:
             os.remove(self.gc_old_cal.calfile_fullpath)
         except OSError:

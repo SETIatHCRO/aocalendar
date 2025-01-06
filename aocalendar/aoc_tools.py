@@ -9,6 +9,28 @@ INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
 TIMEZONE = {'PST': -8, 'PDT': -7, 'EST': -5, 'EDT': -4, 'UTC': 0}
 
 
+def determine_path(path, fileinfo=None):
+    """Determine path for calfile and logging etc."""
+    from os import getenv
+    import os.path as op
+    from .aocalendar import PATH_ENV
+
+    if path == 'getenv':
+        path = getenv(PATH_ENV)
+    elif path:  # Is some other specific pathname
+        pass
+    elif isinstance(fileinfo, str) and fileinfo.endswith('.json'):  # Otherwise get from calfile json filename
+        dn = op.dirname(fileinfo)
+        if len(dn):
+            path = dn
+    return '' if path is None else path
+
+def boolcheck(x):
+    try:
+        return bool(x)
+    except ValueError:
+        return True
+
 def same_date(t1, t2, timespec='day'):
     """
     Return bool on equality of e1 == e2 for timespec.

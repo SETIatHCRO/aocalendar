@@ -17,7 +17,7 @@ from hashlib import sha256
 from numpy import floor, round
 from numpy import where as npwhere
 from os import getenv
-from . import __version__, aoc_tools
+from . import __version__, aoc_tools, logger_setup
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
@@ -34,15 +34,9 @@ ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
                 'observer': None, 'email': None, 'note': None, 'state': 'primary'}
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
+AOCLOG_FILENAME = 'aoclog'
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 DAYSEC = 24 * 3600
-
-
-def boolcheck(x):
-    try:
-        return bool(x)
-    except ValueError:
-        return True
 
 
 def aoc_entry(path='getenv', output='ERROR', **kwargs):
@@ -231,47 +225,32 @@ class Calendar:
         Parameters
         ----------
         calfile : str
-            interpreted by __get_calfile
+            interpreted by set_calfile
         path : str
-            interpreted by __get_calfile
+            get path for location of aocal files and logs etc, interpreted by determine_path
         output : str
             Logging output level
         start_new : bool
             Flag to start empty one if file not found.
-        """
-        handler_names = [x.get_name() for x in logger.handlers]
-        if 'Console' not in handler_names:
-            console_handler = logging.StreamHandler(stdout)
-            console_handler.setLevel(output.upper())
-            console_handler.setFormatter(logging.Formatter("{levelname} - {message}", style='{'))
-            console_handler.set_name('Console')
-            logger.addHandler(console_handler)
-        if file_logging and 'File' not in handler_names:
-            if path == 'getenv':
-                path = getenv(PATH_ENV)
-            if path is None: path = ''
-            file_handler = logging.FileHandler(op.join(path, 'aoclog'), mode='a')
-            file_handler.setLevel(file_logging.upper())
-            file_handler.setFormatter(logging.Formatter("{asctime} - {levelname} - {message}", style='{'))
-            file_handler.set_name('File')
-            logger.addHandler(file_handler)
-        logger.info(f"{__name__} ver. {__version__}")
 
-        self.read_calendar_events(calfile=str(calfile), path=path, start_new=start_new)
-    
-    def __get_calfile(self, calfile, path):
+        """
+        self.path = aoc_tools.determine_path(path, calfile)
+        self.refdate = Time.now()
+        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=AOCLOG_FILENAME, path=self.path)
+        logger.info(f"{__name__} ver. {__version__}")
+        self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
+
+    def set_calfile(self, calfile, path=None):
         """
         Parameters
         ----------
         calfile : str
             calfile or something interpretable by aoc_tools.interp_date
         path : str
-            path or 'getenv' - if calfile has path, gets overwritten
+            path or 'getenv' - if calfile has path, gets overwritten, if None use self.path
 
         Attributes
         ----------
-        path : str
-            Path to the calfile
         calfile : str
             Basename of calfile
         calfile_fullpath : str
@@ -282,28 +261,24 @@ class Calendar:
         """
         if calfile == 'refresh':
             return
-        if calfile.endswith('.json'):
+        if path is None: path = self.path
+        if isinstance(calfile, str) and calfile.endswith('.json'):
             dn = op.dirname(calfile)
             if len(dn):
                 path = dn
             calfile = op.basename(calfile)
             try:
                 year = int(calfile.split('.')[0][-4:])
-                refdate = Time(datetime(year=year, month=1, day=1))
+                self.refdate = Time(datetime(year=year, month=1, day=1))
             except ValueError:
-                refdate = Time.now()
+                self.refdate = Time.now()
         else:
-            refdate = aoc_tools.interp_date(calfile, 'Time')
-            calfile = f"{AOC_PREFIX}{refdate.datetime.year}.json"
-        if path == 'getenv':
-            path = getenv(PATH_ENV)
-            if path is None: path = ''
-        self.path = path
+            self.refdate = aoc_tools.interp_date(calfile, 'Time')
+            calfile = f"{AOC_PREFIX}{self.refdate.datetime.year}.json"
         self.calfile = calfile
         self.calfile_fullpath = op.join(path, calfile)
-        self.refdate = refdate
 
-    def read_calendar_events(self, calfile, path='getenv', skip_duplicates=True, start_new=False):
+    def read_calendar_events(self, calfile, path=None, skip_duplicates=True, start_new=False):
         """
         Reads a cal json file -- it will "fix" any wrong day entries.
 
@@ -332,7 +307,7 @@ class Calendar:
         self.straddle = {}
         self.all_fields =  list(ENTRY_FIELDS.keys())  # This is a cheat for now.
         self.all_hash = []
-        self.__get_calfile(calfile=str(calfile), path=path)
+        self.set_calfile(calfile=calfile, path=path)
         try:
             with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
@@ -415,9 +390,29 @@ class Calendar:
         self.hashmap = {}
         for day, events in self.events.items():
             for i, event in enumerate(events):
-                self.hashmap[event.hash(cols=cols)] = (day, i)
+                this_hash = event.hash(cols=cols)
+                if this_hash in self.hashmap:
+                    oth = self.hashmap[this_hash]
+                    logger.warning(f"This event ({day}:{i}) has same hash as ({oth[0]}:{oth[1]}) and will overwrite.")
+                self.hashmap[this_hash] = (day, i)
 
-    def __sort_day(self, day):
+    def sort_day(self, day):
+        """
+        Sort the events per day by utc_start,utc_stop.
+
+        Parameter
+        ---------
+        day : str/Time/etc
+            Date info for day
+
+        Return
+        ------
+        sorted_day : list
+            List of sorted events
+        indmap : dict
+            Index map between sorted and stored, key is sorted order.
+
+        """
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         sorted_dict = {}
         offset = 0
@@ -457,10 +452,10 @@ class Calendar:
         elif cols == 'short':
             cols = SHORT_LIST
         hdr = ['#'] + cols
-        sorted_day, indmap = self.__sort_day(day)
+        sorted_day, indmap = self.sort_day(day)
         if return_as == 'table':
             return(tabulate([[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], headers=hdr))
-        elif return_as == 'list':
+        else:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
         
     def graph_day(self, day='today', header_col='name', tz='sys', interval_min=10.0):
@@ -484,7 +479,7 @@ class Calendar:
             gmt = time.gmtime()
             tz = time.tzname[gmt.tm_isdst]
         tzoff = aoc_tools.TIMEZONE[tz]
-        sorted_day, indmap = self.__sort_day(day)
+        sorted_day, indmap = self.sort_day(day)
         if not len(sorted_day):
             return ' '
         cbuflt, cbufind, cbufrt = 2, 3, 2
@@ -556,7 +551,7 @@ class Calendar:
             logger.error(f"Need a utc_start.")
             return kwargs
         utc_stop = kwargs['utc_stop'] if 'utc_stop' in kwargs else None
-        utc_stop = aoc_tools.interp_date(utc_stop, fmt='Time') if boolcheck(utc_stop) else None
+        utc_stop = aoc_tools.interp_date(utc_stop, fmt='Time') if aoc_tools.boolcheck(utc_stop) else None
         if utc_stop is None:
             lst_start = kwargs['lst_start'] if 'lst_start' in kwargs else None
             if lst_start is None:
@@ -674,7 +669,7 @@ class Calendar:
 
     def get_obs(self, ra, dec, source, day, duration, dt = 10.0):
         day = aoc_tools.interp_date(day, fmt='Time')
-        if boolcheck(ra) and boolcheck(dec):
+        if aoc_tools.boolcheck(ra) and aoc_tools.boolcheck(dec):
             pass
         else:
             src = check_source(source)

@@ -5,9 +5,12 @@
 import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
-from aocalendar import aocalendar
-from . import aoc_tools
+from aocalendar import aocalendar, aoc_tools, logger_setup, __version__
+import logging
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel('DEBUG')
 
 def frame_label_fmt(txt, n=20):
     return f"{txt:>{n}s}"
@@ -24,8 +27,12 @@ class AOCalendarApp(tkinter.Tk):
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
         output = kwargs['output'] if 'output' in kwargs else 'INFO'
+        file_logging = kwargs['file_logging'] if 'file_logging' in kwargs else False
+        path = aoc_tools.determine_path(path=path, fileinfo=calfile)
+        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=path)
+        logger.info(f"{__name__} ver. {__version__}")
 
-        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, output=output)
+        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, output=output, file_logging=file_logging)
         self.refdate = self.this_cal.refdate.datetime
 
         # Create all of the frames
