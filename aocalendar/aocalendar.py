@@ -677,7 +677,7 @@ class Calendar:
                 ra = ra * u.hourangle
             except (TypeError, ValueError):
                 pass
-        if isinstance(ra, (str, float, int)):
+        if isinstance(dec, (str, float, int)):
             try:
                 dec = float(dec)
                 dec = dec * u.deg
