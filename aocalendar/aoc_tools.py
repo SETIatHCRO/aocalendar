@@ -3,10 +3,66 @@
 # Licensed under the MIT license.
 
 from astropy.time import Time, TimeDelta
+from zoneinfo import available_timezones, ZoneInfo, ZoneInfoNotFoundError
+from datetime import datetime
 
 
 INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
-TIMEZONE = {'PST': -8, 'PDT': -7, 'EST': -5, 'EDT': -4, 'UTC': 0}
+
+
+def all_timezones():
+    """
+    Return 2 dictionaries:
+    1 - timezones['US/Pacific'] = ['PST', 'PDT]
+    2 - tz_offsets['PST'] = [-8.0, -8.0...]  # they should all be the same...
+
+    """
+    timezones = {}
+    tz_offsets = {}
+    for tz_iana in available_timezones():
+        try:
+            this_tz = ZoneInfo(tz_iana)
+            #
+            t1 = datetime(year=2025, month=1, day=1, tzinfo=this_tz)
+            this_tzname = t1.tzname()
+            timezones[tz_iana] = [this_tzname]
+            tz_offsets.setdefault(this_tzname, {'tz': [], 'offsets': []})
+            tz_offsets[this_tzname]['tz'].append(tz_iana)
+            tz_offsets[this_tzname]['offsets'].append(t1.utcoffset().total_seconds()/3600.0)
+            #
+            t2 = datetime(year=2025, month=7, day=1, tzinfo=this_tz)
+            this_tzname = t2.tzname()
+            timezones[tz_iana].append(this_tzname)
+            tz_offsets.setdefault(this_tzname, {'tz': [], 'offsets': []})
+            tz_offsets[this_tzname]['tz'].append(tz_iana)
+            tz_offsets[this_tzname]['offsets'].append(t2.utcoffset().total_seconds()/3600.0)
+        except ZoneInfoNotFoundError:
+            continue
+    return timezones, tz_offsets
+
+
+def get_tz(tz, dt=None):
+    """
+    Returns tz_name, offset_hours
+
+    """
+    if tz == 'sys':
+        import time
+        if dt is None:
+            local_time = time.localtime()
+        else:
+            local_time = dt.timetuple()
+        tz = time.tzname[local_time.tm_isdst]
+        tzoff = local_time.tm_gmtoff / 3600.0
+        return tz, tzoff
+    timezones, tz_offsets = all_timezones()
+    if tz in tz_offsets:
+        return tz, tz_offsets[tz]['offsets'][0]
+    if tz in timezones:
+        this_tz = ZoneInfo(tz)
+        dt = dt.replace(tzinfo=this_tz)
+        return this_tz.tzname(dt), this_tz.utcoffset(dt).total_seconds() / 3600.0
+    raise ValueError("Invalid timezone designation.")
 
 
 def determine_path(path, fileinfo=None):
