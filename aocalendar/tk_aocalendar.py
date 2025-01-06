@@ -148,6 +148,8 @@ class AOCalendarApp(tkinter.Tk):
                 messagebox.showinfo('Return', 'Not writing new calendar.')
         else:
             print("Did not succeed.")
+        for widget in self.frame_update.winfo_children():
+            widget.destroy()
 
     def event_fields(self, gobutton):
         for widget in self.frame_update.winfo_children():
@@ -322,5 +324,7 @@ class AOCalendarApp(tkinter.Tk):
                 if thisef is None: thisef = ''
                 self.aoc_field_defaults[field] = thisef
             self.event_fields('OK')
+        for widget in self.frame_update.winfo_children():
+            widget.destroy()
 
 
