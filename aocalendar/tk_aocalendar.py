@@ -228,14 +228,24 @@ class AOCalendarApp(tkinter.Tk):
         self.reset()
         self.aoc_action = 'delete'
         self.aoc_day = self.tkcal.selection_get().strftime('%Y-%m-%d')
-        if len(self.this_cal.events[self.aoc_day]) > 1:
+        try:
+            num_events = len(self.this_cal.events[self.aoc_day])
+        except KeyError:
+            logger.warning(f"{self.aoc_day} does not exist")
+            return
+        if  num_events > 1:
             entry = simpledialog.askstring("Input", f"{self.aoc_day} entry #", parent=self)
             if entry is None:
                 return
             self.aoc_nind = int(entry)
         else:
             self.aoc_nind = 0
-        this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
+        try:
+            this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
+        except IndexError:
+            logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
+            self.reset()
+            return
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
         self.aoc_field_defaults['lst_start'] = f"{self.aoc_field_defaults['lst_start'].to_string(precision=0)}"
@@ -246,14 +256,24 @@ class AOCalendarApp(tkinter.Tk):
         self.reset()
         self.aoc_action = 'update'
         self.aoc_day = self.tkcal.selection_get().strftime('%Y-%m-%d')
-        if len(self.this_cal.events[self.aoc_day]) > 1:
+        try:
+            num_events = len(self.this_cal.events[self.aoc_day])
+        except KeyError:
+            logger.warning(f"{self.aoc_day} does not exist")
+            return
+        if num_events > 1:
             entry = simpledialog.askstring("Input", f"{self.aoc_day} entry #", parent=self)
             if entry is None:
                 return
             self.aoc_nind = int(entry)
         else:
             self.aoc_nind = 0
-        this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
+        try:
+            this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
+        except IndexError:
+            logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
+            self.reset()
+            return
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
         self.aoc_field_defaults['lst_start'] = f"{self.aoc_field_defaults['lst_start'].to_string(precision=0)} - can't update"
