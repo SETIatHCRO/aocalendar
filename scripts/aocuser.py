@@ -52,7 +52,7 @@ if args.list:
 if args.show_entry:
     print(aoc.events[args.calfile][int(args.show_entry)])
 if args.graph:
-    print(aoc.graph_day(day=args.calfile, interval_min=10.0))
+    print(aoc.graph_day(day=args.calfile, tz='sys', interval_min=10.0))
     print("\n\n")
 if args.add:
     aoc.add(**kwargs)

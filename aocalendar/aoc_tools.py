@@ -41,7 +41,7 @@ def all_timezones():
     return timezones, tz_offsets
 
 
-def get_tz(tz, dt=None):
+def get_tz(tz='sys', dt=None):
     """
     Returns tz_name, offset_hours
 
@@ -52,6 +52,9 @@ def get_tz(tz, dt=None):
             local_time = time.localtime()
         else:
             local_time = dt.timetuple()
+            if local_time.tm_gmtoff is None:
+                print("No timezone set, using system")
+                local_time = time.localtime()
         tz = time.tzname[local_time.tm_isdst]
         tzoff = local_time.tm_gmtoff / 3600.0
         return tz, tzoff

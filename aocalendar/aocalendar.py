@@ -474,11 +474,7 @@ class Calendar:
             interval for graph in min
 
         """
-        if tz == 'sys':
-            import time
-            gmt = time.gmtime()
-            tz = time.tzname[gmt.tm_isdst]
-        tzoff = aoc_tools.TIMEZONE[tz]
+        tz, tzoff = aoc_tools.get_tz(tz, aoc_tools.interp_date(day, fmt='Time').datetime)
         sorted_day, indmap = self.sort_day(day)
         if not len(sorted_day):
             return ' '
