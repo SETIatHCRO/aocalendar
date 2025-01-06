@@ -8,7 +8,6 @@ from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
-from sys import stdout
 from astropy.coordinates import EarthLocation, Angle, AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
@@ -16,7 +15,6 @@ from os import path as op
 from hashlib import sha256
 from numpy import floor, round
 from numpy import where as npwhere
-from os import getenv
 from . import __version__, aoc_tools, logger_setup
 try:
     from ATATools.ata_sources import check_source  # type: ignore

@@ -53,7 +53,7 @@ def get_tz(tz='sys', dt=None):
         else:
             local_time = dt.timetuple()
             if local_time.tm_gmtoff is None:
-                print("No timezone set, using system")
+                print("WARNING - No timezone set, using system now")
                 local_time = time.localtime()
         tz = time.tzname[local_time.tm_isdst]
         tzoff = local_time.tm_gmtoff / 3600.0
