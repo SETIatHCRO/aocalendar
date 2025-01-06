@@ -174,7 +174,7 @@ class AOCalendarApp(tkinter.Tk):
         stop_label.grid(row=1, column=2)
         self.stop_entry = tkinter.Entry(self.frame_update)
         self.stop_entry.grid(row=1, column=3)
-        self.stop_entry.insert(0, self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
+        self.stop_entry.insert(0, '')  # self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
 
         lstart_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST start'))
         lstart_label.grid(row=2, column=0)

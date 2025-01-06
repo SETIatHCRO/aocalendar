@@ -69,7 +69,8 @@ def aoc_entry(path='getenv', output='ERROR', **kwargs):
             logger.warning(f"Entry conflicts with {msg}")
         else:
             msg = 'ok'
-    logger.error(f"Entry add was unsuccessful.\n{cal.recent_event.msg}")
+    else:
+        logger.error(f"Entry add was unsuccessful.\n{cal.recent_event.msg}")
     return msg
 
 
