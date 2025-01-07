@@ -30,7 +30,7 @@ if DEBUG_SKIP_GC:
         def delete_event(self, a, calendar_id):
             print("DEBUG: SKIP DELETE!")
 
-            
+
 class SyncCal:
     def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False, future_only=True):
         self.gc_cal_id = cal_id
@@ -148,15 +148,21 @@ class SyncCal:
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
         # Add new ones in google calendar to aocalendar
         logger.info(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
+        changes_made = 0
         for hkey in self.gc_added:
             if hkey not in self.aocal.hashmap and hkey not in self.aoc_removed:
                 add_entry = self.gc_new_cal.events[self.gc_new_cal.hashmap[hkey][0]][self.gc_new_cal.hashmap[hkey][1]].todict(printable=False, include_meta=True)
                 self.aocal.add(**add_entry)
+                changes_made += 1
         logger.info(f"Removing {len(self.gc_removed)} from {self.aocal.calfile}")
         for hkey in self.gc_removed:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
-        self.aocal.write_calendar()
+                changes_made += 1
+        if changes_made:
+            self.aocal.write_calendar()
+        else:
+            logger.info(f"No changes made to {self.aocal.calfile_fullpath}")
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
     def udpate_gc(self):

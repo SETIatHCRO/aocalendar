@@ -236,7 +236,7 @@ class Calendar:
         self.path = aoc_tools.determine_path(path, calfile)
         self.refdate = Time.now()
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=AOCLOG_FILENAME, path=self.path)
-        logger.info(f"{__name__} ver. {__version__}")
+        logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
 
     def set_calfile(self, calfile, path=None):
