@@ -20,7 +20,7 @@ ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'sum
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
-DEBUG_SKIP_GC = True  # Disable access Google Calendar for debugging
+DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
 if DEBUG_SKIP_GC:
     class GCDEBUG:
         def __init__(self):
