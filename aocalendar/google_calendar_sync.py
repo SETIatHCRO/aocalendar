@@ -52,15 +52,15 @@ class SyncCal:
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
-    def sequence(self):
+    def sequence(self, update_aoc=True, update_gc=False):
         """Sequence through the actions to sync the calendars."""
         self.get_gc_aocal()
         self.get_aoc_aocal()
         self.get_google_calendar()
         self.gc_added_removed()
         self.aoc_added_removed()
-        self.update_aoc()
-        self.udpate_gc()
+        self.update_aoc(update=update_aoc)
+        self.udpate_gc(update=update_gc)
         self.shuffle_aoc_files()
 
     def get_gc_aocal(self):
@@ -144,61 +144,70 @@ class SyncCal:
             if hh not in self.aocal.hashmap and self.__end_check_ok(self.aoarc.events[d][n].utc_stop):
                 self.aoc_removed.append(hh)
 
-    def update_aoc(self):
+    def update_aoc(self, update=False):
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
-        # Add new ones in google calendar to aocalendar
-        logger.info(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
+        action = 'Adding' if update else "Found but not adding"
+        logger.info(f"{action} {len(self.gc_added)} to {self.aocal.calfile}")
         changes_made = 0
         for hkey in self.gc_added:
             if hkey not in self.aocal.hashmap and hkey not in self.aoc_removed:
-                add_entry = self.gc_new_cal.events[self.gc_new_cal.hashmap[hkey][0]][self.gc_new_cal.hashmap[hkey][1]].todict(printable=False, include_meta=True)
-                self.aocal.add(**add_entry)
+                if update:
+                    d, n = self.gc_new_cal.hashmap[hkey]
+                    add_entry = self.gc_new_cal.events[d][n].todict(printable=False, include_meta=True)
+                    self.aocal.add(**add_entry)
                 changes_made += 1
-        logger.info(f"Removing {len(self.gc_removed)} from {self.aocal.calfile}")
+        action = 'Removing' if update else "Found but not removing"
+        logger.info(f"{action} {len(self.gc_removed)} from {self.aocal.calfile}")
         for hkey in self.gc_removed:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
-                self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
+                if update:
+                    d, n = self.gc_old_cal.hashmap[hkey]
+                    self.aocal.delete(d, n)
                 changes_made += 1
-        if changes_made:
+        if update and changes_made:
             self.aocal.write_calendar()
         else:
             logger.info(f"No changes made to {self.aocal.calfile_fullpath}")
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
-    def udpate_gc(self):
+    def udpate_gc(self, update=False):
         """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""
         ctr = 0  # count additions to Google Calendar
         for hh, entry in self.aocal.hashmap.items():
             if hh not in self.gc_new_cal.hashmap:
-                start = self.aocal.events[entry[0]][entry[1]].utc_start.datetime
-                end = self.aocal.events[entry[0]][entry[1]].utc_stop.datetime
-                # creator = self.aocal[entry[0]][entry[1]].email
-                # description = self.aocal[entry[0]][entry[1]].pid
-                summary = self.aocal.events[entry[0]][entry[1]].name
-                event = Event(summary, start=start, end=end, timezone='GMT')
+                d, n = entry
+                start = self.aocal.events[d][n].utc_start.datetime
+                end = self.aocal.events[d][n].utc_stop.datetime
+                # creator = self.aocal[d][n].email
+                # description = self.aocal[d][n].pid
+                summary = self.aocal.events[d][n].name
                 try:
-                    event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
+                    if update:
+                        event = Event(summary, start=start, end=end, timezone='GMT')
+                        event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
                 except RuntimeError:  # Don't know what errors might happen...?
                     logger.error(f"Error adding {entry}")
                     continue
                 ctr += 1
-        logger.info(f"Adding {ctr} to Google Calendar {self.google_cal_name}")
+        action = 'Adding' if update else "Found but not adding"
+        logger.info(f"{action} {ctr} to Google Calendar {self.google_cal_name}")
         ctr = 0  # count removals from Google Calendar
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.hashmap:
-                entry = self.gc_new_cal.hashmap[hh]
+                d, n = self.gc_new_cal.hashmap[hh]
                 try:
-                    event_id = self.gc_new_cal.events[entry[0]][entry[1]].event_id
+                    event_id = self.gc_new_cal.events[d][n].event_id
                 except AttributeError:
-                    logger.info(f"Event {entry} didn't have an event_id")
+                    logger.info(f"Event {d}:{n} didn't have an event_id")
                     continue
                 try:
                     self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
                 except RuntimeError:  # Don't know what errors might happen...?
-                    logger.error(f"Error deleting {entry}")
+                    logger.error(f"Error deleting {d}:{n}")
                     continue
                 ctr += 1
-        logger.info(f"Removing {ctr} from Google Calendar {self.google_cal_name}")
+        action = 'Removing' if update else "Found but not removing"
+        logger.info(f"{action} {ctr} from Google Calendar {self.google_cal_name}")
 
     def shuffle_aoc_files(self):
         """Move the NEW calendars to OLD and delete the NEW google aocal"""
