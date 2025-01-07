@@ -4,7 +4,8 @@
 
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
-from aocalendar import aocalendar
+from aocalendar import aocalendar, aoc_tools
+from astropy.time import TimeDelta
 from copy import copy
 import os, shutil
 import logging
@@ -13,26 +14,37 @@ from . import __version__, logger_setup
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
 
-DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
 ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'name',
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
+DEBUG_SKIP_GC = True  # Disable access Google Calendar for debugging
+if DEBUG_SKIP_GC:
+    class GCDEBUG:
+        def __init__(self):
+            print("WARNING - YOU ARE IN DEBUG MODE")
+        def add_event(self, a, calendar_id):
+            print("DEBUG: SKIP ADD")
+        def delete_event(self, a, calendar_id):
+            print("DEBUG: SKIPPING DELETE")
 class SyncCal:
-    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False):
+    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False, future_only=True):
         self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
         self.output = output.upper()
         self.file_logging = file_logging.upper() if isinstance(file_logging, str) else file_logging
-        self.path = path
+        self.future_only = future_only
+        self.path = aoc_tools.determine_path(path, None)
+        self.now = aoc_tools.interp_date('now', fmt='Time')
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=self.path)
         logger.info(f"{__name__} ver. {__version__}")
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
+            self.gc = GCDEBUG()
         else:
             self.gc = GoogleCalendar()
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
@@ -73,7 +85,7 @@ class SyncCal:
             try:
                 self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
             except AttributeError:
-                print("NEED TO READ IN AOC calendars.")
+                print("DEBUG: NEED TO READ IN AOC calendars.")
             return
 
         for event in self.gc.get_events(calendar_id=self.gc_cal_id):
@@ -97,15 +109,22 @@ class SyncCal:
         self.gc_new_cal.write_calendar()
         self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
+    def __end_check_ok(self, entry_end, tbuf_min=30.0):
+        if self.future_only and self.now < (entry_end + TimeDelta(tbuf_min * 60.0, format='sec')):
+            return False
+        return True
+
     def gc_added_removed(self):
         """Get the diffs between the OLD and NEW google aocals"""
         self.gc_added = []  # hash in self.gc_new_cal that weren't in self.gc_old_cal
         self.gc_removed = []  # hash in self.gc_old_cal that aren't in self.gc_new_cal
         for hh in self.gc_new_cal.hashmap:
-            if hh not in self.gc_old_cal.hashmap:
+            d, n = self.gc_new_cal.hashmap[hh]
+            if hh not in self.gc_old_cal.hashmap and self.__end_check_ok(self.gc_new_cal.events[d][n].utc_stop):
                 self.gc_added.append(hh)
         for hh in self.gc_old_cal.hashmap:
-            if hh not in self.gc_new_cal.hashmap:
+            d, n = self.gc_old_cal.hashmap[hh]
+            if hh not in self.gc_new_cal.hashmap and self.__end_check_ok(self.gc_old_cal.events[d][n].utc_stop):
                 self.gc_removed.append(hh)
 
     def aoc_added_removed(self):
@@ -113,10 +132,12 @@ class SyncCal:
         self.aoc_added = []
         self.aoc_removed = []
         for hh in self.aocal.hashmap:
-            if hh not in self.aoarc.hashmap:
+            d, n = self.aocal.hashmap[hh]
+            if hh not in self.aoarc.hashmap and self.__end_check_ok(self.aocal.events[d][n].utc_stop):
                 self.aoc_added.append(hh)
         for hh in self.aoarc.hashmap:
-            if hh not in self.aocal.hashmap:
+            d, n = self.aoarc.hashmap[hh]
+            if hh not in self.aocal.hashmap and self.__end_check_ok(self.aoarc.events[d][n].utc_stop):
                 self.aoc_removed.append(hh)
 
     def update_aoc(self):
