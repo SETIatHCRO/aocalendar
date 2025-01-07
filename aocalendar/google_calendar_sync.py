@@ -24,11 +24,11 @@ DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
 if DEBUG_SKIP_GC:
     class GCDEBUG:
         def __init__(self):
-            print("WARNING - YOU ARE IN DEBUG MODE")
+            print("WARNING - YOU ARE IN DEBUG MODE!")
         def add_event(self, a, calendar_id):
-            print("DEBUG: SKIP ADD")
+            print("DEBUG: SKIP ADD!")
         def delete_event(self, a, calendar_id):
-            print("DEBUG: SKIPPING DELETE")
+            print("DEBUG: SKIP DELETE!")
 class SyncCal:
     def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False, future_only=True):
         self.gc_cal_id = cal_id
@@ -52,7 +52,6 @@ class SyncCal:
 
     def sequence(self):
         """Sequence through the actions to sync the calendars."""
-
         self.get_gc_aocal()
         self.get_aoc_aocal()
         self.get_google_calendar()
@@ -109,8 +108,10 @@ class SyncCal:
         self.gc_new_cal.write_calendar()
         self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
-    def __end_check_ok(self, entry_end, tbuf_min=30.0):
-        if self.future_only and self.now < (entry_end + TimeDelta(tbuf_min * 60.0, format='sec')):
+    def __end_check_ok(self, entry_end, tbuf_min=35.0):
+        """If self.future_only make sure utc_stop is more than tbuf_min in the past."""
+        is_old = self.now < (entry_end - TimeDelta(tbuf_min * 60.0, format='sec'))
+        if self.future_only and is_old:
             return False
         return True
 
