@@ -12,7 +12,7 @@ import logging
 from . import __version__, logger_setup
 
 logger = logging.getLogger(__name__)
-logger.setLevel('DEBUG')  # Set to lowest
+logger.setLevel('DEBUG')  # Set to lowest to enable handlers to setLevel
 
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
@@ -29,6 +29,8 @@ if DEBUG_SKIP_GC:
             print("DEBUG: SKIP ADD!")
         def delete_event(self, a, calendar_id):
             print("DEBUG: SKIP DELETE!")
+
+            
 class SyncCal:
     def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False, future_only=True):
         self.gc_cal_id = cal_id
@@ -84,7 +86,8 @@ class SyncCal:
             try:
                 self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
             except AttributeError:
-                print("DEBUG: NEED TO READ IN AOC calendars.")
+                logger.error("DEBUG: NEED TO READ IN AOC calendars.")
+                raise RuntimeError("In DEBUG need to first read in calendar.")
             return
 
         for event in self.gc.get_events(calendar_id=self.gc_cal_id):
@@ -104,7 +107,7 @@ class SyncCal:
             self.gc_new_cal.add(**entry)
         if show:
             for day in self.gc_new_cal.events:
-                print(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.ENTRY_FIELDS.keys())) + '\n')
+                logger.info(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.ENTRY_FIELDS.keys())) + '\n')
         self.gc_new_cal.write_calendar()
         self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
@@ -144,12 +147,12 @@ class SyncCal:
     def update_aoc(self):
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
         # Add new ones in google calendar to aocalendar
-        print(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
+        logger.info(f"Adding {len(self.gc_added)} to {self.aocal.calfile}")
         for hkey in self.gc_added:
             if hkey not in self.aocal.hashmap and hkey not in self.aoc_removed:
                 add_entry = self.gc_new_cal.events[self.gc_new_cal.hashmap[hkey][0]][self.gc_new_cal.hashmap[hkey][1]].todict(printable=False, include_meta=True)
                 self.aocal.add(**add_entry)
-        print(f"Removing {len(self.gc_removed)} from {self.aocal.calfile}")
+        logger.info(f"Removing {len(self.gc_removed)} from {self.aocal.calfile}")
         for hkey in self.gc_removed:
             if hkey in self.aocal.hashmap and hkey not in self.aoc_added:
                 self.aocal.delete(self.gc_old_cal.hashmap[hkey][0], self.gc_old_cal.hashmap[hkey][1])
@@ -170,10 +173,10 @@ class SyncCal:
                 try:
                     event = self.gc.add_event(event, calendar_id=self.gc_cal_id)
                 except RuntimeError:  # Don't know what errors might happen...?
-                    print(f"Error adding {entry}")
+                    logger.error(f"Error adding {entry}")
                     continue
                 ctr += 1
-        print(f"Adding {ctr} to Google Calendar {self.google_cal_name}")
+        logger.info(f"Adding {ctr} to Google Calendar {self.google_cal_name}")
         ctr = 0  # count removals from Google Calendar
         for hh in self.aoc_removed:
             if hh in self.gc_new_cal.hashmap:
@@ -181,15 +184,15 @@ class SyncCal:
                 try:
                     event_id = self.gc_new_cal.events[entry[0]][entry[1]].event_id
                 except AttributeError:
-                    print(f"Event {entry} didn't have an event_id")
+                    logger.info(f"Event {entry} didn't have an event_id")
                     continue
                 try:
                     self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
                 except RuntimeError:  # Don't know what errors might happen...?
-                    print(f"Error deleting {entry}")
+                    logger.error(f"Error deleting {entry}")
                     continue
                 ctr += 1
-        print(f"Removing {ctr} from Google Calendar {self.google_cal_name}")
+        logger.info(f"Removing {ctr} from Google Calendar {self.google_cal_name}")
 
     def shuffle_aoc_files(self):
         """Move the NEW calendars to OLD and delete the NEW google aocal"""
