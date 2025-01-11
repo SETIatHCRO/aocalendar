@@ -260,30 +260,52 @@ class SyncCal:
         except OSError:
             pass
 
-def show_stuff(gc):
+def show_stuff(gc, show_entries=False):
     from tabulate import tabulate
 
+    if isinstance(show_entries, int):
+        show_entries = [show_entries]
+    elif isinstance(show_entries, str):
+        show_entries = [int(xx) for xx in show_entries.split(',')]
+    elif isinstance(show_entries, list):
+        pass
+    else:
+        show_entries = []
+        
     data = []
+    data_uncut = []
     for event in gc.get_events(calendar_id=ATA_CAL_ID):
         row = {}
+        row_uncut = {}
         for col in dir(event):
             if col[0] != '_':
                 entry = getattr(event, col)
                 if str(entry)[0] != '<' and bool(entry):
                     row[col] = str(entry)
+                row_uncut[col] = entry
         data.append(row)
-        # if event.summary == 'TEST':
-        #     delevent = event
+        data_uncut.append(row_uncut)
+
     hdr = sorted(data[0].keys())
     table = []
-    for d in data:
-        trow = []
+    for i, d in enumerate(data):
+        trow = [i]
         for key in hdr:
             try:
                 trow.append(d[key][:20])
             except KeyError:
                 trow.append('  ')
         table.append(trow)
-    print(tabulate(table, headers=hdr))
+    print(tabulate(table, headers=['#'] + hdr))
 
-
+    hdr = sorted(data_uncut[0].keys())
+    for i in show_entries:
+        print(f"==================================Entry {i}=========================================")
+        entry = []
+        for j, key in enumerate(hdr):
+            entry.append( [ key, str(data_uncut[i][key])[:100] ] )
+            if isinstance(data_uncut[i][key], dict):
+                print(key)
+                for a, b in data_uncut[i][key].items():
+                    print('\t', a, b)
+        print(tabulate(entry))

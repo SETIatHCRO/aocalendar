@@ -35,6 +35,7 @@ AOC_PREFIX = 'aocal'
 AOCLOG_FILENAME = 'aoclog'
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 DAYSEC = 24 * 3600
+SIDEREAL_RATE = 23.93447
 
 
 def aoc_entry(path='getenv', output='ERROR', **kwargs):
