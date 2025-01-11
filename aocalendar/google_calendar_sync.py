@@ -95,6 +95,7 @@ class SyncCal:
                 raise RuntimeError("In DEBUG need to first read in calendar.")
             return
 
+        self.logger.info("Reading Google Calendar into local calendar.")
         for event in self.gc.get_events(calendar_id=self.gc_cal_id):
             entry = {}
             for key, val in self.attrib2keep.items():
