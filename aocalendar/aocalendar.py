@@ -26,8 +26,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
 
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
-
-
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 AOCLOG_FILENAME = 'aoclog'
@@ -160,7 +158,7 @@ class Calendar:
         """
         self.events = {}
         self.straddle = {}
-        self.all_fields =  list(ENTRY_FIELDS.keys())  # This is a cheat for now.
+        self.all_fields =  list(aocentry.ENTRY_FIELDS.keys())  # This is a cheat for now.
         self.all_hash = []
         self.set_calfile(calfile=calfile, path=path)
         try:
@@ -184,7 +182,7 @@ class Calendar:
                 keydate = Time(key)
                 self.events.setdefault(key, [])
                 for i, event in enumerate(entries):
-                    this_event = Entry(**event)
+                    this_event = aocentry.Entry(**event)
                     this_hash = this_event.hash()
                     if this_hash in self.all_hash:
                         logger.warning(f"Entry {key}:{i} is a duplicate.")
@@ -305,7 +303,7 @@ class Calendar:
         if cols == 'all':
             cols = self.all_fields
         elif cols == 'short':
-            cols = SHORT_LIST
+            cols = aocentry.SHORT_LIST
         hdr = ['#'] + cols
         sorted_day, indmap = self.sort_day(day)
         if return_as == 'table':
@@ -419,6 +417,8 @@ class Calendar:
                 if utc_stop < utc_start:
                     utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
+        if 'location' not in kwargs:
+            kwargs['location'] = ATA
         return kwargs
 
     def add(self, **kwargs):
@@ -429,7 +429,7 @@ class Calendar:
 
         """
         kwargs = self.check_kwargs(kwargs)
-        this_event = Entry(**kwargs)
+        this_event = aocentry.Entry(**kwargs)
         self.recent_event = this_event
         this_hash = this_event.hash()
         self.results = self.conflicts(this_event, is_new=True)

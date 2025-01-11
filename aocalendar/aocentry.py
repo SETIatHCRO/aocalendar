@@ -3,6 +3,8 @@
 # Licensed under the MIT license.
 from copy import copy
 from astropy.time import Time
+from astropy.coordinates import EarthLocation
+from astropy import units as u
 from . import aoc_tools
 from tabulate import tabulate
 from hashlib import sha256
@@ -44,7 +46,10 @@ class Entry:
             self.update(**kwargs)
 
     def __str__(self):
-        s = f"CALENDAR ENTRY {self.utc_start.datetime.strftime('%Y')}\n"
+        try:
+            s = f"CALENDAR ENTRY {self.utc_start.datetime.strftime('%Y')}\n"
+        except AttributeError:
+            s = "BLANK ENTRY "
         s+= f"created: {self.created.datetime.isoformat(timespec='seconds')}"
         if self.modified != self.created:
             s+= f"  --  modified: {self.modified.datetime.isoformat(timespec='seconds')}"
@@ -70,15 +75,31 @@ class Entry:
                     self.modified = aoc_tools.interp_date(val, fmt='Time')
                 elif key == 'event_id':
                     self.event_id = val
+        # Deal with Time
         for key in ['utc_start', 'utc_stop']:
             try:
                 setattr(self, key, aoc_tools.interp_date(getattr(self, key), fmt='Time'))
             except ValueError:
                 self.msg.append(f'Need valid {key} - got {getattr(self, key)}')
-                self.valid = False
+                self.valid = False        
         if not kwctr:
             self.msg.append(f"Need at least one non-time entry.")
             self.valid = False
+        # Deal with EarthLocation
+        location = copy(getattr(self, 'location'))
+        if isinstance(location, EarthLocation):
+            pass
+        elif isinstance(location, str):
+            llh = {}
+            for l in location.split(','):
+                key, val = l.split('=')
+                llh[key] = float(val)
+            self.location = EarthLocation(lat=llh['lat']*u.deg, lon=llh['lon']*u.deg, height=llh['height']*u.m)
+        else:
+            self.valid = False
+            self.msg.append("Invalid location.  Using Greenwich")
+            self.location = EarthLocation(lat=0.0*u.deg, lon=0.0*u.deg, height=0.0*u.m)
+
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
         self.modified = aoc_tools.interp_date('now', fmt='Time')
         # Always recompute LST
@@ -136,7 +157,7 @@ class Entry:
                 elif col == 'recurring':
                     pass
                 elif col == 'location':
-                    entry[col] = "GET PRINTABLE LOCATION"
+                    entry[col] = f"lat={self.location.lat.value},lon={self.location.lon.value},height={self.location.height.value}"
                 else:
                     entry[col] = str(getattr(self, col))
             else:
