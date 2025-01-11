@@ -98,7 +98,7 @@ class AOCalendarApp(tkinter.Tk):
     def reset(self):
         self.aoc_action = ''
         self.aoc_field_defaults = {}
-        for key in aocalendar.ENTRY_FIELDS:
+        for key in aocalendar.aoentry.ENTRY_FIELDS:
             self.aoc_field_defaults[key] = ''
         self.aoc_day = ''
         self.aoc_nind = 0
