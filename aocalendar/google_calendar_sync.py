@@ -65,7 +65,7 @@ class SyncCal:
         self.gc_added_removed()
         self.aoc_added_removed()
         self.update_aoc(update=update_aoc)
-        self.udpate_gc(update=update_gc)
+        self.update_gc(update=update_gc)
         self.shuffle_aoc_files()
 
     def get_gc_aocal(self):
@@ -151,6 +151,7 @@ class SyncCal:
 
     def update_aoc(self, update=False):
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
+        self.aoc_updated = False
         changes_add = 0
         for hh in self.gc_added:
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
@@ -181,13 +182,15 @@ class SyncCal:
         changes_made = changes_add + changes_del
         if update and changes_made:
             self.aocal.write_calendar()
+            self.aoc_updated = True
         else:
             logger.info(f"No changes made to {self.aocal.calfile_fullpath}")
 
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
-    def udpate_gc(self, update=False):
+    def update_gc(self, update=False):
         """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""
+        self.gc_updated = False
         changes_add = 0
         for hh in self.aoc_added:
             if hh not in self.gc_new_cal.hashmap and hh not in self.gc_removed:
@@ -233,32 +236,29 @@ class SyncCal:
 
         changes_made = changes_add + changes_del
         if update and changes_made:
-            pass
+            self.gc_updated = True
         else:
             logger.info(f"No changes made to Google Calendar {self.google_cal_name}")
 
     def shuffle_aoc_files(self):
         """Move the NEW calendars to OLD and delete the NEW google aocal"""
-        try:
-            os.remove(self.gc_old_cal.calfile_fullpath)
-        except OSError:
-            pass
-        try:
-            shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
-        except OSError:
-            pass
+        if self.gc_updated:
+            try:
+                os.remove(self.gc_old_cal.calfile_fullpath)
+                shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
+            except OSError:
+                self.logger.error("Error in copying over GoogleCalendar update files.")
         try:
             os.remove(self.gc_new_cal.calfile_fullpath)
         except OSError:
-            pass
-        try:
-            os.remove(self.aoarc.calfile_fullpath)
-        except OSError:
-            pass
-        try:
-            shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
-        except OSError:
-            pass
+            self.logger.error("New GoogleCalendar not deleted")
+        if self.aoc_updated:
+            try:
+                os.remove(self.aoarc.calfile_fullpath)
+                shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
+            except OSError:
+                self.logger.error("Error in copying over AOCalendar updated files.")
+
 
 def show_stuff(gc, show_entries=False):
     from tabulate import tabulate
