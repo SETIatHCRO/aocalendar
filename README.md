@@ -21,7 +21,7 @@ Events can be added by scheduling a RA/Dec or source, or by LST bounds as well a
 
 For command line:
 
-```
+```  #type: ignore
 usage: aocuser.py [-h] [--path PATH] [--output OUTPUT] [-l] [-e SHOW_ENTRY] [-g] [-a] [-u UPDATE] [-d DELETE] [-s SCHEDULE] [-q QUICK] [--duration DURATION] [-n NAME] [-p PID] [--utc_start UTC_START] [--utc_stop UTC_STOP] [--lst_start LST_START] [--lst_stop LST_STOP] [--observer OBSERVER] [--email EMAIL] [--note NOTE] [--state STATE] [calfile]
 
 positional arguments:

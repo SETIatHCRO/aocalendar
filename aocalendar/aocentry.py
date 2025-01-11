@@ -86,7 +86,10 @@ class Entry:
             self.msg.append(f"Need at least one non-time entry.")
             self.valid = False
         # Deal with EarthLocation
-        location = copy(getattr(self, 'location'))
+        try:
+            location = copy(getattr(self, 'location'))
+        except AttributeError:
+            location = False
         if isinstance(location, EarthLocation):
             pass
         elif isinstance(location, str):
@@ -99,6 +102,18 @@ class Entry:
             self.valid = False
             self.msg.append("Invalid location.  Using Greenwich")
             self.location = EarthLocation(lat=0.0*u.deg, lon=0.0*u.deg, height=0.0*u.m)
+        # Deal with recurring
+        try:
+            recurring = copy(getattr(self, 'recurring'))
+        except AttributeError:
+            recurring = False
+        if isinstance(recurring, list):
+            pass
+        elif isinstance(recurring, str):
+            self.recurring = recurring.split(',')
+        else:
+            self.msg.append("Invalid recurring.  Using None")
+            self.recurring = []
 
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
         self.modified = aoc_tools.interp_date('now', fmt='Time')
@@ -155,7 +170,8 @@ class Entry:
                     except AttributeError:
                         entry[col] = "INVALID"
                 elif col == 'recurring':
-                    pass
+                    if isinstance(entry[col], list):
+                        entry[col] = ','.join([str(x) for x in getattr(self, col)])
                 elif col == 'location':
                     entry[col] = f"lat={self.location.lat.value},lon={self.location.lon.value},height={self.location.height.value}"
                 else:

@@ -419,6 +419,8 @@ class Calendar:
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         if 'location' not in kwargs:
             kwargs['location'] = ATA
+        if 'recurring' not in kwargs:
+            kwargs['location'] = []
         return kwargs
 
     def add(self, **kwargs):
