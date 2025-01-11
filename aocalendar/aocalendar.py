@@ -29,11 +29,13 @@ logger.setLevel('DEBUG')  # Set to lowest
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
 ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
                 'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
-                'observer': None, 'email': None, 'note': None, 'state': 'primary'}
+                'observer': None, 'email': None, 'note': None, 'state': 'primary', 'recurring': []}
+SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
+UNIQUE_HASH_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
+
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 AOCLOG_FILENAME = 'aoclog'
-SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 DAYSEC = 24 * 3600
 SIDEREAL_RATE = 23.93447
 
@@ -149,18 +151,21 @@ class Entry:
 
         Parameters
         ----------
-        cols : list or 'all'
+        cols : list or 'all' or 'unique'
             Columns to include
         printable : bool
             Flag to make the entries all str
 
         """
-        if cols == 'all': cols = self.fields
+        if cols == 'all':
+            cols = self.fields
+        elif cols == 'unique':
+            cols = UNIQUE_HASH_LIST
         entry = self.todict(printable=printable, include_meta=include_meta)
         row = [entry[col] for col in cols]
         return row
     
-    def hash(self, cols='all'):
+    def hash(self, cols='unique'):
         """Return the hash of the entry"""
         txt = ''.join(self.row(cols=cols, printable=True)).encode('utf-8')
         return sha256(txt).hexdigest()[:10]
@@ -189,6 +194,8 @@ class Entry:
                         entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
                     except AttributeError:
                         entry[col] = "INVALID"
+                elif col == 'recurring':
+                    pass
                 else:
                     entry[col] = str(getattr(self, col))
             else:
