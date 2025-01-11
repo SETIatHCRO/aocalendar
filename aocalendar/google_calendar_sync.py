@@ -112,7 +112,7 @@ class SyncCal:
             self.gc_new_cal.add(**entry)
         if show:
             for day in self.gc_new_cal.events:
-                logger.info(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.ENTRY_FIELDS.keys())) + '\n')
+                logger.info(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.aocentry.ENTRY_FIELDS.keys())) + '\n')
         self.gc_new_cal.write_calendar()
         self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
 
