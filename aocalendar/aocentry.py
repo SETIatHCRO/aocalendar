@@ -170,8 +170,11 @@ class Entry:
                     except AttributeError:
                         entry[col] = "INVALID"
                 elif col == 'recurring':
-                    if isinstance(entry[col], list):
-                        entry[col] = ','.join([str(x) for x in getattr(self, col)])
+                    try:
+                        if isinstance(entry[col], list):
+                            entry[col] = ','.join([str(x) for x in getattr(self, col)])
+                    except (KeyError, AttributeError):
+                        entry[col] = ''
                 elif col == 'location':
                     entry[col] = f"lat={self.location.lat.value},lon={self.location.lon.value},height={self.location.height.value}"
                 else:
