@@ -14,25 +14,16 @@ ENTRY_FIELDS = {'name': "Name",
                 'pid': "pid",
                 'utc_start': None, 'utc_stop': None,
                 'lst_start': None, 'lst_stop': None,
-                'observer': None,
-                'email': None,
-                'note': None,
+                'observer': '',
+                'email': '',
+                'note': '',
                 'state': 'primary', 
                 'recurring': [], 
-                'location': None,
+                'location': 'ata',
                 'event_id': 'AOC'}
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 UNIQUE_HASH_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
 META_FIELDS = ['created', 'modified']
-
-
-def cull_args(**kwargs):
-    """Remove non-Entry keys"""
-    newkw = {}
-    for key, val in kwargs.items():
-        if key in ENTRY_FIELDS:
-            newkw[key] = val
-    return newkw
 
 
 class Entry:
@@ -46,16 +37,10 @@ class Entry:
         kwargs are entry fields or meta_fields
         """
         self.meta_fields = META_FIELDS
-        self.fields = ENTRY_FIELDS
-        for key in self.fields:
-            if isinstance(self.fields, dict):
-                setattr(self, key, self.fields[key])
-            else:
-                setattr(self, key, None)
+        self.fields = list(ENTRY_FIELDS.keys())
+        self.update(**ENTRY_FIELDS)
         kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
         self.created = aoc_tools.interp_date(kwargs['created'], fmt='Time')
-        self.modified = self.created
-        kwargs = cull_args(**kwargs)
         if len(kwargs):
             self.update(**kwargs)
 
@@ -75,65 +60,116 @@ class Entry:
         s += tabulate(table, headers=['Field', 'Value']) + '\n'
         return s
 
-    def __location(self, **kwargs):
-        print()
-
-    def update(self, **kwargs):
-        """Update an entry using the supplied kwargs.  This handles both 'native' as well as 'todict/printable'"""
-        self.msg, kwctr, self.valid = [], 0, True
-        for key, val in kwargs.items():
-            if key in self.fields:
-                if key not in ['utc_start', 'utc_stop']:
-                    kwctr += 1
-                if val is not None:
-                    setattr(self, key, val)
-            elif key in self.meta_fields:
-                if key == 'modified':
-                    self.modified = aoc_tools.interp_date(val, fmt='Time')
-        # Deal with Time
-        for key in ['utc_start', 'utc_stop']:
+    def __EarthLocation(self, loc_input, to_string=False):
+        """Take in a location input and make an EarthLocation or stringify EarthLocation"""
+        if to_string:
             try:
-                setattr(self, key, aoc_tools.interp_date(getattr(self, key), fmt='Time'))
-            except ValueError:
-                self.msg.append(f'Need valid {key} - got {getattr(self, key)}')
-                self.valid = False        
-        if not kwctr:
-            self.msg.append(f"Need at least one non-time entry.")
-            self.valid = False
-        # Deal with EarthLocation
-        try:
-            location = copy(getattr(self, 'location'))
-        except AttributeError:
-            location = False
-        if isinstance(location, EarthLocation):
-            pass
-        elif isinstance(location, str):
+                name = f"name={loc_input.name},"
+            except AttributeError:
+                name = ''
+            try:
+                return f"{name}lat={loc_input.lat.value:.6f},lon={loc_input.lon.value:.6f},height={loc_input.height.value:.3f}"
+            except AttributeError:
+                return "None"
+
+        if isinstance(loc_input, EarthLocation):
+            return loc_input
+        if loc_input.lower() == 'ata':
+            new_location = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
+            new_location.name = 'ATA'
+        elif isinstance(loc_input, str):
             llh = {}
-            for l in location.split(','):
+            for l in loc_input.split(','):
                 key, val = l.split('=')
                 if key == 'name':
                     llh[key] = val
                 else:
                     llh[key] = float(val)
-            self.location = EarthLocation(lat=llh['lat']*u.deg, lon=llh['lon']*u.deg, height=llh['height']*u.m)
+            new_location = EarthLocation(lat=llh['lat']*u.deg, lon=llh['lon']*u.deg, height=llh['height']*u.m)
             if 'name' in llh:
-                self.location.name = llh['name']
-        else:
-            self.msg.append("No location given.  Using ATA")
-            self.location = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
-            self.location.name = 'ATA'
-        # Deal with recurring
+                new_location.name = llh['name']
+        else:  # Not valid update, use old
+            try:
+                new_location = getattr(self, 'location')
+            except AttributeError:
+                new_location = "None"
+        return new_location
+    
+    def __Time(self, time_input, key, to_string=False):
+        """Take in a time input and return Time"""
+        if to_string:
+            try:
+                return time_input.datetime.isoformat(timespec='seconds')
+            except (AttributeError, ValueError):
+                return 'None'
+
         try:
-            recurring = copy(getattr(self, 'recurring'))
-        except AttributeError:
-            recurring = False
-        if isinstance(recurring, list):
-            pass
-        elif isinstance(recurring, str):
-            self.recurring = recurring.split(',')
+             new_Time = aoc_tools.interp_date(time_input, fmt='Time')
+        except ValueError:
+            try:
+                new_Time = getattr(self, key)
+            except AttributeError:
+                new_Time = None
+        return new_Time
+
+    def __lst(self, lst_input, key, to_string=False):
+        if to_string:
+            try:
+                hms = lst_input.hms
+                return f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
+            except AttributeError:
+                return None
+        print("NOT YET", key)
+
+    def __recurring(self, recurring_input, to_string=False):
+        if to_string:
+            return ','.join(recurring_input)
+
+        if isinstance(recurring_input, list):
+            return recurring_input
+        if isinstance(recurring_input, str):
+            new_recurring = recurring_input.split(',')
         else:
-            self.msg.append("Invalid recurring.  Using None")
-            self.recurring = []
+            try:
+                new_recurring = getattr(self, 'recurring')
+            except AttributeError:
+                new_recurring = [] 
+        return new_recurring
+
+    def update(self, **kwargs):
+        """Update an entry using the supplied kwargs.  This handles both 'native' as well as 'todict/printable'"""
+        updated_kwargs = {}
+        for key, val in kwargs.items():
+            if key in self.fields:
+                updated_kwargs[key] = val
+            elif key in self.meta_fields:
+                if key == 'modified':
+                    self.modified = aoc_tools.interp_date(val, fmt='Time')
+        if 'utc_start' in kwargs:
+            updated_kwargs['utc_start'] = self.__Time(kwargs['utc_start'], 'utc_start', to_string=False)
+        if 'utc_stop' in kwargs:
+            updated_kwargs['utc_stop'] = self.__Time(kwargs['utc_stop'], 'utc_stop', to_string=False)
+        if 'location' in kwargs:
+            updated_kwargs['location'] = self.__EarthLocation(kwargs['location'], to_string=False)
+        if 'recurring' in kwargs:
+            updated_kwargs['recurring'] = self.__recurring(kwargs['recurring'], to_string=False)
+
+        for key, val in updated_kwargs.items():
+            setattr(self, key, val)
+
+        self.valid, self.msg = True, []
+        for key in ['utc_start', 'utc_stop']:
+            if not aoc_tools.boolcheck(getattr(self, key)):
+                self.valid = False
+                self.msg.append(f"Invalid {key} - {getattr(self, key)}")
+        for key in ['name', 'observer', 'note', 'state']:
+            is_ok = 0
+            this_attr = getattr(self, key)
+            if this_attr is not None and len(this_attr):
+                is_ok += 1
+        if not is_ok:
+            self.valid = False
+            self.msg.append("Need at least on non-Time entry")
 
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
         self.modified = aoc_tools.interp_date('now', fmt='Time')
@@ -179,24 +215,13 @@ class Entry:
         for col in self.fields:
             if printable:
                 if col in ['utc_start', 'utc_stop']:
-                    try:
-                        entry[col] = getattr(self, col).datetime.isoformat(timespec='seconds')
-                    except AttributeError:
-                        entry[col] = "INVALID"
+                    entry[col] = self.__Time(getattr(self, col), col, to_string=True)
                 elif col in ['lst_start', 'lst_stop']:
-                    try:
-                        hms = getattr(self, col).hms
-                        entry[col] = f"{int(hms.h):02d}h{int(hms.m):02d}m{int(hms.s):02d}s"
-                    except AttributeError:
-                        entry[col] = "INVALID"
+                    entry[col] = self.__lst(getattr(self, col), col, to_string=True)
                 elif col == 'recurring':
-                    try:
-                        if isinstance(entry[col], list):
-                            entry[col] = ','.join([str(x) for x in getattr(self, col)])
-                    except (KeyError, AttributeError):
-                        entry[col] = ''
+                    entry[col] = self.__recurring(getattr(self, col), to_string=True)
                 elif col == 'location':
-                    entry[col] = f"lat={self.location.lat.value},lon={self.location.lon.value},height={self.location.height.value}"
+                    entry[col] = self.__EarthLocation(getattr(self, col), to_string=True)
                 else:
                     entry[col] = str(getattr(self, col))
             else:
@@ -208,18 +233,15 @@ class Entry:
             else:
                 entry['created'] = self.created
                 entry['modified'] = self.modified
-            entry['event_id'] = self.event_id
 
         return entry
 
     def update_lst(self):
         """Update the LSTs."""
-        try:
-            self.utc_start = Time(self.utc_start)
-            self.utc_stop = Time(self.utc_stop)
-        except ValueError:
-            self.valid = False
-            self.msg += '\nNo LST, unable to make Time'
-            return
-        obstimes = Time([self.utc_start, self.utc_stop])
-        self.lst_start, self.lst_stop = obstimes.sidereal_time('mean', longitude=self.location)
+        for key in ['utc_start', 'utc_stop']:
+            try:
+                utc = Time(getattr(self, key))
+            except ValueError:
+                continue
+            lst = f"lst_{key.split('_')[1]}"
+            setattr(self, lst, utc.sidereal_time('mean', longitude=self.location))

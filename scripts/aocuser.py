@@ -5,7 +5,6 @@
 
 import argparse
 from aocalendar import aocalendar
-from aocalendar.aocentry import cull_args
 
 
 ap = argparse.ArgumentParser()
@@ -37,10 +36,13 @@ ap.add_argument('--state', help="Event field", default=None)
 args = ap.parse_args()
 
 if args.add:
+    if args.utc_start is None:
+        from aocalendar.aoc_tools import interp_date
+        args.utc_start = interp_date('now')
     args.calfile = args.utc_start
 
 aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
-kwargs = cull_args(**vars(args))
+kwargs = vars(args)
 
 if args.quick:
     from aocalendar import aoc_tools

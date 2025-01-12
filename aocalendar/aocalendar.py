@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
 
 ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
+ATA.name = 'ATA'
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 AOCLOG_FILENAME = 'aoclog'
