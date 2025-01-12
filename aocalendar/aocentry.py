@@ -10,12 +10,20 @@ from tabulate import tabulate
 from hashlib import sha256
 
 
-ENTRY_FIELDS = {'name': "Name", 'pid': "pid",
-                'utc_start': None, 'utc_stop': None, 'lst_start': None, 'lst_stop': None,
-                'observer': None, 'email': None, 'note': None, 'state': 'primary', 'recurring': [], 
-                'location': None}
+ENTRY_FIELDS = {'name': "Name",
+                'pid': "pid",
+                'utc_start': None, 'utc_stop': None,
+                'lst_start': None, 'lst_stop': None,
+                'observer': None,
+                'email': None,
+                'note': None,
+                'state': 'primary', 
+                'recurring': [], 
+                'location': None,
+                'event_id': 'AOC'}
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 UNIQUE_HASH_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
+META_FIELDS = ['created', 'modified']
 
 
 def cull_args(**kwargs):
@@ -28,9 +36,17 @@ def cull_args(**kwargs):
 
 
 class Entry:
+    """AO Calendar Entry"""
     def __init__(self, **kwargs):
-        self.meta_fields = ['created', 'modifield', 'event_id']
-        self.fields = kwargs['fields'] if 'fields' in kwargs else ENTRY_FIELDS
+        """
+        AOCalendar entry.  Note that update and to_dict(printable=True) should be consistent.
+
+        Parameters
+        ----------
+        kwargs are entry fields or meta_fields
+        """
+        self.meta_fields = META_FIELDS
+        self.fields = ENTRY_FIELDS
         for key in self.fields:
             if isinstance(self.fields, dict):
                 setattr(self, key, self.fields[key])
@@ -39,9 +55,7 @@ class Entry:
         kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
         self.created = aoc_tools.interp_date(kwargs['created'], fmt='Time')
         self.modified = self.created
-        self.event_id = copy(kwargs['event_id']) if 'event_id' in kwargs else 'AOC'
-        for key in self.meta_fields:  # Handled them above
-            if key in kwargs: del(kwargs[key])
+        kwargs = cull_args(**kwargs)
         if len(kwargs):
             self.update(**kwargs)
 
@@ -61,8 +75,11 @@ class Entry:
         s += tabulate(table, headers=['Field', 'Value']) + '\n'
         return s
 
+    def __location(self, **kwargs):
+        print()
+
     def update(self, **kwargs):
-        """Update an entry using the supplied kwargs."""
+        """Update an entry using the supplied kwargs.  This handles both 'native' as well as 'todict/printable'"""
         self.msg, kwctr, self.valid = [], 0, True
         for key, val in kwargs.items():
             if key in self.fields:
@@ -73,8 +90,6 @@ class Entry:
             elif key in self.meta_fields:
                 if key == 'modified':
                     self.modified = aoc_tools.interp_date(val, fmt='Time')
-                elif key == 'event_id':
-                    self.event_id = val
         # Deal with Time
         for key in ['utc_start', 'utc_stop']:
             try:
@@ -96,12 +111,17 @@ class Entry:
             llh = {}
             for l in location.split(','):
                 key, val = l.split('=')
-                llh[key] = float(val)
+                if key == 'name':
+                    llh[key] = val
+                else:
+                    llh[key] = float(val)
             self.location = EarthLocation(lat=llh['lat']*u.deg, lon=llh['lon']*u.deg, height=llh['height']*u.m)
+            if 'name' in llh:
+                self.location.name = llh['name']
         else:
-            self.valid = False
-            self.msg.append("Invalid location.  Using Greenwich")
-            self.location = EarthLocation(lat=0.0*u.deg, lon=0.0*u.deg, height=0.0*u.m)
+            self.msg.append("No location given.  Using ATA")
+            self.location = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
+            self.location.name = 'ATA'
         # Deal with recurring
         try:
             recurring = copy(getattr(self, 'recurring'))
