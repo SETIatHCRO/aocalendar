@@ -185,9 +185,9 @@ class SyncCal:
         changes_made = changes_add + changes_del
         if update and changes_made:
             self.aocal.write_calendar()
-            self.aoc_updated = True
         else:
             logger.info(f"No changes made to {self.aocal.calfile_fullpath}")
+        self.aoc_updated = update
 
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
@@ -239,30 +239,29 @@ class SyncCal:
 
         changes_made = changes_add + changes_del
         if update and changes_made:
-            self.gc_updated = True
+            pass
         else:
             logger.info(f"No changes made to Google Calendar {self.google_cal_name}")
+        self.gc_updated = update
 
     def shuffle_aoc_files(self):
         """Move the NEW calendars to OLD and delete the NEW google aocal"""
-        if self.gc_updated:
-            try:
-                os.remove(self.gc_old_cal.calfile_fullpath)
-                shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
-            except OSError:
-                logger.error("Error in copying over GoogleCalendar update files.")
+        try:
+            os.remove(self.gc_old_cal.calfile_fullpath)
+            shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
+        except OSError:
+            logger.error("Error in copying over GoogleCalendar update files.")
         try:
             os.remove(self.gc_new_cal.calfile_fullpath)
         except OSError:
             logger.error("New GoogleCalendar not deleted")
-        if self.aoc_updated:
-            try:
-                os.remove(self.aoarc.calfile_fullpath)
-                shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
-            except OSError:
-                logger.error("Error in copying over AOCalendar updated files.")
+        try:
+            os.remove(self.aoarc.calfile_fullpath)
+            shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
+        except OSError:
+            logger.error("Error in copying over AOCalendar updated files.")
 
-
+# Send self.gc from above
 def show_stuff(gc, show_entries=False):
     from tabulate import tabulate
 
