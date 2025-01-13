@@ -163,8 +163,8 @@ class Entry:
             if not aoc_tools.boolcheck(getattr(self, key)):
                 self.valid = False
                 self.msg.append(f"Invalid {key} - {getattr(self, key)}")
+        is_ok = 0
         for key in ['name', 'observer', 'note', 'state']:
-            is_ok = 0
             this_attr = getattr(self, key)
             if this_attr is not None and len(this_attr):
                 is_ok += 1

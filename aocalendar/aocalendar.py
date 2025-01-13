@@ -138,9 +138,13 @@ class Calendar:
         else:
             self.calfile_fullpath = op.join(path, calfile)
 
-    def __init_cal(self):
-        self.created = Time.now()
-        self.modified = copy(self.created)
+    def init_calendar(self, created=None):
+        if created is None:
+            self.created = Time.now()
+            self.modified = copy(self.created)
+        else:
+            self.created = aoc_tools.interp_date(created, fmt='Time')
+            self.modified = Time.now()
         self.added, self.removed, self.updated = [], [], {}
         return {'created': self.created.datetime.isoformat(timespec='seconds'),
                 'modified': self.modified.datetime.isoformat(timespec='seconds'),
@@ -179,14 +183,14 @@ class Calendar:
         self.set_calfile(calfile=calfile, path=path)
         if self.calfile is None:
             logger.info("No file associated with calendar")
-            inp = self.__init_cal()
+            inp = self.init_calendar()
             return
         try:
             with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
             if start_new:
-                inp = self.__init_cal()
+                inp = self.init_calendar()
                 with open(self.calfile_fullpath, 'w') as fp:
                     json.dump(inp, fp, indent=2)                    
                 logger.info(f"No calendar file was found at {self.calfile_fullpath} -- started new.")
