@@ -47,13 +47,13 @@ class SyncCal:
         if self.future_only:
             logger.info("Updating current/future entries.")
         else:
-            logger.info("Updating all events.")
+            logger.info("Updating all events (40 days past).")
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
             self.gc = GCDEBUG()
         else:
-            self.gc = GoogleCalendar()
+            self.gc = GoogleCalendar(save_token=True)
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
@@ -96,7 +96,8 @@ class SyncCal:
             return
 
         logger.info("Reading Google Calendar into local calendar.")
-        for event in self.gc.get_events(calendar_id=self.gc_cal_id):
+        tmin = (self.now - TimeDelta(3600.0, format='sec')) if self.future_only else (self.now - TimeDelta(40.0, format='jd'))
+        for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
             for key, val in self.attrib2keep.items():
                 this_field = copy(getattr(event, key))
@@ -261,11 +262,16 @@ class SyncCal:
         except OSError:
             logger.error("Error in copying over AOCalendar updated files.")
 
-# Send self.gc from above
-def show_stuff(gc, show_entries=False):
+
+def show_stuff(show_entries=False):
     from tabulate import tabulate
 
-    if isinstance(show_entries, int):
+    gcalendar_class = SyncCal()
+    gc = gcalendar_class.gc
+
+    if not show_entries:
+        show_entries = []
+    elif isinstance(show_entries, int):
         show_entries = [show_entries]
     elif isinstance(show_entries, str):
         show_entries = [int(xx) for xx in show_entries.split(',')]
@@ -276,25 +282,28 @@ def show_stuff(gc, show_entries=False):
         
     data = []
     data_uncut = []
-    for event in gc.get_events(calendar_id=ATA_CAL_ID):
+    col_list = set()
+    for event in gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=datetime(year=2025, month=1, day=1)):
         row = {}
         row_uncut = {}
+        print(event)
         for col in dir(event):
+            col_list.add(col)
+            entry = getattr(event, col)
             if col[0] != '_':
-                entry = getattr(event, col)
                 if str(entry)[0] != '<' and bool(entry):
                     row[col] = str(entry)
-                row_uncut[col] = entry
+            row_uncut[col] = entry
         data.append(row)
         data_uncut.append(row_uncut)
 
-    hdr = sorted(data[0].keys())
+    hdr = sorted(data_uncut[0].keys())
     table = []
-    for i, d in enumerate(data):
+    for i, d in enumerate(data_uncut):
         trow = [i]
         for key in hdr:
             try:
-                trow.append(d[key][:20])
+                trow.append(str(d[key])[:20])
             except KeyError:
                 trow.append('  ')
         table.append(trow)
@@ -312,5 +321,6 @@ def show_stuff(gc, show_entries=False):
                     print('\t', a, b)
         print(tabulate(entry))
 
-        for cal in gc.get_calendar_list():
-            print(cal.calendar_id, cal)
+    for cal in gc.get_calendar_list():
+        print(cal.calendar_id, cal)
+    print(', '.join(col_list))
