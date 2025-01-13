@@ -17,7 +17,7 @@ logger.setLevel('DEBUG')  # Set to lowest to enable handlers to setLevel
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
 ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'name',
-               'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc'}
+               'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc', 'description': '_test'}
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
@@ -157,8 +157,6 @@ class SyncCal:
         self.aoc_updated = False
         changes_add = 0
         for hh in self.gc_added:
-            print("GCS160")
-            print(hh, hh not in self.aocal.hashmap, hh not in self.aoc_removed)
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
                 if update:
                     d, n = self.gc_new_cal.hashmap[hh]
@@ -314,3 +312,6 @@ def show_stuff(gc, show_entries=False):
                 for a, b in data_uncut[i][key].items():
                     print('\t', a, b)
         print(tabulate(entry))
+
+        for cal in gc.get_calendar_list():
+            print(cal.calendar_id, cal)
