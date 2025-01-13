@@ -74,10 +74,10 @@ class Entry:
 
         if isinstance(loc_input, EarthLocation):
             return loc_input
-        if loc_input.lower() == 'ata':
+        if isinstance(loc_input, str) and loc_input.lower() == 'ata':
             new_location = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
             new_location.name = 'ATA'
-        elif isinstance(loc_input, str):
+        elif isinstance(loc_input, str) and '=' in loc_input:
             llh = {}
             for l in loc_input.split(','):
                 key, val = l.split('=')

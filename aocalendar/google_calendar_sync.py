@@ -5,7 +5,7 @@
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
 from aocalendar import aocalendar, aoc_tools
-from astropy.time import TimeDelta
+from astropy.time import TimeDelta, Time
 from copy import copy
 import os, shutil
 import logging
@@ -95,7 +95,7 @@ class SyncCal:
                 raise RuntimeError("In DEBUG need to first read in calendar.")
             return
 
-        self.logger.info("Reading Google Calendar into local calendar.")
+        logger.info("Reading Google Calendar into local calendar.")
         for event in self.gc.get_events(calendar_id=self.gc_cal_id):
             entry = {}
             for key, val in self.attrib2keep.items():
@@ -119,7 +119,9 @@ class SyncCal:
 
     def __end_check_ok(self, entry_end, tbuf_min=35.0):
         """If self.future_only make sure utc_stop is more than tbuf_min in the past."""
-        is_old = self.now < (entry_end - TimeDelta(tbuf_min * 60.0, format='sec'))
+        if not isinstance(entry_end, Time):
+            return True
+        is_old = self.now < entry_end - TimeDelta(tbuf_min * 60.0, format='sec')
         if self.future_only and is_old:
             return False
         return True
@@ -155,6 +157,8 @@ class SyncCal:
         self.aoc_updated = False
         changes_add = 0
         for hh in self.gc_added:
+            print("GCS160")
+            print(hh, hh not in self.aocal.hashmap, hh not in self.aoc_removed)
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
                 if update:
                     d, n = self.gc_new_cal.hashmap[hh]
@@ -248,17 +252,17 @@ class SyncCal:
                 os.remove(self.gc_old_cal.calfile_fullpath)
                 shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
             except OSError:
-                self.logger.error("Error in copying over GoogleCalendar update files.")
+                logger.error("Error in copying over GoogleCalendar update files.")
         try:
             os.remove(self.gc_new_cal.calfile_fullpath)
         except OSError:
-            self.logger.error("New GoogleCalendar not deleted")
+            logger.error("New GoogleCalendar not deleted")
         if self.aoc_updated:
             try:
                 os.remove(self.aoarc.calfile_fullpath)
                 shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
             except OSError:
-                self.logger.error("Error in copying over AOCalendar updated files.")
+                logger.error("Error in copying over AOCalendar updated files.")
 
 
 def show_stuff(gc, show_entries=False):

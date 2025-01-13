@@ -421,7 +421,7 @@ class Calendar:
         if 'location' not in kwargs:
             kwargs['location'] = ATA
         if 'recurring' not in kwargs:
-            kwargs['location'] = []
+            kwargs['recurring'] = []
         return kwargs
 
     def add(self, **kwargs):
