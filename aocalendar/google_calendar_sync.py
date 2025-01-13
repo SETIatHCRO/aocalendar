@@ -18,6 +18,7 @@ logger.setLevel('DEBUG')  # Set to lowest to enable handlers to setLevel
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
 ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'name',
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc', 'description': '_test'}
+##COMPATIBLE WITH AOCENTRY.WEB_COMPARE_HASH_LIST -v
 ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
 
 DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
@@ -57,30 +58,30 @@ class SyncCal:
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
-    def sequence(self, update_aoc=True, update_gc=False):
+    def sequence(self, update_gc=False):
         """Sequence through the actions to sync the calendars."""
         self.get_aocal()
         self.get_google_calendar()
         self.gc_added_removed()
-        self.aoc_added_removed()
-        self.update_aoc(update=update_aoc)
+        self.update_aoc()
         self.update_gc(update=update_gc)
-        self.shuffle_aoc_files()
 
     def get_aocal(self):
         """Read in the working aocal, as well as the previous for diff."""
         self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
         self.aocal.make_hash_keymap(cols=self.attrib2push)
 
-    def get_google_calendar(self, show=False):
+    def get_google_calendar(self):
         """Read in the google calendar and populate the gc aocal"""
         logger.info("Reading Google Calendar into local calendar.")
         gcname = os.path.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
-        if os.path.exists(gcname):
-            os.remove(gcname)
-        self.gc_cal = aocalendar.Calendar(gcname, output=self.output, path=None, file_logging=self.file_logging, start_new=True)
-        self.gc_cal.make_hash_keymap(cols=self.attrib2push)
-
+        self.gc_local = aocalendar.Calendar(gcname, output=self.output, path=None, file_logging=self.file_logging, start_new=True)
+        self.gc_local.make_hash_keymap(cols=self.attrib2push)
+        if DEBUG_SKIP_GC:
+            logger.warning("DEBUG - NOT READING LIVE GOOGLE CALENDAR")
+            self.gc_web = self.gc_local
+            return
+        self.gc_web = aocalendar.Calendar("WEB", output=self.output, path=None, file_logging=self.file_logging, start_new=False)
         tmin = (self.now - TimeDelta(3600.0, format='sec')) if self.future_only else (self.now - TimeDelta(40.0, format='jd'))
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
@@ -96,12 +97,8 @@ class SyncCal:
                     this_field = str(this_field)
                 if val[0] != '_':
                     entry[val] = this_field
-            self.gc_cal.add(**entry)
-        if show:
-            for day in self.gc_cal.events:
-                logger.info(self.gc_cal.format_day_events(day, cols=list(aocalendar.aocentry.ENTRY_FIELDS.keys())) + '\n')
-        self.gc_cal.write_calendar()
-        self.gc_cal.make_hash_keymap(cols=self.attrib2push)
+            self.gc_web.add(**entry)
+        self.gc_web.make_hash_keymap(cols=self.attrib2push)
 
     def __end_check_ok(self, entry_end, tbuf_min=35.0):
         """If self.future_only make sure utc_stop is more than tbuf_min in the past."""
@@ -116,27 +113,20 @@ class SyncCal:
         """Get the diffs between the OLD and NEW google aocals"""
         self.gc_added = []  # hash in self.gc_new_cal that weren't in self.gc_old_cal
         self.gc_removed = []  # hash in self.gc_old_cal that aren't in self.gc_new_cal
-        for hh in self.gc_new_cal.hashmap:
-            d, n = self.gc_new_cal.hashmap[hh]
-            if hh not in self.gc_old_cal.hashmap and self.__end_check_ok(self.gc_new_cal.events[d][n].utc_stop):
+        for hh in self.gc_web.hashmap:
+            d, n = self.gc_web.hashmap[hh]
+            if hh not in self.gc_local.hashmap and self.__end_check_ok(self.gc_web.events[d][n].utc_stop):
                 self.gc_added.append(hh)
-        for hh in self.gc_old_cal.hashmap:
-            d, n = self.gc_old_cal.hashmap[hh]
-            if hh not in self.gc_new_cal.hashmap and self.__end_check_ok(self.gc_old_cal.events[d][n].utc_stop):
+        for hh in self.gc_local.hashmap:
+            d, n = self.gc_local.hashmap[hh]
+            if hh not in self.gc_web.hashmap and self.__end_check_ok(self.gc_local.events[d][n].utc_stop):
                 self.gc_removed.append(hh)
 
     def aoc_added_removed(self):
         """Get the diffs between the OLD and NEW aocals"""
+        print("USE META")
         self.aoc_added = []
         self.aoc_removed = []
-        for hh in self.aocal.hashmap:
-            d, n = self.aocal.hashmap[hh]
-            if hh not in self.aoarc.hashmap and self.__end_check_ok(self.aocal.events[d][n].utc_stop):
-                self.aoc_added.append(hh)
-        for hh in self.aoarc.hashmap:
-            d, n = self.aoarc.hashmap[hh]
-            if hh not in self.aocal.hashmap and self.__end_check_ok(self.aoarc.events[d][n].utc_stop):
-                self.aoc_removed.append(hh)
 
     def update_aoc(self, update=False):
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
@@ -230,21 +220,16 @@ class SyncCal:
             logger.info(f"No changes made to Google Calendar {self.google_cal_name}")
         self.gc_updated = update
 
-    def shuffle_aoc_files(self):
-        """Move the NEW calendars to OLD and delete the NEW google aocal"""
-
-
-            shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
-\
-        try:
-            os.remove(self.gc_new_cal.calfile_fullpath)
-        except OSError:
-            logger.error("New GoogleCalendar not deleted")
-        try:
-            os.remove(self.aoarc.calfile_fullpath)
-            shutil.copy2(self.aocal.calfile_fullpath, self.aoarc.calfile_fullpath)
-        except OSError:
-            logger.error("Error in copying over AOCalendar updated files.")
+    def finish(self):
+        print("RESET ADDED,REMOVED,UPDATED meta in aocal.json")
+        if os.path.exists(self.gc_local.calfile_fullpath):
+            os.remove(self.gc_local.calfile_fullpath)
+        self.gc_web.created = self.gc_local.created
+        self.gc_web.modified = self.now
+        self.gc_web.added = []
+        self.gc_web.removed = []
+        self.gc_web.updated = {}
+        self.gc_web.write_calendar(calfile=self.gc_local.calfile_fullpath)  # Move web to local
 
 
 def show_stuff(show_entries=False):

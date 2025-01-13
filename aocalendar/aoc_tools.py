@@ -189,8 +189,11 @@ def interp_date(iddate, fmt='%Y-%m-%d'):
     elif len(str(iddate)) == 7:  # assume YYYY-MM
         iddate = Time(f"{iddate}-01")
     else:
-        iddate = Time(iddate)
-    if fmt[0] == '%':
+        try:
+            iddate = Time(iddate)
+        except ValueError:
+            iddate = None
+    if iddate is not None and fmt[0] == '%':
         iddate = iddate.datetime.strftime(fmt)
     return iddate
 

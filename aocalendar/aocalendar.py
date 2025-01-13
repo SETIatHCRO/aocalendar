@@ -72,7 +72,7 @@ def add_aoc_entry(path='getenv', output='ERROR', **kwargs):
 
 
 class Calendar:
-    meta_fields = ['created', 'updated']
+    meta_fields = ['created', 'modified', 'added', 'removed', 'updated']
 
     def __init__(self, calfile='now', path='getenv', output='INFO', file_logging=False, start_new=False):
         """
@@ -128,9 +128,24 @@ class Calendar:
                 self.refdate = Time.now()
         else:
             self.refdate = aoc_tools.interp_date(calfile, 'Time')
-            calfile = f"{AOC_PREFIX}{self.refdate.datetime.year}.json"
+            if self.refdate is None:
+                calfile = None
+            else:
+                calfile = f"{AOC_PREFIX}{self.refdate.datetime.year}.json"
         self.calfile = calfile
-        self.calfile_fullpath = op.join(path, calfile)
+        if calfile is None:
+            self.calfile_fullpath = None
+        else:
+            self.calfile_fullpath = op.join(path, calfile)
+
+    def __init_cal(self):
+        self.created = Time.now()
+        self.modified = copy(self.created)
+        self.added, self.removed, self.updated = [], [], {}
+        return {'created': self.created.datetime.isoformat(timespec='seconds'),
+                'modified': self.modified.datetime.isoformat(timespec='seconds'),
+                'added': self.added, 'removed': self.removed, 'updated': self.updated}
+         
 
     def read_calendar_events(self, calfile, path=None, skip_duplicates=True, start_new=False):
         """
@@ -162,19 +177,22 @@ class Calendar:
         self.all_fields =  list(aocentry.ENTRY_FIELDS.keys())  # This is a cheat for now.
         self.all_hash = []
         self.set_calfile(calfile=calfile, path=path)
+        if self.calfile is None:
+            logger.info("No file associated with calendar")
+            inp = self.__init_cal()
+            return
         try:
             with open(self.calfile_fullpath, 'r') as fp:
                 inp = json.load(fp)
         except FileNotFoundError:
             if start_new:
-                atime = Time.now().datetime.isoformat(timespec="seconds")
-                inp = {'created': atime, 'updated': atime}
+                inp = self.__init_cal()
                 with open(self.calfile_fullpath, 'w') as fp:
-                    json.dump(inp, fp)                    
+                    json.dump(inp, fp, indent=2)                    
                 logger.info(f"No calendar file was found at {self.calfile_fullpath} -- started new.")
             else:
-                logger.warning(f"No calendar file was found at {self.calfile_fullpath}.")
-                return
+                logger.info(f"No calendar file was found at {self.calfile_fullpath}.")
+            return
         logger.info(f"Reading {self.calfile_fullpath}")
         for key, entries in inp.items():
             if key in self.meta_fields:
@@ -224,9 +242,16 @@ class Calendar:
         logger.info(f"Writing {calfile}")
         full_events = {}
         for md in self.meta_fields:
-            if md == 'updated':
-                self.updated = Time.now().datetime.isoformat(timespec='seconds')
-            full_events[md] = getattr(self, md)
+            if md == 'modified':
+                self.modified = Time.now()
+            try:
+                this_attr = getattr(self, md)
+            except AttributeError:
+                this_attr = ''
+            if isinstance(this_attr, Time):
+                full_events[md] = this_attr.datetime.isoformat(timespec='seconds')
+            else:
+                full_events[md] = this_attr
         for key, val in self.events.items():
             full_events[key] = []
             for event in val:
@@ -449,6 +474,7 @@ class Calendar:
         self.all_hash.append(this_hash)                
         if not this_event.valid:
             logger.warning(f"Entry invalid:\n{this_event.msg}")
+        self.added.append(this_event.hash(cols='web'))
         return True
 
     def delete(self, day, nind):
@@ -463,6 +489,7 @@ class Calendar:
         """
         day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
         try:
+            self.removed.append(self.events[day][nind].hash(cols='web'))
             del(self.events[day][nind])
             return True
         except (KeyError, IndexError):
@@ -488,6 +515,7 @@ class Calendar:
         except (KeyError, IndexError):
             logger.warning(f"{day}, {nind} not found.")
             return False
+        web_hash = self.events[day][nind].hash(cols='web')
         this_hash = self.events[day][nind].hash()
         if this_hash in self.all_hash:
             logger.warning(f"You made {day}, {nind} a duplicate.")
@@ -499,7 +527,9 @@ class Calendar:
             move_entry = self.events[day][nind].todict(printable=False)
             move_entry['created'] = 'now'
             self.add(**move_entry)
-            del(self.events[day][nind])
+            self.delete(day, nind)
+        else:
+            self.updated[web_hash] = self.events[day][nind].hash(cols='web')
         return True
 
     def add_from_file(self, file_name, sep='auto'):

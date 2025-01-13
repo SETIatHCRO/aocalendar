@@ -23,6 +23,7 @@ ENTRY_FIELDS = {'name': "Name",
                 'event_id': 'AOC'}
 SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
 UNIQUE_HASH_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
+WEB_COMPARE_HASH_LIST = ['name', 'utc_start', 'utc_stop']
 META_FIELDS = ['created', 'modified']
 
 
@@ -169,7 +170,7 @@ class Entry:
                 is_ok += 1
         if not is_ok:
             self.valid = False
-            self.msg.append("Need at least on non-Time entry")
+            self.msg.append("Need at least one non-Time entry")
 
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
         self.modified = aoc_tools.interp_date('now', fmt='Time')
@@ -192,6 +193,8 @@ class Entry:
             cols = self.fields
         elif cols == 'unique':
             cols = UNIQUE_HASH_LIST
+        elif cols == 'web':
+            cols = WEB_COMPARE_HASH_LIST
         entry = self.todict(printable=printable, include_meta=include_meta)
         row = [entry[col] for col in cols]
         return row

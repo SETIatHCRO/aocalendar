@@ -12,4 +12,4 @@ args = ap.parse_args()
 
 future_only = not args.past
 gcal = google_calendar_sync.SyncCal(output=args.output, path=args.path, file_logging=args.file_logging, future_only=future_only)
-gcal.sequence(update_aoc=True, update_gc=args.both_ways)
+gcal.sequence(update_gc=args.both_ways)
