@@ -59,8 +59,7 @@ class SyncCal:
 
     def sequence(self, update_aoc=True, update_gc=False):
         """Sequence through the actions to sync the calendars."""
-        self.get_gc_aocal()
-        self.get_aoc_aocal()
+        self.get_aocal()
         self.get_google_calendar()
         self.gc_added_removed()
         self.aoc_added_removed()
@@ -68,34 +67,20 @@ class SyncCal:
         self.update_gc(update=update_gc)
         self.shuffle_aoc_files()
 
-    def get_gc_aocal(self):
-        """Read in the aocals containing the google data -- NEW should be a new one which gets populated via self.get_google_calendar"""
-        gcname_old = f"{self.google_cal_name.replace(' ', '_')}_OLD.json"
-        gcname_new = f"{self.google_cal_name.replace(' ', '_')}_NEW.json"
-
-        self.gc_new_cal = aocalendar.Calendar(gcname_new, output=self.output, path=self.path, file_logging=self.file_logging, start_new=True)
-        self.gc_old_cal = aocalendar.Calendar(gcname_old, path=self.path, start_new=True)
-        self.gc_old_cal.make_hash_keymap(cols=self.attrib2push)
-
-    def get_aoc_aocal(self):
+    def get_aocal(self):
         """Read in the working aocal, as well as the previous for diff."""
         self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
         self.aocal.make_hash_keymap(cols=self.attrib2push)
-        archive_cal_filename = self.aocal.calfile_fullpath.split('.')[0] + '_OLD.json'
-        self.aoarc = aocalendar.Calendar(archive_cal_filename, path=self.path, start_new=True)
-        self.aoarc.make_hash_keymap(cols=self.attrib2push)
 
     def get_google_calendar(self, show=False):
         """Read in the google calendar and populate the gc aocal"""
-        if DEBUG_SKIP_GC:
-            try:
-                self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
-            except AttributeError:
-                logger.error("DEBUG: NEED TO READ IN AOC calendars.")
-                raise RuntimeError("In DEBUG need to first read in calendar.")
-            return
-
         logger.info("Reading Google Calendar into local calendar.")
+        gcname = os.path.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
+        if os.path.exists(gcname):
+            os.remove(gcname)
+        self.gc_cal = aocalendar.Calendar(gcname, output=self.output, path=None, file_logging=self.file_logging, start_new=True)
+        self.gc_cal.make_hash_keymap(cols=self.attrib2push)
+
         tmin = (self.now - TimeDelta(3600.0, format='sec')) if self.future_only else (self.now - TimeDelta(40.0, format='jd'))
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
@@ -111,12 +96,12 @@ class SyncCal:
                     this_field = str(this_field)
                 if val[0] != '_':
                     entry[val] = this_field
-            self.gc_new_cal.add(**entry)
+            self.gc_cal.add(**entry)
         if show:
-            for day in self.gc_new_cal.events:
-                logger.info(self.gc_new_cal.format_day_events(day, cols=list(aocalendar.aocentry.ENTRY_FIELDS.keys())) + '\n')
-        self.gc_new_cal.write_calendar()
-        self.gc_new_cal.make_hash_keymap(cols=self.attrib2push)
+            for day in self.gc_cal.events:
+                logger.info(self.gc_cal.format_day_events(day, cols=list(aocalendar.aocentry.ENTRY_FIELDS.keys())) + '\n')
+        self.gc_cal.write_calendar()
+        self.gc_cal.make_hash_keymap(cols=self.attrib2push)
 
     def __end_check_ok(self, entry_end, tbuf_min=35.0):
         """If self.future_only make sure utc_stop is more than tbuf_min in the past."""
@@ -247,11 +232,10 @@ class SyncCal:
 
     def shuffle_aoc_files(self):
         """Move the NEW calendars to OLD and delete the NEW google aocal"""
-        try:
-            os.remove(self.gc_old_cal.calfile_fullpath)
+
+
             shutil.copy2(self.gc_new_cal.calfile_fullpath, self.gc_old_cal.calfile_fullpath)
-        except OSError:
-            logger.error("Error in copying over GoogleCalendar update files.")
+\
         try:
             os.remove(self.gc_new_cal.calfile_fullpath)
         except OSError:
