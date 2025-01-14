@@ -86,7 +86,7 @@ class SyncCal:
             self.gc_web = self.gc_local
             return
         self.gc_web = aocalendar.Calendar("WEB", output=self.output, path=None, file_logging=self.file_logging, start_new=False)
-        tmin = (self.now - TimeDelta(3600.0, format='sec')) if self.future_only else (self.now - TimeDelta(40.0, format='jd'))
+        tmin = times.interp_date(self.now.datetime.strftime('%Y'), fmt='Time')  # Start of year
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
             for key, val in self.attrib2keep.items():
