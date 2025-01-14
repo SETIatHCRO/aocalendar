@@ -173,7 +173,7 @@ class AOCalendarApp(tkinter.Tk):
         if self.aoc_action == 'add':
             utcstart = self.aoc_field_defaults['utc_start'].datetime.strftime('%Y-%m-%d')
             utcstop = ''
-        elif self.aoc_action == 'update':
+        elif self.aoc_action in ['update', 'schedule']:
             utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='seconds')
             utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='seconds')
         start_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC start'))
