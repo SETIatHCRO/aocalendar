@@ -5,7 +5,7 @@
 import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
-from aocalendar import aocalendar, aoc_tools, logger_setup, __version__
+from aocalendar import aocalendar, times, tools, logger_setup, __version__
 import logging
 
 
@@ -28,7 +28,7 @@ class AOCalendarApp(tkinter.Tk):
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
         output = kwargs['output'] if 'output' in kwargs else 'INFO'
         file_logging = kwargs['file_logging'] if 'file_logging' in kwargs else False
-        path = aoc_tools.determine_path(path=path, fileinfo=calfile)
+        path = tools.determine_path(path=path, fileinfo=calfile)
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=path)
         logger.info(f"{__name__} ver. {__version__}")
 
@@ -79,8 +79,8 @@ class AOCalendarApp(tkinter.Tk):
 
         # Info
         self.frame_info.grid(row=2, column=0)
-        info_text = tkinter.Text(self.frame_info)
-        info_text.grid(row=0, column=0, columnspan=4)
+        info_text = tkinter.Text(self.frame_info, width=1000)
+        info_text.grid(row=0, column=0)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
 
         # Update
@@ -106,16 +106,21 @@ class AOCalendarApp(tkinter.Tk):
             widget.destroy()
 
     def show_date(self, datestr=None):
+        for widget in self.frame_info.winfo_children():
+            widget.destroy()
         if datestr is None:
             datestr = self.tkcal.selection_get().strftime('%Y-%m-%d')
-        entry = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
+        entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
-            entry += self.this_cal.format_day_events(datestr, return_as='table')
+            entry = self.this_cal.format_day_events(datestr, return_as='table')
+            entry += '\n'
             entry += self.this_cal.graph_day(datestr, interval_min=15.0)
         except KeyError:
             entry += "No entry."
-        info_text = tkinter.Text(self.frame_info, width=800)
-        info_text.grid(row=0, column=0, columnspan=4)
+        info_text = tkinter.Text(self.frame_info, width=1000)
+        info_text.grid(row=0, column=0)
+        info_text.insert(tkinter.CURRENT, entry_title)
+        info_text.grid(row=1, column=0)
         info_text.insert(tkinter.CURRENT, entry)
 
     def submit(self):
@@ -133,7 +138,7 @@ class AOCalendarApp(tkinter.Tk):
                 'email': self.email_entry.get().strip()
             }
         if self.aoc_action == 'add':
-            self.aoc_day = aoc_tools.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
+            self.aoc_day = times.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
             is_ok = self.this_cal.add(**kwargs)
         elif self.aoc_action in ['update', 'schedule']:
             is_ok = self.this_cal.update(day=self.aoc_day, nind=self.aoc_nind, **kwargs)
@@ -165,16 +170,22 @@ class AOCalendarApp(tkinter.Tk):
         self.pid_entry.grid(row=0, column=3)
         self.pid_entry.insert(0, self.aoc_field_defaults['pid'])
 
+        if self.aoc_action == 'add':
+            utcstart = self.aoc_field_defaults['utc_start'].datetime.strftime('%Y-%m-%d')
+            utcstop = ''
+        elif self.aoc_action == 'update':
+            utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='seconds')
+            utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='seconds')
         start_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC start'))
         start_label.grid(row=1, column=0)
         self.start_entry = tkinter.Entry(self.frame_update)
         self.start_entry.grid(row=1, column=1)
-        self.start_entry.insert(0, self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='minutes'))
+        self.start_entry.insert(0, utcstart)
         stop_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC stop'))
         stop_label.grid(row=1, column=2)
         self.stop_entry = tkinter.Entry(self.frame_update)
         self.stop_entry.grid(row=1, column=3)
-        self.stop_entry.insert(0, '')  # self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes'))
+        self.stop_entry.insert(0, utcstop)
 
         lstart_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST start'))
         lstart_label.grid(row=2, column=0)
@@ -217,8 +228,8 @@ class AOCalendarApp(tkinter.Tk):
     def add_event(self):
         self.reset()
         self.aoc_action = 'add'
-        self.aoc_field_defaults['utc_start'] = aoc_tools.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
-        self.aoc_field_defaults['utc_stop'] = aoc_tools.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
+        self.aoc_field_defaults['utc_start'] = times.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
+        self.aoc_field_defaults['utc_stop'] = times.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
         self.aoc_field_defaults['lst_start'] = ''
         self.aoc_field_defaults['lst_stop'] = ''
         self.aoc_field_defaults['state'] = 'primary'

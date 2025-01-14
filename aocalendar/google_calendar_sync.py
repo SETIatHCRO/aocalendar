@@ -4,7 +4,7 @@
 
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
-from aocalendar import aocalendar, aoc_tools
+from aocalendar import aocalendar, tools, times
 from astropy.time import TimeDelta, Time
 from copy import copy
 import os
@@ -40,8 +40,8 @@ class SyncCal:
         self.output = output.upper()
         self.file_logging = file_logging.upper() if isinstance(file_logging, str) else file_logging
         self.future_only = future_only
-        self.path = aoc_tools.determine_path(path, None)
-        self.now = aoc_tools.interp_date('now', fmt='Time')
+        self.path = tools.determine_path(path, None)
+        self.now = times.interp_date('now', fmt='Time')
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=self.path)
         logger.info(f"{__name__} ver. {__version__}")
 

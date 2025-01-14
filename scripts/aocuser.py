@@ -37,17 +37,15 @@ args = ap.parse_args()
 
 if args.add:
     if args.utc_start is None:
-        from aocalendar.aoc_tools import interp_date
-        args.utc_start = interp_date('now')
+        args.utc_start = aocalendar.times.interp_date('now')
     args.calfile = args.utc_start
 
 aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
 kwargs = vars(args)
 
 if args.quick:
-    from aocalendar import aoc_tools
-    args.utc_start = aoc_tools.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
-    args.utc_stop = aoc_tools.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_start = aocalendar.times.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_stop = aocalendar.times.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
     args.add = True
 
 if args.list:

@@ -14,7 +14,7 @@ from astropy import units as u
 from os import path as op
 from numpy import floor, round
 from numpy import where as npwhere
-from . import __version__, aocentry, aoc_tools, logger_setup
+from . import __version__, aocentry, tools, logger_setup, times
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
@@ -86,7 +86,7 @@ class Calendar:
             Flag to start empty one if file not found.
 
         """
-        self.path = aoc_tools.determine_path(path, calfile)
+        self.path = tools.determine_path(path, calfile)
         self.refdate = Time.now()
         self.location = None
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=AOCLOG_FILENAME, path=self.path)
@@ -98,7 +98,7 @@ class Calendar:
         Parameters
         ----------
         calfile : str
-            calfile or something interpretable by aoc_tools.interp_date
+            calfile or something interpretable by times.interp_date
         path : str
             path or 'getenv' - if calfile has path, gets overwritten, if None use self.path
 
@@ -126,7 +126,7 @@ class Calendar:
             except ValueError:
                 self.refdate = Time.now()
         else:
-            self.refdate = aoc_tools.interp_date(calfile, 'Time')
+            self.refdate = times.interp_date(calfile, 'Time')
             if self.refdate is None:
                 calfile = None
             else:
@@ -142,7 +142,7 @@ class Calendar:
             self.created = Time.now()
             self.modified = copy(self.created)
         else:
-            self.created = aoc_tools.interp_date(created, fmt='Time')
+            self.created = times.interp_date(created, fmt='Time')
             self.modified = Time.now()
         self.added, self.removed, self.updated = [], [], {}
         return {'created': self.created.datetime.isoformat(timespec='seconds'),
@@ -215,7 +215,7 @@ class Calendar:
                         self.all_hash.append(this_hash)
                     if not this_event.valid:
                         logger.warning(f"Entry {key}:{i} invalid")
-                    if not aoc_tools.same_date(keydate, this_event.utc_start, timespec='day'):
+                    if not times.same_date(keydate, this_event.utc_start, timespec='day'):
                         keystr = this_event.utc_start.datetime.strftime("%Y-%m-%d")
                         logger.info(f"{keystr} in wrong day.")
                     else:
@@ -300,7 +300,7 @@ class Calendar:
             Index map between sorted and stored, key is sorted order.
 
         """
-        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = times.interp_date(day, fmt='%Y-%m-%d')
         sorted_dict = {}
         offset = 0
         if day in self.straddle:
@@ -361,7 +361,7 @@ class Calendar:
             interval for graph in min
 
         """
-        tz, tzoff = aoc_tools.get_tz(tz, aoc_tools.interp_date(day, fmt='Time').datetime)
+        tz, tzoff = times.get_tz(tz, times.interp_date(day, fmt='Time').datetime)
         sorted_day, indmap = self.sort_day(day)
         if not len(sorted_day):
             return ' '
@@ -370,7 +370,7 @@ class Calendar:
         colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
-        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = times.interp_date(day, fmt='%Y-%m-%d')
         start_of_day = Time(day)
         end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
         interval_sec = interval_min * 60.0
@@ -429,12 +429,12 @@ class Calendar:
 
     def check_kwargs(self, kwargs):
         try:
-            utc_start = aoc_tools.interp_date(kwargs['utc_start'], fmt='Time')
+            utc_start = times.interp_date(kwargs['utc_start'], fmt='Time')
         except KeyError:
             logger.error(f"Need a utc_start.")
             return kwargs
         utc_stop = kwargs['utc_stop'] if 'utc_stop' in kwargs else None
-        utc_stop = aoc_tools.interp_date(utc_stop, fmt='Time') if aoc_tools.boolcheck(utc_stop) else None
+        utc_stop = times.interp_date(utc_stop, fmt='Time') if tools.boolcheck(utc_stop) else None
         if utc_stop is None:
             lst_start = kwargs['lst_start'] if 'lst_start' in kwargs else None
             if lst_start is None:
@@ -495,7 +495,7 @@ class Calendar:
             Index number of that day
 
         """
-        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = times.interp_date(day, fmt='%Y-%m-%d')
         try:
             self.removed.append(self.events[day][nind].hash(cols='web'))
             del(self.events[day][nind])
@@ -515,7 +515,7 @@ class Calendar:
         kwargs : fields to add
 
         """
-        day = aoc_tools.interp_date(day, fmt='%Y-%m-%d')
+        day = times.interp_date(day, fmt='%Y-%m-%d')
         kwargs['modified'] = kwargs['modified'] if 'modified' in kwargs else 'now'
         try:
             self.events[day][nind].update(**kwargs)
@@ -541,7 +541,7 @@ class Calendar:
         return True
 
     def add_from_file(self, file_name, sep='auto'):
-        data = aoc_tools.read_data_file(file_name=file_name, sep=sep)
+        data = tools.read_data_file(file_name=file_name, sep=sep)
         added, rejected = 0, 0
         for entry in data:
             is_ok = self.add(**entry)
@@ -553,15 +553,15 @@ class Calendar:
 
     def get_utc_from_lst(self, lst, day):
         from numpy import argmax
-        usedec = self.location.lat - 10.0 * u.deg
+        usedec = self.location.lat * u.deg
         _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, duration=24.0, dt=1.0)
         alt = obs.alt.value
         maxalt = argmax(alt)
         return obs.obstime[maxalt]
 
     def get_obs(self, ra, dec, source, day, duration, dt = 10.0):
-        day = aoc_tools.interp_date(day, fmt='Time')
-        if aoc_tools.boolcheck(ra) and aoc_tools.boolcheck(dec):
+        day = times.interp_date(day, fmt='Time')
+        if tools.boolcheck(ra) and tools.boolcheck(dec):
             pass
         else:
             src = check_source(source)
@@ -590,11 +590,11 @@ class Calendar:
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
         stop = start + TimeDelta(24 * 3600, format='sec')
         dt = TimeDelta(dt * 60, format='sec')  # Use 10min
-        current, times = copy(start), []
+        current, otimes = copy(start), []
         while current < stop:
-            times.append(current)
+            otimes.append(current)
             current += dt
-        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=self.location.loc, obstime=times))
+        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=self.location.loc, obstime=otimes))
         return source, altazsky
 
     def schedule(self, ra=None, dec=None, source=None, day='now', duration=12, el_limit=15.0, **kwargs):
@@ -611,7 +611,7 @@ class Calendar:
         source : str/None
             Source name (if ATATools.ata_sources is available)
         day : str/Time
-            Day of observation (UTC).  Interpreted by aoc_tools.interp_dates
+            Day of observation (UTC).  Interpreted by times.interp_dates
         duration : float
             Length of observation in hours
         el_limit : float
