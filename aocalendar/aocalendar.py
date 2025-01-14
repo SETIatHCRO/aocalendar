@@ -88,6 +88,7 @@ class Calendar:
         """
         self.path = aoc_tools.determine_path(path, calfile)
         self.refdate = Time.now()
+        self.location = None
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=AOCLOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
@@ -228,6 +229,9 @@ class Calendar:
                             self.straddle[endkeystr].append(this_event)
                     except AttributeError:  # Problem with utc_stop, probably INVALID
                         continue
+                    if this_event.valid and self.location is None:
+                        self.location = this_event.location
+                        logger.info(f"Using location {self.location.name}")
 
     def write_calendar(self, calfile=None):
         """
