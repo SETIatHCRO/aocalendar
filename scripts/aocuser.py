@@ -51,7 +51,7 @@ if args.quick:
     args.add = True
 
 if args.list:
-    print(aoc.format_day_events(day=args.calfile, cols='all', return_as='table'))
+    print(aoc.format_day_events(day=args.calfile, cols='short', return_as='table'))
 if args.show_entry:
     print(aoc.events[args.calfile][int(args.show_entry)])
 if args.graph:

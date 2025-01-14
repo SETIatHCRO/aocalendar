@@ -47,6 +47,7 @@ class SyncCal:
 
         if self.future_only:
             logger.info("Updating current/future entries.")
+            print("THIS DOESN'T WORK CORRECTLY!!!")
         else:
             logger.info("Updating all events (40 days past).")
 

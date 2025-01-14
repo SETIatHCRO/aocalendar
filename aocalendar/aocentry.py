@@ -29,11 +29,12 @@ class Entry:
     """AO Calendar Entry"""
     def __init__(self, **kwargs):
         """
-        AOCalendar entry.  Note that update and to_dict(printable=True) should be consistent.
+        AOCalendar entry.
 
         Parameters
         ----------
         kwargs are entry fields or meta_fields
+
         """
         self.meta_fields = META_FIELDS
         self.fields = list(ENTRY_FIELDS.keys())
