@@ -381,7 +381,7 @@ class Calendar:
         tickrow = [' '] * (numpoints + 1)
         trow = {'UTC': {'labels': [' ']*sm}, 'LST': {'labels': [' ']*sm}, tz: {'labels': [' ']*sm}}
         trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
-        trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=ATA)
+        trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=self.location.loc)
         trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(tzoff*3600, format='sec')
         for i, utc in enumerate(trow['UTC']['times']):
             toff = int(round(24.0 * (utc - start_of_day).value) * 3600.0 / dt)
