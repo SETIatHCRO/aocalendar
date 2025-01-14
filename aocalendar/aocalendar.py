@@ -549,7 +549,7 @@ class Calendar:
 
     def get_utc_from_lst(self, lst, day):
         from numpy import argmax
-        usedec = ATA.lat - 10.0 * u.deg
+        usedec = self.location.lat - 10.0 * u.deg
         _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, duration=24.0, dt=1.0)
         alt = obs.alt.value
         maxalt = argmax(alt)
@@ -590,7 +590,7 @@ class Calendar:
         while current < stop:
             times.append(current)
             current += dt
-        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=ATA, obstime=times))
+        altazsky = SkyCoord(ra, dec).transform_to(AltAz(location=self.location.loc, obstime=times))
         return source, altazsky
 
     def schedule(self, ra=None, dec=None, source=None, day='now', duration=12, el_limit=15.0, **kwargs):

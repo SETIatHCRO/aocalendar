@@ -132,7 +132,6 @@ class SyncCal:
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
                 d, n = self.gc_web.hashmap[hh]
                 entry2add = self.gc_web.events[d][n].todict(printable=False, include_meta=True)
-                print("gcs135:  ",entry2add['location'].name)
                 self.aocal.add(**entry2add)
                 changes += 1
         logger.info(f"Adding {changes} to {self.aocal.calfile}")

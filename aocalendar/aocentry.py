@@ -6,7 +6,6 @@ from astropy.time import Time
 from . import aoc_tools, locations
 from tabulate import tabulate
 from hashlib import sha256
-import json
 
 
 ENTRY_FIELDS = {'name': "Name",
@@ -63,9 +62,9 @@ class Entry:
     def __EarthLocation(self, loc_input, to_string=False):
         """Take in a location input and make an EarthLocation or stringify EarthLocation"""
         if to_string:
-            return locations.stringify(loc_input)
-        new_location = locations.location(loc_input)
-        if new_location is None:
+            return loc_input.stringify()
+        new_location = locations.Location(loc_input)
+        if not new_location.valid:
             try:
                 new_location = getattr(self, 'location')
             except AttributeError:
@@ -223,4 +222,4 @@ class Entry:
             except ValueError:
                 continue
             lst = f"lst_{key.split('_')[1]}"
-            setattr(self, lst, utc.sidereal_time('mean', longitude=self.location))
+            setattr(self, lst, utc.sidereal_time('mean', longitude=self.location.loc))
