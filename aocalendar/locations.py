@@ -46,7 +46,7 @@ class Location:
         try:
             self.lat, self.lon, self.height = float(lat), float(lon), float(height)
             self.loc = EarthLocation(lat=self.lat*u.deg, lon=self.lon*u.deg, height=self.height*u.m)
-        except ValueError:
+        except (TypeError, ValueError):
             self.valid = False
         self.name = name
 
