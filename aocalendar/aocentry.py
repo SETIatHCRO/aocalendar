@@ -3,11 +3,10 @@
 # Licensed under the MIT license.
 from copy import copy
 from astropy.time import Time
-from astropy.coordinates import EarthLocation
-from astropy import units as u
-from . import aoc_tools
+from . import aoc_tools, locations
 from tabulate import tabulate
 from hashlib import sha256
+import json
 
 
 ENTRY_FIELDS = {'name': "Name",
@@ -64,32 +63,9 @@ class Entry:
     def __EarthLocation(self, loc_input, to_string=False):
         """Take in a location input and make an EarthLocation or stringify EarthLocation"""
         if to_string:
-            try:
-                name = f"name={loc_input.name},"
-            except AttributeError:
-                name = ''
-            try:
-                return f"{name}lat={loc_input.lat.value:.6f},lon={loc_input.lon.value:.6f},height={loc_input.height.value:.3f}"
-            except AttributeError:
-                return "None"
-
-        if isinstance(loc_input, EarthLocation):
-            return loc_input
-        if isinstance(loc_input, str) and loc_input.lower() == 'ata':
-            new_location = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
-            new_location.name = 'ATA'
-        elif isinstance(loc_input, str) and '=' in loc_input:
-            llh = {}
-            for l in loc_input.split(','):
-                key, val = l.split('=')
-                if key == 'name':
-                    llh[key] = val
-                else:
-                    llh[key] = float(val)
-            new_location = EarthLocation(lat=llh['lat']*u.deg, lon=llh['lon']*u.deg, height=llh['height']*u.m)
-            if 'name' in llh:
-                new_location.name = llh['name']
-        else:  # Not valid update, use old
+            return locations.stringify(loc_input)
+        new_location = locations.location(loc_input)
+        if new_location is None:
             try:
                 new_location = getattr(self, 'location')
             except AttributeError:

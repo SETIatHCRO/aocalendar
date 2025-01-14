@@ -8,7 +8,7 @@ from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
-from astropy.coordinates import EarthLocation, Angle, AltAz, SkyCoord
+from astropy.coordinates import Angle, AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
 from os import path as op
@@ -25,8 +25,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
 
-ATA = EarthLocation(lat=40.817431*u.deg, lon=-121.470736*u.deg, height=1019*u.m)
-ATA.name = 'ATA'
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 AOCLOG_FILENAME = 'aoclog'
@@ -259,7 +257,9 @@ class Calendar:
         for key, val in self.events.items():
             full_events[key] = []
             for event in val:
-                full_events[key].append(event.todict(printable=True, include_meta=True))
+                this_event = event.todict(printable=True, include_meta=True)
+                this_event['location'] = json.loads(this_event['location'])
+                full_events[key].append(this_event)
             if not len(full_events[key]):
                 del(full_events[key])
         with open(calfile, 'w') as fp:
@@ -448,7 +448,7 @@ class Calendar:
                     utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         if 'location' not in kwargs:
-            kwargs['location'] = ATA
+            kwargs['location'] = 'ata'
         if 'recurring' not in kwargs:
             kwargs['recurring'] = []
         return kwargs

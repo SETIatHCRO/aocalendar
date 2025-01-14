@@ -7,7 +7,7 @@ from gcsa.event import Event
 from aocalendar import aocalendar, aoc_tools
 from astropy.time import TimeDelta, Time
 from copy import copy
-import os, shutil
+import os
 import logging
 from . import __version__, logger_setup
 
@@ -65,6 +65,7 @@ class SyncCal:
         self.gc_added_removed()
         self.update_aoc()
         self.update_gc(update=update_gc)
+        self.finish()
 
     def get_aocal(self):
         """Read in the working aocal, as well as the previous for diff."""
@@ -131,6 +132,7 @@ class SyncCal:
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
                 d, n = self.gc_web.hashmap[hh]
                 entry2add = self.gc_web.events[d][n].todict(printable=False, include_meta=True)
+                print("gcs135:  ",entry2add['location'].name)
                 self.aocal.add(**entry2add)
                 changes += 1
         logger.info(f"Adding {changes} to {self.aocal.calfile}")
