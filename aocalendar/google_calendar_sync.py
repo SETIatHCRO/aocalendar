@@ -126,28 +126,22 @@ class SyncCal:
 
     def update_aoc(self):
         """Update the aocal with the google calendar diffs -- aocal is now correct."""
-        changes_add = 0
+        changes = 0
         for hh in self.gc_added:
             if hh not in self.aocal.hashmap and hh not in self.aoc_removed:
                 d, n = self.gc_web.hashmap[hh]
                 entry2add = self.gc_web.events[d][n].todict(printable=False, include_meta=True)
                 self.aocal.add(**entry2add)
-                changes_add += 1
-        if changes_add:
-            logger.info(f"Adding {changes_add} to {self.aocal.calfile}")
-        else:
-            logger.info(f"No additions for {self.aocal.calfile}")
+                changes += 1
+        logger.info(f"Adding {changes} to {self.aocal.calfile}")
 
-        changes_del = 0
+        changes = 0
         for hh in self.gc_removed:
             if hh in self.aocal.hashmap and hh not in self.aoc_added:
                 d, n = self.aocal.hashmap[hh]
                 self.aocal.delete(d, n)
-                changes_del += 1
-        if changes_del:
-            logger.info(f"Removing {changes_del} from {self.aocal.calfile}")
-        else:
-            logger.info(f"No removals from {self.aocal.calfile}")
+                changes += 1
+        logger.info(f"Removing {changes} from {self.aocal.calfile}")
         self.aocal.make_hash_keymap(cols='web')
 
     def update_gc(self, update=False):
@@ -156,51 +150,32 @@ class SyncCal:
         for hh in self.aoc_added:
             if hh not in self.gc_web.hashmap and hh not in self.gc_removed:
                 d, n = self.aocal.hashmap[hh]
+                changes_add += 1
                 entry2add = self.aocal.events[d][n].todict(printable=False, include_meta=True)
                 self.gc_web.add(**entry2add)
                 if update:
                     d, n = self.aocal.hashmap[hh]
-                    entry2add = self.aocal.events[d][n].todict(printable=False, include_meta=True)
-                    self.gc_web.add(**entry2add)
-
                     start = self.aocal.events[d][n].utc_start.datetime
                     end = self.aocal.events[d][n].utc_stop.datetime
                     # creator = self.aocal[d][n].email
                     # description = self.aocal[d][n].pid
                     summary = self.aocal.events[d][n].name
-                    try:
-                        entry2add = Event(summary, start=start, end=end, timezone='GMT')
-                        event = self.gc.add_event(entry2add, calendar_id=self.gc_cal_id)
-                        changes_add += 1
-                    except RuntimeError:  # Don't know what they might be...?
-                        logger.error(f"Error adding {d}:{n}")
-        if changes_add:
-            action = 'Adding' if update else "Found but not adding"
-            logger.info(f"{action} {changes_add} to Google Calendar {self.google_cal_name}")
-        else:
-            logger.info(f"No additions for Google Calendar {self.google_cal_name}")
+                    entry2add = Event(summary, start=start, end=end, timezone='GMT')
+                    event = self.gc.add_event(entry2add, calendar_id=self.gc_cal_id)
+        action = 'Adding' if update else "Found but not adding"
+        logger.info(f"{action} {changes_add} to Google Calendar {self.google_cal_name}")
 
         changes_del = 0
         for hh in self.aoc_removed:
             if hh in self.gc_web.hashmap and hh not in self.gc_added:
                 d, n = self.gc_web.hashmap[hh]
                 self.gc_web.delete(d, n)
-                if update:
-                    try:
-                        event_id = self.gc_new_cal.events[d][n].event_id
-                    except AttributeError:
-                        logger.info(f"Event {d}:{n} didn't have an event_id")
-                        continue
-                    try:
-                        self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
-                    except RuntimeError:  # Don't know what errors might happen...?
-                        logger.error(f"Error deleting {d}:{n}")
                 changes_del += 1
-        if changes_del:
-            action = 'Removing' if update else "Found but not removing"
-            logger.info(f"{action} {changes_del} from Google Calendar {self.google_cal_name}")
-        else:
-            logger.info(f"No removals from Google Calendar {self.google_cal_name}")
+                if update:
+                    event_id = self.gc_web.events[d][n].event_id
+                    self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+        action = 'Removing' if update else "Found but not removing"
+        logger.info(f"{action} {changes_del} from Google Calendar {self.google_cal_name}")
 
     def finish(self):
         if os.path.exists(self.aocal.calfile_fullpath):
