@@ -90,7 +90,7 @@ class AOCalendarApp(tkinter.Tk):
 
         # Update
         self.frame_update.grid(row=3, column=0, columnspan=2)
-        self.reset()
+        self.reset(refresh=False)
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
@@ -100,7 +100,9 @@ class AOCalendarApp(tkinter.Tk):
                 label = f"{event.name}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
 
-    def reset(self):
+    def reset(self, refresh=True):
+        if refresh:
+            self.refresh()
         self.aoc_action = ''
         self.aoc_field_defaults = {}
         for key in aocalendar.aocentry.ENTRY_FIELDS:
@@ -159,13 +161,11 @@ class AOCalendarApp(tkinter.Tk):
             # yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
             # if yn == 'yes':
             self.this_cal.write_calendar()
-            self.refresh()
+            self.reset(refresh=True)
             # else:
             #     messagebox.showinfo('Return', 'Not writing new calendar.')
         else:
             print("Did not succeed.")
-        for widget in self.frame_update.winfo_children():
-            widget.destroy()
 
     def event_fields(self, gobutton):
         for widget in self.frame_update.winfo_children():
@@ -238,7 +238,7 @@ class AOCalendarApp(tkinter.Tk):
         cancel_button.grid(row=5, column=3, columnspan=2, pady=4)
 
     def add_event(self):
-        self.reset()
+        self.reset(refresh=False)
         self.aoc_action = 'add'
         self.aoc_field_defaults['utc_start'] = times.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
         self.aoc_field_defaults['utc_stop'] = times.interp_date(self.tkcal.selection_get().strftime('%Y-%m-%d'), fmt='Time')
@@ -248,7 +248,7 @@ class AOCalendarApp(tkinter.Tk):
         self.event_fields('Add')
 
     def del_event(self):
-        self.reset()
+        self.reset(refresh=False)
         self.aoc_action = 'delete'
         self.aoc_day = self.tkcal.selection_get().strftime('%Y-%m-%d')
         try:
@@ -267,7 +267,7 @@ class AOCalendarApp(tkinter.Tk):
             this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
         except IndexError:
             logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
-            self.reset()
+            self.reset(refresh=False)
             return
         info = f"{self.aoc_nind} - {this_entry.name}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
         info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
@@ -281,7 +281,7 @@ class AOCalendarApp(tkinter.Tk):
         self.tkcal.pack()
 
     def upd_event(self):
-        self.reset()
+        self.reset(refresh=False)
         self.aoc_action = 'update'
         self.aoc_day = self.tkcal.selection_get().strftime('%Y-%m-%d')
         try:
@@ -300,7 +300,7 @@ class AOCalendarApp(tkinter.Tk):
             this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
         except IndexError:
             logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
-            self.reset()
+            self.reset(refresh=False)
             return
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
@@ -360,7 +360,7 @@ class AOCalendarApp(tkinter.Tk):
         duration = float(self.duration_entry.get())
         note = self.note_entry.get().strip()
         scheduled = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=day, duration=duration, name=name, pid=pid, note=note)
-        self.reset()
+        self.reset(refresh=False)
         self.show_date(day)
         if scheduled:
             self.aoc_action = 'schedule'
