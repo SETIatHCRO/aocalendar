@@ -7,6 +7,7 @@ from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from aocalendar import aocalendar, times, tools, logger_setup, __version__
 import logging
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,8 @@ class AOCalendarApp(tkinter.Tk):
         self.title("Allen Telescope Array Observing Calendar")
 
         # Set window size to 1200x900
-        self.geometry("900x1000")
+        self.geometry("900x820")
+        self.resizable(0, 0)
 
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
@@ -36,22 +38,24 @@ class AOCalendarApp(tkinter.Tk):
         self.refdate = self.this_cal.refdate.datetime
 
         # Create all of the frames
-        self.frame_calendar = tkinter.Frame(self)
-        self.frame_buttons = tkinter.Frame(self)
-        self.frame_info = tkinter.Frame(self)
-        self.frame_update = tkinter.Frame(self)
+        self.frame_calendar = tkinter.Frame(self, height=50)
+        self.frame_buttons = tkinter.Frame(self, height=50)
+        self.frame_info = tkinter.Frame(self, height=50)
+        self.frame_update = tkinter.Frame(self, height=50)
 
         # Layout all of the frames 4 rows, 1 column
-        self.grid_rowconfigure(0, weight=2)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_rowconfigure(2, weight=2)
-        self.grid_rowconfigure(3, weight=2)
-        self.grid_columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=2)
+        self.rowconfigure(1, weight=2)
+        self.rowconfigure(2, weight=2)
+        #self.grid_rowconfigure(3, weight=2)
+        self.columnconfigure(0, weight=2)
+        self.columnconfigure(1, weight=1)
 
         # Calendar
         self.frame_calendar.grid(row=0, column=0)
         self.tkcal = Calendar(self.frame_calendar, selectmode='day', year=self.refdate.year, month=self.refdate.month, day=self.refdate.day,
-                              font="Arial 18", showweeknumbers=False, foreground='grey', selectforeground='blue', firstweekday='sunday')
+                              font="Arial 18", showweeknumbers=False, foreground='grey', selectforeground='blue', firstweekday='sunday',
+                              showothermonthdays=False)
         self.tkcal.grid(row=0, column=0)
 
         for day, events in self.this_cal.events.items():
@@ -59,32 +63,31 @@ class AOCalendarApp(tkinter.Tk):
                 label = f"{event.name}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
         self.tkcal.tag_config('obs', foreground='red')
+        self.tkcal.bind("<<CalendarSelected>>", self.show_date)
 
         # Buttons
-        self.frame_buttons.grid(row=1, column=0)    
-        info_button = tkinter.Button(self.frame_buttons, text = "Get Day Info", command = self.show_date)
-        info_button.grid(row=0, column=0)
-        add_button = tkinter.Button(self.frame_buttons, text = "Add entry", command = self.add_event)
-        add_button.grid(row=0, column=1)
-        del_button = tkinter.Button(self.frame_buttons, text = "Delete entry", command = self.del_event)
-        del_button.grid(row=0, column=2)
-        upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", command = self.upd_event)
-        upd_button.grid(row=0, column=3)
-        sch_button = tkinter.Button(self.frame_buttons, text="Schedule", command =self.schedule)
-        sch_button.grid(row=0, column=4)
-        rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh calendar", command = self.refresh)
-        rrl_button.grid(row=0, column=5)
-        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", command = self.reset)
-        rst_button.grid(row=0, column=6)
+        self.frame_buttons.grid(row=0, column=1)    
+        add_button = tkinter.Button(self.frame_buttons, text = "New Entry", width=13, command = self.add_event)
+        add_button.grid(row=0, column=0)
+        del_button = tkinter.Button(self.frame_buttons, text = "Delete entry", width=13, command = self.del_event)
+        del_button.grid(row=1, column=0)
+        upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", width=13, command = self.upd_event)
+        upd_button.grid(row=2, column=0)
+        sch_button = tkinter.Button(self.frame_buttons, text="RA/Dec", width=13, command =self.schedule)
+        sch_button.grid(row=3, column=0)
+        rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh", width=13, command = self.refresh)
+        rrl_button.grid(row=4, column=0)
+        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=13, command = self.reset)
+        rst_button.grid(row=5, column=0)
 
         # Info
-        self.frame_info.grid(row=2, column=0)
-        info_text = tkinter.Text(self.frame_info, width=1000)
-        info_text.grid(row=0, column=0)
+        self.frame_info.grid(row=1, column=0, columnspan=2)
+        info_text = tkinter.Text(self.frame_info, relief=tkinter.SUNKEN, width=130, yscrollcommand=True)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
+        info_text.grid(row=0, column=0)
 
         # Update
-        self.frame_update.grid(row=3, column=0)
+        self.frame_update.grid(row=3, column=0, columnspan=2)
         self.reset()
 
     def refresh(self):
@@ -108,15 +111,19 @@ class AOCalendarApp(tkinter.Tk):
     def show_date(self, datestr=None):
         for widget in self.frame_info.winfo_children():
             widget.destroy()
-        if datestr is None:
-            datestr = self.tkcal.selection_get().strftime('%Y-%m-%d')
+        if str(datestr)[0] == '<' or datestr is None:
+            mdy = self.tkcal.get_date()
+            m,d,y = mdy.split('/')
+            this_date = datetime(year=2000+int(y), month=int(m), day=int(d))
+            datestr = this_date.strftime('%Y-%m-%d')
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
-            entry_list = self.this_cal.format_day_events(datestr, return_as='table')
-            entry_graph = self.this_cal.graph_day(datestr, tz='US/Pacific', interval_min=15.0)
+            entry_list = self.this_cal.list_day_events(datestr, return_as='table') + '\n\n'
+            entry_graph = self.this_cal.graph_day_events(datestr, tz='US/Pacific', interval_min=15.0)
         except KeyError:
-            entry = "No entry."
-        info_text = tkinter.Text(self.frame_info, width=1000)
+            entry_list = "No entry."
+            entry_graph = ''
+        info_text = tkinter.Text(self.frame_info, relief=tkinter.SUNKEN, width=130, yscrollcommand=True)
         info_text.grid(row=0, column=0)
         info_text.insert(tkinter.INSERT, entry_title)
         info_text.grid(row=1, column=0)
@@ -147,11 +154,11 @@ class AOCalendarApp(tkinter.Tk):
             is_ok = self.this_cal.delete(day=self.aoc_day, nind=self.aoc_nind)
         if is_ok:
             self.show_date(self.aoc_day)
-            yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
-            if yn == 'yes':
-                self.this_cal.write_calendar()
-            else:
-                messagebox.showinfo('Return', 'Not writing new calendar.')
+            # yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
+            # if yn == 'yes':
+            self.this_cal.write_calendar()
+            # else:
+            #     messagebox.showinfo('Return', 'Not writing new calendar.')
         else:
             print("Did not succeed.")
         for widget in self.frame_update.winfo_children():
@@ -160,6 +167,7 @@ class AOCalendarApp(tkinter.Tk):
     def event_fields(self, gobutton):
         for widget in self.frame_update.winfo_children():
             widget.destroy()
+        # Row 0
         name_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Name'))
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
@@ -170,11 +178,11 @@ class AOCalendarApp(tkinter.Tk):
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
         self.pid_entry.insert(0, self.aoc_field_defaults['pid'])
-
+        # Row 1
         if self.aoc_action == 'add':
             utcstart = self.aoc_field_defaults['utc_start'].datetime.strftime('%Y-%m-%d')
             utcstop = ''
-        elif self.aoc_action in ['update', 'schedule']:
+        elif self.aoc_action in ['update', 'schedule', 'delete']:
             utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='seconds')
             utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='seconds')
         start_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC start'))
@@ -187,7 +195,7 @@ class AOCalendarApp(tkinter.Tk):
         self.stop_entry = tkinter.Entry(self.frame_update)
         self.stop_entry.grid(row=1, column=3)
         self.stop_entry.insert(0, utcstop)
-
+         # Row 2
         lstart_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST start'))
         lstart_label.grid(row=2, column=0)
         self.lstart_entry = tkinter.Entry(self.frame_update)
@@ -198,7 +206,7 @@ class AOCalendarApp(tkinter.Tk):
         self.lstop_entry = tkinter.Entry(self.frame_update)
         self.lstop_entry.grid(row=2, column=3)
         self.lstop_entry.insert(0, self.aoc_field_defaults['lst_stop'])
-
+        # Row 3
         state_label = tkinter.Label(self.frame_update, text=frame_label_fmt('State'))
         state_label.grid(row=3, column=0)
         self.state_entry = tkinter.Entry(self.frame_update)
@@ -209,7 +217,7 @@ class AOCalendarApp(tkinter.Tk):
         self.note_entry = tkinter.Entry(self.frame_update)
         self.note_entry.grid(row=3, column=3)
         self.note_entry.insert(0, self.aoc_field_defaults['note'])
-
+        # Row 4
         obs_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Observer'))
         obs_label.grid(row=4, column=0)
         self.obs_entry = tkinter.Entry(self.frame_update)
@@ -220,11 +228,11 @@ class AOCalendarApp(tkinter.Tk):
         self.email_entry = tkinter.Entry(self.frame_update)
         self.email_entry.grid(row=4, column=3)
         self.email_entry.insert(0, self.aoc_field_defaults['email'])
-
+        # Row 5
         submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
-        submit_button.grid(row=5, column=1)
+        submit_button.grid(row=5, column=1, columnspan=2)
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
-        cancel_button.grid(row=5, column=3)
+        cancel_button.grid(row=5, column=3, columnspan=2, pady=4)
 
     def add_event(self):
         self.reset()
@@ -258,11 +266,16 @@ class AOCalendarApp(tkinter.Tk):
             logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
             self.reset()
             return
-        for field in this_entry.fields:
-            self.aoc_field_defaults[field] = getattr(this_entry, field)
-        self.aoc_field_defaults['lst_start'] = f"{self.aoc_field_defaults['lst_start'].to_string(precision=0)}"
-        self.aoc_field_defaults['lst_stop'] = f"{self.aoc_field_defaults['lst_stop'].to_string(precision=0)}"
-        self.event_fields('Delete')
+        info = f"{this_entry.name} ({self.aoc_nind}): {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
+        info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
+        verify = tkinter.Label(self.frame_update, text=info)
+        verify.grid(row=0, column=0, columnspan=2, sticky="NS")
+        gobutton = 'Delete'
+        submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
+        submit_button.grid(row=1, column=0, sticky="NS")
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button.grid(row=1, column=1, sticky="NS")
+        self.tkcal.pack()
 
     def upd_event(self):
         self.reset()

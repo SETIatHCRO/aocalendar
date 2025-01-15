@@ -320,7 +320,10 @@ class Calendar:
                 indmap[i] = sorted_dict[key]['index']
         return sorted_day, indmap
 
-    def format_day_events(self, day='today', cols='short', return_as='table'):
+    def list(self, day='today', cols='short'):
+        print(self.list_day_events(day=day, cols=cols, return_as='table'))
+
+    def list_day_events(self, day='today', cols='short', return_as='table'):
         """
         Return a formatted table or array of the events on a day.
 
@@ -344,8 +347,11 @@ class Calendar:
             return(tabulate([[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], headers=hdr))
         else:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
-        
-    def graph_day(self, day='today', header_col='name', tz='sys', interval_min=10.0):
+    
+    def graph(self, day='today', header_col='name', tz='sys', interval_min=10.0):
+        print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min))
+
+    def graph_day_events(self, day='today', header_col='name', tz='sys', interval_min=10.0):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -571,14 +577,12 @@ class Calendar:
             dec = src['dec']
         if isinstance(ra, (str, float, int)):
             try:
-                ra = float(ra)
-                ra = ra * u.hourangle
+                ra = float(ra) * u.hourangle
             except (TypeError, ValueError):
                 pass
         if isinstance(dec, (str, float, int)):
             try:
-                dec = float(dec)
-                dec = dec * u.deg
+                dec = float(dec) * u.deg
             except (TypeError, ValueError):
                 pass
 
@@ -586,7 +590,6 @@ class Calendar:
         dec = Angle(dec)
         source = source if source is not None else f"{ra.to_string(precision=0)},{dec.to_string(precision=0)}"
 
-        duration = TimeDelta(duration * 3600.0, format='sec')
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
         stop = start + TimeDelta(24 * 3600, format='sec')
         dt = TimeDelta(dt * 60, format='sec')  # Use 10min
@@ -620,8 +623,8 @@ class Calendar:
             Other calendar Event fields
 
         """
+        duration = TimeDelta(duration * 3600.0, format='sec')
         source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day, duration=duration)
-        duration = obs.obstime[-1] - obs.obstime[0]
 
         above = npwhere(obs.alt.value > el_limit)[0]
         if not len(above):
