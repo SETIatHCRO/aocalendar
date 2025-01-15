@@ -71,12 +71,14 @@ class AOCalendarApp(tkinter.Tk):
         add_button.grid(row=0, column=0)
         del_button = tkinter.Button(self.frame_buttons, text = "Delete entry", width=13, command = self.del_event)
         del_button.grid(row=1, column=0)
-        upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", width=13, command = self.upd_event)
+        upd_button = tkinter.Button(self.frame_buttons, text = "Edit entry", width=13, command = self.upd_event)
         upd_button.grid(row=2, column=0)
         sch_button = tkinter.Button(self.frame_buttons, text="RA/Dec", width=13, command =self.schedule)
         sch_button.grid(row=3, column=0)
-        rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh", width=13, command = self.refresh)
-        rrl_button.grid(row=4, column=0)
+        spacer_text = tkinter.Label(self.frame_buttons, text='  ')
+        spacer_text.grid(row=4, column=6)
+        #rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh", width=13, command = self.refresh)
+        #rrl_button.grid(row=4, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=13, command = self.reset)
         rst_button.grid(row=5, column=0)
 
@@ -157,6 +159,7 @@ class AOCalendarApp(tkinter.Tk):
             # yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
             # if yn == 'yes':
             self.this_cal.write_calendar()
+            self.refresh()
             # else:
             #     messagebox.showinfo('Return', 'Not writing new calendar.')
         else:
