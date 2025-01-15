@@ -3,7 +3,7 @@
 # Licensed under the MIT license.
 
 import tkinter
-from tkinter import simpledialog, messagebox
+from tkinter import simpledialog  #, messagebox
 from tkcalendar import Calendar
 from aocalendar import aocalendar, times, tools, logger_setup, __version__
 import logging
@@ -78,14 +78,12 @@ class AOCalendarApp(tkinter.Tk):
         sch_button.grid(row=3, column=0)
         spacer_text = tkinter.Label(self.frame_buttons, text='  ')
         spacer_text.grid(row=4, column=6)
-        #rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh", width=13, command = self.refresh)
-        #rrl_button.grid(row=4, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=13, command = self.reset)
         rst_button.grid(row=5, column=0)
 
         # Info
         self.frame_info.grid(row=1, column=0, columnspan=2)
-        info_text = tkinter.Text(self.frame_info, relief=tkinter.SUNKEN, width=130, yscrollcommand=True)
+        info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
         info_text.grid(row=0, column=0)
 
@@ -131,7 +129,7 @@ class AOCalendarApp(tkinter.Tk):
         except KeyError:
             entry_list = "No entry."
             entry_graph = ''
-        info_text = tkinter.Text(self.frame_info, relief=tkinter.SUNKEN, width=130, yscrollcommand=True)
+        info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
         info_text.grid(row=0, column=0)
         info_text.insert(tkinter.INSERT, entry_title)
         info_text.grid(row=1, column=0)
