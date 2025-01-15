@@ -266,7 +266,7 @@ class AOCalendarApp(tkinter.Tk):
             logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
             self.reset()
             return
-        info = f"{this_entry.name} ({self.aoc_nind}): {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
+        info = f"{self.aoc_nind} - {this_entry.name}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
         info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
         verify = tkinter.Label(self.frame_update, text=info)
         verify.grid(row=0, column=0, columnspan=2, sticky="NS")
