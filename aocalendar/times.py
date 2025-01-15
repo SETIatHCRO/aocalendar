@@ -90,6 +90,9 @@ def same_date(t1, t2, timespec='day'):
           'hour': '%Y-%m-%dT%H', 'minute': '%Y-%m-%dT%H:%M', 'second': '%Y-%m-%dT%H:%M:%S'}
     return t1.datetime.strftime(fs[timespec]) == t2.datetime.strftime(fs[timespec])
 
+def truncate_to_day(td):
+    td = interp_date(td, fmt='Time')
+    return datetime(year=td.datetime.year, month=td.datetime.month, day=td.datetime.day)
 
 def interp_date(iddate, fmt='%Y-%m-%d'):
     """

@@ -216,14 +216,14 @@ class Calendar:
                     if not this_event.valid:
                         logger.warning(f"Entry {key}:{i} invalid")
                     if not times.same_date(keydate, this_event.utc_start, timespec='day'):
-                        keystr = this_event.utc_start.datetime.strftime("%Y-%m-%d")
+                        keystr = times.interp_date(this_event.utc_start, fmt="%Y-%m-%d")
                         logger.info(f"{keystr} in wrong day.")
                     else:
-                        keystr = keydate.datetime.strftime("%Y-%m-%d")
+                        keystr = times.interp_date(keydate, fmt="%Y-%m-%d")
                     self.events.setdefault(keystr, [])
                     self.events[keystr].append(this_event)
                     try:
-                        endkeystr = this_event.utc_stop.datetime.strftime("%Y-%m-%d")
+                        endkeystr = times.interp_date(this_event.utc_stop, fmt="%Y-%m-%d")
                         if endkeystr != keystr:
                             self.straddle.setdefault(endkeystr, [])
                             self.straddle[endkeystr].append(this_event)
@@ -486,7 +486,7 @@ class Calendar:
         if len(self.results['conflict']):
             suf = 'y' if len(self.results['conflict']) == 1 else 'ies'
             logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in self.results['conflict']])}.")
-        day = this_event.utc_start.datetime.strftime('%Y-%m-%d')
+        day = times.interp_date(this_event.utc_start, fmt='%Y-%m-%d')
         self.events.setdefault(day, [])
         self.events[day].append(this_event)
         self.all_hash.append(this_hash)                
@@ -539,7 +539,7 @@ class Calendar:
             logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
             self.all_hash.append(this_hash)
-        event_day = self.events[day][nind].utc_start.datetime.strftime('%Y-%m-%d')
+        event_day = times.interp_date(self.events[day][nind].utc_start, fmt='%Y-%m-%d')
         if day != event_day:
             logger.info(f"Changed day from {day} to {event_day}")
             move_entry = self.events[day][nind].todict(printable=False)
@@ -676,7 +676,7 @@ class Calendar:
         dict : results with keys 'duplcate' and 'conflict'
 
         """
-        day = check_event.utc_start.datetime.strftime('%Y-%m-%d')
+        day = times.interp_date(check_event.utc_start, fmt='%Y-%m-%d')
         this_hash = check_event.hash()
         results = {'duplicate': [], 'conflict': []}
         if day not in self.events:
