@@ -448,12 +448,16 @@ class Calendar:
                 return kwargs
             else:
                 utc_start = self.get_utc_from_lst(lst_start, utc_start)
+                if utc_start is None:  # Shoudn't ever happen, but...
+                    return kwargs
             lst_stop = kwargs['lst_stop'] if 'lst_stop' in kwargs else None
             if lst_stop is None:
                 logger.error("Need an lst_stop if no utc_stop")
                 return kwargs
             else:
                 utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
+                if utc_stop is None:  # Shoudn't ever happen, but...
+                    return kwargs
                 if utc_stop < utc_start:
                     utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
@@ -559,8 +563,10 @@ class Calendar:
 
     def get_utc_from_lst(self, lst, day):
         from numpy import argmax
-        usedec = self.location.lat * u.deg
+        usedec = 0.0 * u.deg  # I just want the time at transit
         _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, duration=24.0, dt=1.0)
+        if obs is None:  # Shouldn't ever happen
+            return None
         alt = obs.alt.value
         maxalt = argmax(alt)
         return obs.obstime[maxalt]
@@ -572,7 +578,8 @@ class Calendar:
         else:
             src = check_source(source)
             if src == 'Not Available':
-                raise RuntimeError("Sources not available.")
+                logger.error("Sources not available.")
+                return None, None
             ra = src['ra']
             dec = src['dec']
         if isinstance(ra, (str, float, int)):
@@ -625,6 +632,8 @@ class Calendar:
         """
         duration = TimeDelta(duration * 3600.0, format='sec')
         source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day, duration=duration)
+        if source is None:
+            return False
 
         above = npwhere(obs.alt.value > el_limit)[0]
         if not len(above):
