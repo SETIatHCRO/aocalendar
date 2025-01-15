@@ -40,7 +40,7 @@ class AOCalendarApp(tkinter.Tk):
         # Create all of the frames
         self.frame_calendar = tkinter.Frame(self, height=50)
         self.frame_buttons = tkinter.Frame(self, height=50)
-        self.frame_info = tkinter.Frame(self, height=50)
+        self.frame_info = tkinter.Frame(self, height=50, borderwidth=2, relief='groove')
         self.frame_update = tkinter.Frame(self, height=50)
 
         # Layout all of the frames 4 rows, 1 column
@@ -57,6 +57,7 @@ class AOCalendarApp(tkinter.Tk):
                               font="Arial 18", showweeknumbers=False, foreground='grey', selectforeground='blue', firstweekday='sunday',
                               showothermonthdays=False)
         self.tkcal.grid(row=0, column=0)
+        self.refresh_flag = True
 
         for day, events in self.this_cal.events.items():
             for event in events:
@@ -90,6 +91,7 @@ class AOCalendarApp(tkinter.Tk):
 
         # Update
         self.frame_update.grid(row=3, column=0, columnspan=2)
+        self.frame_update.grid_rowconfigure(0, weight=1)
         self.reset(refresh=False)
 
     def refresh(self):
@@ -100,14 +102,15 @@ class AOCalendarApp(tkinter.Tk):
                 label = f"{event.name}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
 
-    def reset(self, refresh=True):
-        if refresh:
+    def reset(self):
+        if self.refresh_flag:
             self.refresh()
+            self.refresh_flag = False
         self.aoc_action = ''
         self.aoc_field_defaults = {}
         for key in aocalendar.aocentry.ENTRY_FIELDS:
             self.aoc_field_defaults[key] = ''
-        self.aoc_day = ''
+        self.aoc_day = datetime.now()
         self.aoc_nind = 0
         for widget in self.frame_update.winfo_children():
             widget.destroy()
@@ -118,8 +121,10 @@ class AOCalendarApp(tkinter.Tk):
         if str(datestr)[0] == '<' or datestr is None:
             mdy = self.tkcal.get_date()
             m,d,y = mdy.split('/')
-            this_date = datetime(year=2000+int(y), month=int(m), day=int(d))
-            datestr = this_date.strftime('%Y-%m-%d')
+            self.aoc_day = datetime(year=2000+int(y), month=int(m), day=int(d))
+            datestr = self.aoc_day.strftime('%Y-%m-%d')
+        else:
+            self.aoc_day = tools.interp_date(datestr).datetime
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
             entry_list = self.this_cal.list_day_events(datestr, return_as='table') + '\n\n'
@@ -150,7 +155,7 @@ class AOCalendarApp(tkinter.Tk):
                 'email': self.email_entry.get().strip()
             }
         if self.aoc_action == 'add':
-            self.aoc_day = times.interp_date(kwargs['utc_start'], fmt='%Y-%m-%d')
+            self.aoc_day = times.interp_date(kwargs['utc_start'], fmt='Time').datetime
             is_ok = self.this_cal.add(**kwargs)
         elif self.aoc_action in ['update', 'schedule']:
             is_ok = self.this_cal.update(day=self.aoc_day, nind=self.aoc_nind, **kwargs)
@@ -161,7 +166,8 @@ class AOCalendarApp(tkinter.Tk):
             # yn=messagebox.askquestion('Write Calendar', 'Do you want to write calendar file with edits?')
             # if yn == 'yes':
             self.this_cal.write_calendar()
-            self.reset(refresh=True)
+            self.refresh_flag = True
+            self.reset()
             # else:
             #     messagebox.showinfo('Return', 'Not writing new calendar.')
         else:
@@ -248,7 +254,7 @@ class AOCalendarApp(tkinter.Tk):
         self.event_fields('Add')
 
     def del_event(self):
-        self.reset(refresh=False)
+        self.reset()
         self.aoc_action = 'delete'
         self.aoc_day = self.tkcal.selection_get().strftime('%Y-%m-%d')
         try:
@@ -267,18 +273,18 @@ class AOCalendarApp(tkinter.Tk):
             this_entry = self.this_cal.events[self.aoc_day][self.aoc_nind]
         except IndexError:
             logger.warning(f"Entry {self.aoc_nind} does not exist in {self.aoc_day}.")
-            self.reset(refresh=False)
+            self.reset()
             return
         info = f"{self.aoc_nind} - {this_entry.name}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
         info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
         verify = tkinter.Label(self.frame_update, text=info)
+        verify.grid_rowconfigure(0, weight=1)
         verify.grid(row=0, column=0, columnspan=2, sticky="NS")
         gobutton = 'Delete'
         submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
         submit_button.grid(row=1, column=0, sticky="NS")
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
         cancel_button.grid(row=1, column=1, sticky="NS")
-        self.tkcal.pack()
 
     def upd_event(self):
         self.reset(refresh=False)
