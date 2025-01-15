@@ -63,19 +63,19 @@ class AOCalendarApp(tkinter.Tk):
         # Buttons
         self.frame_buttons.grid(row=1, column=0)    
         info_button = tkinter.Button(self.frame_buttons, text = "Get Day Info", command = self.show_date)
-        info_button.grid(row=2, column=0)
+        info_button.grid(row=0, column=0)
         add_button = tkinter.Button(self.frame_buttons, text = "Add entry", command = self.add_event)
-        add_button.grid(row=2, column=1)
+        add_button.grid(row=0, column=1)
         del_button = tkinter.Button(self.frame_buttons, text = "Delete entry", command = self.del_event)
-        del_button.grid(row=2, column=2)
+        del_button.grid(row=0, column=2)
         upd_button = tkinter.Button(self.frame_buttons, text = "Update entry", command = self.upd_event)
-        upd_button.grid(row=2, column=3)
+        upd_button.grid(row=0, column=3)
         sch_button = tkinter.Button(self.frame_buttons, text="Schedule", command =self.schedule)
-        sch_button.grid(row=2, column=4)
+        sch_button.grid(row=0, column=4)
         rrl_button = tkinter.Button(self.frame_buttons, text = "Refresh calendar", command = self.refresh)
-        rrl_button.grid(row=2, column=5)
+        rrl_button.grid(row=0, column=5)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", command = self.reset)
-        rst_button.grid(row=2, column=6)
+        rst_button.grid(row=0, column=6)
 
         # Info
         self.frame_info.grid(row=2, column=0)
@@ -112,16 +112,17 @@ class AOCalendarApp(tkinter.Tk):
             datestr = self.tkcal.selection_get().strftime('%Y-%m-%d')
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {datestr}\n\n"
         try:
-            entry = self.this_cal.format_day_events(datestr, return_as='table')
-            entry += '\n'
-            entry += self.this_cal.graph_day(datestr, interval_min=15.0)
+            entry_list = self.this_cal.format_day_events(datestr, return_as='table')
+            entry_graph = self.this_cal.graph_day(datestr, tz='US/Pacific', interval_min=15.0)
         except KeyError:
-            entry += "No entry."
+            entry = "No entry."
         info_text = tkinter.Text(self.frame_info, width=1000)
         info_text.grid(row=0, column=0)
-        info_text.insert(tkinter.CURRENT, entry_title)
+        info_text.insert(tkinter.INSERT, entry_title)
         info_text.grid(row=1, column=0)
-        info_text.insert(tkinter.CURRENT, entry)
+        info_text.insert(tkinter.INSERT, entry_list)
+        info_text.grid(row=2, column=0)
+        info_text.insert(tkinter.INSERT, entry_graph)
 
     def submit(self):
         if self.aoc_action in ['add', 'update', 'schedule']:
