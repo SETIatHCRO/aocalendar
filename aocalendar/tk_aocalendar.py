@@ -3,7 +3,7 @@
 # Licensed under the MIT license.
 
 import tkinter
-from tkinter import simpledialog  #, messagebox
+from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from aocalendar import aocalendar, times, tools, logger_setup, __version__
 import logging
@@ -174,6 +174,8 @@ class AOCalendarApp(tkinter.Tk):
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
             self.refresh_flag = True
+            googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
+            print(googlecal)
         else:
             print("Did not succeed.")
         self.reset()
