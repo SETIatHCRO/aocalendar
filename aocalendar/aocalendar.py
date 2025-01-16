@@ -553,7 +553,7 @@ class Calendar:
     def get_utc_from_lst(self, lst, day):
         from numpy import argmax
         usedec = 0.0 * u.deg  # I just want the time at transit
-        _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, duration=24.0, dt=1.0)
+        _, obs = self.get_obs(ra=lst, dec=usedec, source='lst', day=day, dt=1.0)
         if obs is None:  # Shouldn't ever happen
             return None
         alt = obs.alt.value
@@ -608,11 +608,10 @@ class Calendar:
             Other calendar Event fields
 
         """
-        duration = TimeDelta(duration * 3600.0, format='sec')
-        source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day, duration=duration)
+        source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day)
         if obs is None:
             return False
-
+        duration = TimeDelta(duration * 3600.0, format='sec')
         above = npwhere(obs.alt.value > el_limit)[0]
         if not len(above):
             logger.warning(f"{source} never above the elevation limit of {el_limit}.")
