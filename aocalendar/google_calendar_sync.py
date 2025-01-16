@@ -59,18 +59,22 @@ class SyncCal:
             ata = self.gc.get_calendar_list_entry(self.gc_cal_id)
             self.google_cal_name = ata.summary
 
-    def sequence(self, update_gc=False):
+    def sequence(self, update_gc=False, external_calendar=False):
         """Sequence through the actions to sync the calendars."""
-        self.get_aocal()
+        self.get_aocal(external_calendar=external_calendar)
         self.get_google_calendar()
         self.gc_added_removed()
         self.update_aoc()
         self.update_gc(update=update_gc)
         self.finish()
 
-    def get_aocal(self):
+    def get_aocal(self, external_calendar=False):
         """Read in the working aocal, as well as the previous for diff."""
-        self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
+        if tools.boolcheck(external_calendar):
+            self.aocal = external_calendar
+            logger.warning("Using an external calendar in google_sync is possibly a bad idea...")
+        else:
+            self.aocal = aocalendar.Calendar(path=self.path, start_new=True)
         self.aocal.make_hash_keymap(cols='web')
         self.aoc_added = copy(self.aocal.added)
         self.aoc_removed = copy(self.aocal.removed)
@@ -146,6 +150,28 @@ class SyncCal:
         logger.info(f"Removing {changes} from {self.aocal.calfile}")
         self.aocal.make_hash_keymap(cols='web')
 
+    def add_event_to_gc(self, event2add):
+        start = copy(event2add.utc_start.datetime)
+        end = copy(event2add.utc_stop.datetime)
+        # creator = copy(event2add.email)
+        # description = copy(event2add.pid)
+        summary = copy(event2add.name)
+        event2add = Event(summary, start=start, end=end, timezone='GMT')
+        try:
+            event = self.gc.add_event(event2add, calendar_id=self.gc_cal_id)
+        except RuntimeError:
+            print("Don't know what errors may get raised.")
+
+    def delete_event_from_gc(self, event2delete):
+        if isinstance(event2delete, str):
+            event_id = event2delete
+        else:
+            event_id = event2delete.event_id
+        try:
+            self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+        except RuntimeError:
+            print("Don't know what errors may get raised.")
+
     def update_gc(self, update=False):
         """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""
         changes_add = 0
@@ -157,13 +183,7 @@ class SyncCal:
                 self.gc_web.add(**entry2add)
                 if update:
                     d, n = self.aocal.hashmap[hh]
-                    start = self.aocal.events[d][n].utc_start.datetime
-                    end = self.aocal.events[d][n].utc_stop.datetime
-                    # creator = self.aocal[d][n].email
-                    # description = self.aocal[d][n].pid
-                    summary = self.aocal.events[d][n].name
-                    entry2add = Event(summary, start=start, end=end, timezone='GMT')
-                    event = self.gc.add_event(entry2add, calendar_id=self.gc_cal_id)
+                    self.add_event_to_gc(self.aocal.events[d][n])
         action = 'Adding' if update else "Found but not adding"
         logger.info(f"{action} {changes_add} to Google Calendar {self.google_cal_name}")
 
@@ -174,8 +194,7 @@ class SyncCal:
                 self.gc_web.delete(d, n)
                 changes_del += 1
                 if update:
-                    event_id = self.gc_web.events[d][n].event_id
-                    self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
+                    self.delete_event_from_gc(self.gc_web.events[d][n].event_id)
         action = 'Removing' if update else "Found but not removing"
         logger.info(f"{action} {changes_del} from Google Calendar {self.google_cal_name}")
 

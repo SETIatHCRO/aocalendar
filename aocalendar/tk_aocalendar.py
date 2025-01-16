@@ -8,6 +8,7 @@ from tkcalendar import Calendar
 from aocalendar import aocalendar, times, tools, logger_setup, __version__
 import logging
 from datetime import datetime
+from copy import copy
 
 
 logger = logging.getLogger(__name__)
@@ -78,9 +79,11 @@ class AOCalendarApp(tkinter.Tk):
         rst_button.grid(row=4, column=0, pady=13)
         self.chk_var = tkinter.BooleanVar()
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar", variable=self.chk_var, 
-                             onvalue=True, offvalue=False, command=self.on_button_toggle)
+                                          onvalue=True, offvalue=False, command=self.on_button_toggle)
         checkbutton.grid(row=5, column=0)
         self.google_calendar_editing = False
+        self.google_calendar = None
+        self.deleted_event_id = False
 
         # Info
         info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
@@ -91,6 +94,11 @@ class AOCalendarApp(tkinter.Tk):
     def on_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()
         logger.info(f"Google Calendar Editing is {'on' if self.google_calendar_editing else 'off'}")
+        if self.google_calendar_editing and self.google_calendar is None:
+            from . import google_calendar_sync
+            self.google_calendar = google_calendar_sync.SyncCal(future_only=False)
+            self.google_calendar.sequence(update_gc=False)
+            self.refresh()
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
@@ -113,6 +121,7 @@ class AOCalendarApp(tkinter.Tk):
         for key in aocalendar.aocentry.ENTRY_FIELDS:
             self.aoc_field_defaults[key] = ''
         self.aoc_nind = 0
+        self.deleted_event_id = False
         self.teardown_frame_update()
 
     def show_date(self, dateinp=None):
@@ -185,11 +194,19 @@ class AOCalendarApp(tkinter.Tk):
             self.refresh_flag = True
             if self.google_calendar_editing:
                 googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
-                print(googlecal)
-                print("Doen't do anything yet.")
+                if googlecal:
+                    self.update_google_calendar()
         else:
             print("Did not succeed.")
         self.reset()
+
+    def update_google_calendar(self):
+        if self.aoc_action == 'add':
+            self.google_calendar.add_event_to_gc(self.this_cal[self.aoc_day][self.aoc_nind])
+        elif self.aoc_action == 'update':
+            print("NOTHING YET, NEED TO CHECK FOR EVENT_ID ETC")
+        elif self.aoc_action == 'delete' and self.deleted_event_id:
+            self.google_calendar.delete_event_from_gc(self.deleted_event_id)
 
     def label_event(self, row, col, elbl, lentry):
         lbl = tkinter.Label(self.frame_update, text=elbl, width=10, anchor='e')
@@ -304,6 +321,10 @@ class AOCalendarApp(tkinter.Tk):
         if this_entry is None:
             self.reset()
             return
+        try:
+            self.deleted_event_id = copy(this_entry.event_id)
+        except AttributeError:
+            self.deleted_event_id = False
         info = f"{self.aoc_nind} - {this_entry.name}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
         info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
         verify = tkinter.Label(self.frame_update, text=info, fg='red')
