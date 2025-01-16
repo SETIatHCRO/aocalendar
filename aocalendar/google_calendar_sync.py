@@ -1,9 +1,11 @@
 # -*- mode: python; coding: utf-8 -*-
 # Copyright 2025 David R DeBoer
 # Licensed under the MIT license.
+# Acknowledge gcsa from https://google-calendar-simple-api.readthedocs.io/en/latest/
 
 from gcsa.google_calendar import GoogleCalendar
 from gcsa.event import Event
+from googleapiclient.errors import HttpError
 from aocalendar import aocalendar, tools, times
 from astropy.time import TimeDelta, Time
 from copy import copy
@@ -47,9 +49,9 @@ class SyncCal:
 
         if self.future_only:
             logger.info("Updating current/future entries.")
-            print("THIS DOESN'T WORK CORRECTLY!!!")
+            raise RuntimeError("THIS DOESN'T WORK CORRECTLY!!!")
         else:
-            logger.info("Updating all events (40 days past).")
+            logger.info("Updating all events from start of calendar year.")
 
         if DEBUG_SKIP_GC:
             self.google_cal_name = 'Allen Telescope Array Observing'
@@ -159,8 +161,16 @@ class SyncCal:
         event2add = Event(summary, start=start, end=end, timezone='GMT')
         try:
             event = self.gc.add_event(event2add, calendar_id=self.gc_cal_id)
-        except RuntimeError:
-            print("Don't know what errors may get raised.")
+        except HttpError:
+            logger.error(f"Error adding Google Calendar event {event2add.summary}")
+
+    def update_event_on_gc(self, event2update):
+        try:
+            event = self.gc.get_event(event2update.event_id, calendar_id=self.gc_cal_id)
+            event = Event(event2update.name, start=event2update.utc_start, end=event2update.utc_stop, timezone='GMT')
+            event = self.gc.update_event(event)
+        except HttpError:
+            logger.error(f"Error updating Google Calendar event {event2update.event_id}")
 
     def delete_event_from_gc(self, event2delete):
         if isinstance(event2delete, str):
@@ -169,8 +179,8 @@ class SyncCal:
             event_id = event2delete.event_id
         try:
             self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
-        except RuntimeError:
-            print("Don't know what errors may get raised.")
+        except HttpError:
+            logger.error(f"Error updating Google Calendar event {event_id}")
 
     def update_gc(self, update=False):
         """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""

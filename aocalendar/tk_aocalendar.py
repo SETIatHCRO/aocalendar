@@ -204,7 +204,7 @@ class AOCalendarApp(tkinter.Tk):
         if self.aoc_action == 'add':
             self.google_calendar.add_event_to_gc(self.this_cal[self.aoc_day][self.aoc_nind])
         elif self.aoc_action == 'update':
-            print("NOTHING YET, NEED TO CHECK FOR EVENT_ID ETC")
+            self.google_calendar.update_event_on_gc(self.this_cal[self.aoc_day][self.aoc_nind])
         elif self.aoc_action == 'delete' and self.deleted_event_id:
             self.google_calendar.delete_event_from_gc(self.deleted_event_id)
 
