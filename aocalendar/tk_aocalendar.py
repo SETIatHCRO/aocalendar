@@ -13,9 +13,6 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
 
-def frame_label_fmt(txt, n=20):
-    return f"{txt:>{n}s}"
-
 
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
@@ -68,18 +65,18 @@ class AOCalendarApp(tkinter.Tk):
 
         # Buttons
         self.frame_buttons.grid(row=0, column=1)    
-        add_button = tkinter.Button(self.frame_buttons, text = "New Entry", width=13, command = self.add_event)
+        add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
         add_button.grid(row=0, column=0)
-        del_button = tkinter.Button(self.frame_buttons, text = "Delete entry", width=13, command = self.del_event)
+        del_button = tkinter.Button(self.frame_buttons, text = "Delete", width=12, command = self.del_event)
         del_button.grid(row=1, column=0)
-        upd_button = tkinter.Button(self.frame_buttons, text = "Edit entry", width=13, command = self.upd_event)
+        upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.upd_event)
         upd_button.grid(row=2, column=0)
-        sch_button = tkinter.Button(self.frame_buttons, text="RA/Dec", width=13, command =self.schedule)
-        sch_button.grid(row=3, column=0)
+        # sch_button = tkinter.Button(self.frame_buttons, text="RA/Dec", width=13, command =self.schedule)
+        # sch_button.grid(row=3, column=0)
         spacer_text = tkinter.Label(self.frame_buttons, text='  ')
-        spacer_text.grid(row=4, column=6)
-        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=13, command = self.reset)
-        rst_button.grid(row=5, column=0)
+        spacer_text.grid(row=3, column=6)
+        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.reset)
+        rst_button.grid(row=4, column=0)
 
         # Info
         self.frame_info.grid(row=1, column=0, columnspan=2)
@@ -89,8 +86,6 @@ class AOCalendarApp(tkinter.Tk):
 
         # Update
         self.frame_update.grid(row=3, column=0, columnspan=2)
-        self.frame_update.grid_rowconfigure(0, weight=1)
-        self.reset()
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
@@ -179,12 +174,12 @@ class AOCalendarApp(tkinter.Tk):
         for widget in self.frame_update.winfo_children():
             widget.destroy()
         # Row 0
-        name_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Name'))
+        name_label = tkinter.Label(self.frame_update, text='Name')
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
         self.name_entry.insert(0, self.aoc_field_defaults['name'])
-        pid_label = tkinter.Label(self.frame_update, text=frame_label_fmt('pid'))
+        pid_label = tkinter.Label(self.frame_update, text='pid')
         pid_label.grid(row=0, column=2)
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
@@ -196,53 +191,53 @@ class AOCalendarApp(tkinter.Tk):
         elif self.aoc_action in ['update', 'schedule', 'delete']:
             utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='seconds')
             utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='seconds')
-        start_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC start'))
+        start_label = tkinter.Label(self.frame_update, text='UTC start')
         start_label.grid(row=1, column=0)
         self.start_entry = tkinter.Entry(self.frame_update)
         self.start_entry.grid(row=1, column=1)
         self.start_entry.insert(0, utcstart)
-        stop_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC stop'))
+        stop_label = tkinter.Label(self.frame_update, text='UTC stop')
         stop_label.grid(row=1, column=2)
         self.stop_entry = tkinter.Entry(self.frame_update)
         self.stop_entry.grid(row=1, column=3)
         self.stop_entry.insert(0, utcstop)
          # Row 2
-        lstart_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST start'))
+        lstart_label = tkinter.Label(self.frame_update, text='LST start')
         lstart_label.grid(row=2, column=0)
         self.lstart_entry = tkinter.Entry(self.frame_update)
         self.lstart_entry.grid(row=2, column=1)
         self.lstart_entry.insert(0, self.aoc_field_defaults['lst_start'])
-        lstop_label = tkinter.Label(self.frame_update, text=frame_label_fmt('LST stop'))
+        lstop_label = tkinter.Label(self.frame_update, text='LST stop')
         lstop_label.grid(row=2, column=2)
         self.lstop_entry = tkinter.Entry(self.frame_update)
         self.lstop_entry.grid(row=2, column=3)
         self.lstop_entry.insert(0, self.aoc_field_defaults['lst_stop'])
         # Row 3
-        state_label = tkinter.Label(self.frame_update, text=frame_label_fmt('State'))
+        state_label = tkinter.Label(self.frame_update, text='State')
         state_label.grid(row=3, column=0)
         self.state_entry = tkinter.Entry(self.frame_update)
         self.state_entry.grid(row=3, column=1)
         self.state_entry.insert(0, self.aoc_field_defaults['state'])
-        note_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Note'))
+        note_label = tkinter.Label(self.frame_update, text='Note')
         note_label.grid(row=3, column=2)
         self.note_entry = tkinter.Entry(self.frame_update)
         self.note_entry.grid(row=3, column=3)
         self.note_entry.insert(0, self.aoc_field_defaults['note'])
         # Row 4
-        obs_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Observer'))
+        obs_label = tkinter.Label(self.frame_update, text='Observer')
         obs_label.grid(row=4, column=0)
         self.obs_entry = tkinter.Entry(self.frame_update)
         self.obs_entry.grid(row=4, column=1)
         self.obs_entry.insert(0, self.aoc_field_defaults['observer'])
-        email_label = tkinter.Label(self.frame_update, text=frame_label_fmt('E-mail'))
+        email_label = tkinter.Label(self.frame_update, text='E-mail')
         email_label.grid(row=4, column=2)
         self.email_entry = tkinter.Entry(self.frame_update)
         self.email_entry.grid(row=4, column=3)
         self.email_entry.insert(0, self.aoc_field_defaults['email'])
         # Row 5
-        submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
+        submit_button = tkinter.Button(self.frame_update, text=gobutton, width=10, command=self.submit)
         submit_button.grid(row=5, column=1, columnspan=2)
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, command=self.reset)
         cancel_button.grid(row=5, column=3, columnspan=2, pady=4)
 
     def add_event(self):
@@ -282,10 +277,9 @@ class AOCalendarApp(tkinter.Tk):
         verify = tkinter.Label(self.frame_update, text=info)
         verify.grid_rowconfigure(0, weight=1)
         verify.grid(row=0, column=0, columnspan=2, sticky="NS")
-        gobutton = 'Delete'
-        submit_button = tkinter.Button(self.frame_update, text=f"{gobutton:^15s}", command=self.submit)
+        submit_button = tkinter.Button(self.frame_update, text="Delete", width=10, command=self.submit)
         submit_button.grid(row=1, column=0, sticky="NS")
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, command=self.reset)
         cancel_button.grid(row=1, column=1, sticky="NS")
 
     def upd_event(self):
@@ -318,38 +312,38 @@ class AOCalendarApp(tkinter.Tk):
 
     def schedule(self):
         self.reset()
-        name_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Name'))
+        name_label = tkinter.Label(self.frame_update, text='Name')
         name_label.grid(row=0, column=0)
         self.name_entry = tkinter.Entry(self.frame_update)
         self.name_entry.grid(row=0, column=1)
-        pid_label = tkinter.Label(self.frame_update, text=frame_label_fmt('pid'))
+        pid_label = tkinter.Label(self.frame_update, text='pid')
         pid_label.grid(row=0, column=2)
         self.pid_entry = tkinter.Entry(self.frame_update)
         self.pid_entry.grid(row=0, column=3)
 
-        source_label = tkinter.Label(self.frame_update, text=frame_label_fmt('RA,dec or source'))
+        source_label = tkinter.Label(self.frame_update, text='RA,dec or source')
         source_label.grid(row=1, column=0)
         self.source_entry = tkinter.Entry(self.frame_update)
         self.source_entry.grid(row=1, column=1)
-        day_label = tkinter.Label(self.frame_update, text=frame_label_fmt('UTC day'))
+        day_label = tkinter.Label(self.frame_update, text='UTC day')
         day_label.grid(row=1, column=2)
         self.day_entry = tkinter.Entry(self.frame_update)
         self.day_entry.grid(row=1, column=3)
         self.day_entry.insert(0, self.tkcal.selection_get().strftime('%Y-%m-%d'))
 
-        duration_label = tkinter.Label(self.frame_update, text=frame_label_fmt('length [h]'))
+        duration_label = tkinter.Label(self.frame_update, text='length [h]')
         duration_label.grid(row=2, column=0)
         self.duration_entry = tkinter.Entry(self.frame_update)
         self.duration_entry.grid(row=2, column=1)
         self.duration_entry.insert(0, '6')
-        note_label = tkinter.Label(self.frame_update, text=frame_label_fmt('Note'))
+        note_label = tkinter.Label(self.frame_update, text='Note')
         note_label.grid(row=2, column=2)
         self.note_entry = tkinter.Entry(self.frame_update)
         self.note_entry.grid(row=2, column=3)
 
-        submit_button = tkinter.Button(self.frame_update, text='Schedule', command=self.doschedule)
+        submit_button = tkinter.Button(self.frame_update, text='Schedule', width=10, command=self.doschedule)
         submit_button.grid(row=3, column=1)
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', command=self.reset)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, command=self.reset)
         cancel_button.grid(row=3, column=3)
 
     def doschedule(self):
