@@ -453,7 +453,7 @@ class Calendar:
                 utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         kwargs['location'] = kwargs['location'] if 'location' in kwargs else 'ata'
-        kwargs['recurring'] = kwargs['recurring'] if 'recurring' not in kwargs else []
+        kwargs['recurring'] = kwargs['recurring'] if 'recurring' in kwargs else []
         return kwargs
 
     def add(self, **kwargs):
