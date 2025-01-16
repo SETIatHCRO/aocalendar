@@ -76,9 +76,9 @@ class AOCalendarApp(tkinter.Tk):
         upd_button.grid(row=2, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.reset)
         rst_button.grid(row=4, column=0, pady=13)
-        self.chk_var = tkinter.IntVar()
+        self.chk_var = tkinter.BooleanVar()
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar", variable=self.chk_var, 
-                             onvalue=1, offvalue=0, command=self.on_button_toggle)
+                             onvalue=True, offvalue=False, command=self.on_button_toggle)
         checkbutton.grid(row=5, column=0)
         self.google_calendar_editing = False
 
@@ -89,7 +89,7 @@ class AOCalendarApp(tkinter.Tk):
         self.show_date(self.aoc_day)        
 
     def on_button_toggle(self):
-        self.google_calendar_editing = bool(self.chk_var.get())
+        self.google_calendar_editing = self.chk_var.get()
         logger.info(f"Google Calendar Editing is {'on' if self.google_calendar_editing else 'off'}")
 
     def refresh(self):
