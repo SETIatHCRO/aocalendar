@@ -67,7 +67,7 @@ class AOCalendarApp(tkinter.Tk):
         self.tkcal.tag_config('obs', foreground='red')
         self.tkcal.bind("<<CalendarSelected>>", self.show_date)
 
-        # Buttons
+        # Buttons/checkbox
         add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
         add_button.grid(row=0, column=0)
         del_button = tkinter.Button(self.frame_buttons, text = "Delete", width=12, command = self.delete_event)
@@ -76,12 +76,21 @@ class AOCalendarApp(tkinter.Tk):
         upd_button.grid(row=2, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.reset)
         rst_button.grid(row=4, column=0, pady=13)
+        self.chk_var = tkinter.IntVar()
+        checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar", variable=self.chk_var, 
+                             onvalue=1, offvalue=0, command=self.on_button_toggle)
+        checkbutton.grid(row=5, column=0)
+        self.google_calendar_editing = False
 
         # Info
         info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
         info_text.grid(row=0, column=0)
         self.show_date(self.aoc_day)        
+
+    def on_button_toggle(self):
+        self.google_calendar_editing = bool(self.chk_var.get())
+        logger.info(f"Google Calendar Editing is {'on' if self.google_calendar_editing else 'off'}")
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
@@ -174,8 +183,10 @@ class AOCalendarApp(tkinter.Tk):
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
             self.refresh_flag = True
-            googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
-            print(googlecal)
+            if self.google_calendar_editing:
+                googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
+                print(googlecal)
+                print("Doen't do anything yet.")
         else:
             print("Did not succeed.")
         self.reset()
