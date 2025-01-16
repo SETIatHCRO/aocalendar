@@ -78,7 +78,7 @@ class AOCalendarApp(tkinter.Tk):
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.reset)
         rst_button.grid(row=4, column=0, pady=13)
         self.chk_var = tkinter.BooleanVar()
-        checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar", variable=self.chk_var, 
+        checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Linking", variable=self.chk_var, 
                                           onvalue=True, offvalue=False, command=self.on_button_toggle)
         checkbutton.grid(row=5, column=0)
         self.google_calendar_editing = False
@@ -93,11 +93,11 @@ class AOCalendarApp(tkinter.Tk):
 
     def on_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()
-        logger.info(f"Google Calendar Editing is {'on' if self.google_calendar_editing else 'off'}")
+        logger.info(f"Google Calendar linking is {'on' if self.google_calendar_editing else 'off'}")
         if self.google_calendar_editing and self.google_calendar is None:
             from . import google_calendar_sync
             self.google_calendar = google_calendar_sync.SyncCal(future_only=False)
-            self.google_calendar.sequence(update_gc=False)
+            self.google_calendar.sequence(update_gc=False, external_calendar=self.this_cal)
             self.refresh()
 
     def refresh(self):
