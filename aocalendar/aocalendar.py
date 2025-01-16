@@ -438,33 +438,22 @@ class Calendar:
             utc_start = times.interp_date(kwargs['utc_start'], fmt='Time')
         except KeyError:
             logger.error(f"Need a utc_start.")
-            return kwargs
+            return False, kwargs
         utc_stop = kwargs['utc_stop'] if 'utc_stop' in kwargs else None
         utc_stop = times.interp_date(utc_stop, fmt='Time') if tools.boolcheck(utc_stop) else None
         if utc_stop is None:
-            lst_start = kwargs['lst_start'] if 'lst_start' in kwargs else None
-            if lst_start is None:
-                logger.error("Need an lst_start if no utc_stop")
-                return kwargs
-            else:
-                utc_start = self.get_utc_from_lst(lst_start, utc_start)
-                if utc_start is None:  # Shoudn't ever happen, but...
-                    return kwargs
-            lst_stop = kwargs['lst_stop'] if 'lst_stop' in kwargs else None
-            if lst_stop is None:
-                logger.error("Need an lst_stop if no utc_stop")
-                return kwargs
-            else:
-                utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
-                if utc_stop is None:  # Shoudn't ever happen, but...
-                    return kwargs
-                if utc_stop < utc_start:
-                    utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
+            lst_start = tools.proc_angle(lst_start=kwargs, unit=u.hourangle)
+            lst_stop = tools.proc_angle(lst_stop=kwargs, unit=u.hourangle)
+            if lst_start is None or lst_stop is None:
+                logger.error("Need lst limits if no utc_stop")
+                return False, kwargs
+            utc_start = self.get_utc_from_lst(lst_start, utc_start)
+            utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
+            if utc_stop < utc_start:
+                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
-        if 'location' not in kwargs:
-            kwargs['location'] = 'ata'
-        if 'recurring' not in kwargs:
-            kwargs['recurring'] = []
+        kwargs['location'] = kwargs['location'] if 'location' in kwargs else 'ata'
+        kwargs['recurring'] = kwargs['recurring'] if 'recurring' not in kwargs else []
         return kwargs
 
     def add(self, **kwargs):
@@ -476,7 +465,7 @@ class Calendar:
         """
         kwargs = self.check_kwargs(kwargs)
         this_event = aocentry.Entry(**kwargs)
-        self.recent_event = this_event
+        self.recent_event = this_event  # Used in aocuser.py script
         this_hash = this_event.hash()
         self.results = self.conflicts(this_event, is_new=True)
         if len(self.results['duplicate']):
@@ -571,7 +560,7 @@ class Calendar:
         maxalt = argmax(alt)
         return obs.obstime[maxalt]
 
-    def get_obs(self, ra, dec, source, day, duration, dt = 10.0):
+    def get_obs(self, ra, dec, source, day, dt = 10.0):
         day = times.interp_date(day, fmt='Time')
         if tools.boolcheck(ra) and tools.boolcheck(dec):
             pass
@@ -582,19 +571,8 @@ class Calendar:
                 return None, None
             ra = src['ra']
             dec = src['dec']
-        if isinstance(ra, (str, float, int)):
-            try:
-                ra = float(ra) * u.hourangle
-            except (TypeError, ValueError):
-                pass
-        if isinstance(dec, (str, float, int)):
-            try:
-                dec = float(dec) * u.deg
-            except (TypeError, ValueError):
-                pass
-
-        ra = Angle(ra)
-        dec = Angle(dec)
+        ra = tools.proc_angle(ra=ra, unit=u.hourangle)
+        dec = tools.proc_angle(dec=dec, unit=u.deg)
         source = source if source is not None else f"{ra.to_string(precision=0)},{dec.to_string(precision=0)}"
 
         start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
@@ -632,7 +610,7 @@ class Calendar:
         """
         duration = TimeDelta(duration * 3600.0, format='sec')
         source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day, duration=duration)
-        if source is None:
+        if obs is None:
             return False
 
         above = npwhere(obs.alt.value > el_limit)[0]

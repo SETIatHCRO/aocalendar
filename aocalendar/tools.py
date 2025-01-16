@@ -25,7 +25,33 @@ def boolcheck(x):
         return bool(x)
     except ValueError:
         return True
-    
+
+def proc_angle(kwargs):
+    if 'unit' in kwargs:
+        unit = kwargs['unit']
+        del(kwargs['unit'])
+    else:
+        from astropy.units import hourangle as unit
+    if len(kwargs) > 1:
+        return None  # Can only process one angle
+    for key, val in kwargs.items():
+        if isinstance(val, dict):
+            try:
+                chk = val[key]
+            except KeyError:
+                return None
+        else:
+            chk = val
+    try:
+        chk = float(chk)
+        return chk * unit
+    except (TypeError, ValueError):
+        from astropy.coordinates import Angle
+        try:
+            return Angle(chk)
+        except (TypeError, ValueError):
+            return None
+
 
 def read_data_file(file_name, sep='auto'):
     """
