@@ -109,6 +109,7 @@ class AOCalendarApp(tkinter.Tk):
             text = f"ODS not active."
         self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
         self.ods_label.grid(row=1, column=0, pady=8)
+        self.after(60000, self.ods_label_update)
 
     def on_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()
