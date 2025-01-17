@@ -8,7 +8,7 @@ from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
-from astropy.coordinates import Angle, AltAz, SkyCoord
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
 from os import path as op
