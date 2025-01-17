@@ -5,7 +5,7 @@
 import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
-from aocalendar import aocalendar, times, tools, logger_setup, __version__
+from aocalendar import aocalendar, times, tools, logger_setup, __version__, google_calendar_sync
 import logging
 from datetime import datetime
 from copy import copy
@@ -93,8 +93,7 @@ class AOCalendarApp(tkinter.Tk):
     def on_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()
         logger.info(f"Google Calendar linking is {'on' if self.google_calendar_editing else 'off'}")
-        if self.google_calendar_editing and self.google_calendar is None:
-            from . import google_calendar_sync
+        if self.google_calendar_editing:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
             self.refresh()

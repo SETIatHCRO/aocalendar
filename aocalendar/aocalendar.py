@@ -24,7 +24,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
-from logger_setup import LOG_FILENAME
+from .logger_setup import LOG_FILENAME
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 DAYSEC = 24 * 3600
