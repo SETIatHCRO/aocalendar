@@ -86,8 +86,8 @@ class AOCalendarApp(tkinter.Tk):
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.resetTrue)
         rst_button.grid(row=4, column=0, pady=15)
         self.chk_var = tkinter.BooleanVar()
-        checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Linking", variable=self.chk_var, 
-                                          onvalue=True, offvalue=False, command=self.on_button_toggle)
+        checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Link", variable=self.chk_var, 
+                                          onvalue=True, offvalue=False, command=self.google_calendar_button_toggle)
         checkbutton.grid(row=5, column=0)
         self.google_calendar_editing = False
         self.google_calendar = None
@@ -109,11 +109,14 @@ class AOCalendarApp(tkinter.Tk):
             text = f"ODS not active."
         self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
         self.ods_label.grid(row=1, column=0, pady=8)
+        self.show_date(self.aoc_day)
         self.after(60000, self.ods_label_update)
 
-    def on_button_toggle(self):
+    def google_calendar_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()
         logger.info(f"Google Calendar linking is {'on' if self.google_calendar_editing else 'off'}")
+        self.update_google_calendar()
+    def update_google_calendar(self):
         if self.google_calendar_editing:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
@@ -126,8 +129,7 @@ class AOCalendarApp(tkinter.Tk):
             for event in events:
                 label = f"{event.name}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
-        if self.google_calendar is not None:
-            self.google_calendar.aocal.read_calendar_events(calfile='refresh')
+        self.update_google_calendar()
 
     def teardown_frame_update(self):
         for widget in self.frame_update.winfo_children():
