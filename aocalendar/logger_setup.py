@@ -3,8 +3,9 @@ import logging
 
 CONSOLE_HANDLER_NAME = 'Console'
 FILE_HANDLER_NAME = 'File'
+LOG_FILENAME = 'aoclog'
 
-def setup(logger, output='INFO', file_logging=False, log_filename='aoclog', path=None):
+def setup(logger, output='INFO', file_logging=False, log_filename=LOG_FILENAME, path=None):
     handler_names = [x.get_name() for x in logger.handlers]
     if CONSOLE_HANDLER_NAME not in handler_names:
         from sys import stdout

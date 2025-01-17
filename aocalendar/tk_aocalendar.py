@@ -59,7 +59,6 @@ class AOCalendarApp(tkinter.Tk):
                               font="Arial 18", showweeknumbers=False, foreground='grey', selectforeground='blue', firstweekday='sunday',
                               showothermonthdays=False)
         self.tkcal.grid(row=0, column=0)
-        self.refresh_flag = False
 
         for day, events in self.this_cal.events.items():
             for event in events:
@@ -75,8 +74,8 @@ class AOCalendarApp(tkinter.Tk):
         del_button.grid(row=1, column=0)
         upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.update_event)
         upd_button.grid(row=2, column=0)
-        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.reset)
-        rst_button.grid(row=4, column=0, pady=13)
+        rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.resetTrue)
+        rst_button.grid(row=4, column=0, pady=15)
         self.chk_var = tkinter.BooleanVar()
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Linking", variable=self.chk_var, 
                                           onvalue=True, offvalue=False, command=self.on_button_toggle)
@@ -96,8 +95,8 @@ class AOCalendarApp(tkinter.Tk):
         logger.info(f"Google Calendar linking is {'on' if self.google_calendar_editing else 'off'}")
         if self.google_calendar_editing and self.google_calendar is None:
             from . import google_calendar_sync
-            self.google_calendar = google_calendar_sync.SyncCal(future_only=False)
-            self.google_calendar.sequence(update_gc=False, external_calendar=self.this_cal)
+            self.google_calendar = google_calendar_sync.SyncCal()
+            self.google_calendar.sequence(update_google_calendar=False)
             self.refresh()
 
     def refresh(self):
@@ -107,15 +106,20 @@ class AOCalendarApp(tkinter.Tk):
             for event in events:
                 label = f"{event.name}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
+        if self.google_calendar is not None:
+            self.google_calendar.aocal.read_calendar_events(calfile='refresh')
 
     def teardown_frame_update(self):
         for widget in self.frame_update.winfo_children():
             widget.destroy()
 
-    def reset(self):
-        if self.refresh_flag:
+    def resetFalse(self):
+        self.reset(refresh_flag=False)
+    def resetTrue(self):
+        self.reset(refresh_flag=True)
+    def reset(self, refresh_flag):
+        if refresh_flag:
             self.refresh()
-            self.refresh_flag = False
         self.aoc_action = ''
         self.aoc_field_defaults = {}
         for key in aocalendar.aocentry.ENTRY_FIELDS:
@@ -191,22 +195,22 @@ class AOCalendarApp(tkinter.Tk):
         if is_ok:
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
-            self.refresh_flag = True
+            self.resetTrue()
             if self.google_calendar_editing:
                 googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
                 if googlecal:
                     self.update_google_calendar()
         else:
-            print("Did not succeed.")
-        self.reset()
+            self.resetFalse()
+            logger.warning("Did not succeed.")
 
     def update_google_calendar(self):
         if self.aoc_action == 'add':
-            self.google_calendar.add_event_to_gc(self.this_cal[self.aoc_day][self.aoc_nind])
+            self.google_calendar.add_event_to_google_calendar(self.this_cal[self.aoc_day][self.aoc_nind])
         elif self.aoc_action == 'update':
-            self.google_calendar.update_event_on_gc(self.this_cal[self.aoc_day][self.aoc_nind])
+            self.google_calendar.update_event_on_google_calendar(self.this_cal[self.aoc_day][self.aoc_nind])
         elif self.aoc_action == 'delete' and self.deleted_event_id:
-            self.google_calendar.delete_event_from_gc(self.deleted_event_id)
+            self.google_calendar.delete_event_from_google_calendar(self.deleted_event_id)
 
     def label_event(self, row, col, elbl, lentry):
         lbl = tkinter.Label(self.frame_update, text=elbl, width=10, anchor='e')
@@ -249,7 +253,7 @@ class AOCalendarApp(tkinter.Tk):
         # Row 5
         submit_button = tkinter.Button(self.frame_update, text=gobutton, width=10, justify=tkinter.CENTER, command=self.submit)
         submit_button.grid(row=5, column=1)
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, justify=tkinter.CENTER, command=self.reset)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, justify=tkinter.CENTER, command=self.resetFalse)
         cancel_button.grid(row=5, column=3)
 
     def schedule_by_utc(self):
@@ -266,7 +270,7 @@ class AOCalendarApp(tkinter.Tk):
         self.event_fields('Add')
 
     def add_event(self):
-        self.reset()
+        self.resetFalse()
         self.aoc_action = 'add'
         self.aoc_field_defaults['utc_start'] = times.interp_date(self.aoc_day, fmt='%Y-%m-%d')
         self.aoc_field_defaults['utc_stop'] = times.interp_date(self.aoc_day, fmt='%Y-%m-%d')
@@ -279,6 +283,8 @@ class AOCalendarApp(tkinter.Tk):
         lst_button.grid(row=2, column=0, padx=5)
         src_button = tkinter.Button(self.frame_update, text="Source", fg=fgclr, width=10, command=self.schedule_by_src)
         src_button.grid(row=3, column=0, padx=5)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, justify=tkinter.CENTER, command=self.resetFalse)
+        cancel_button.grid(row=5, column=0, pady=15)
 
     def get_entry(self, daykey):
         try:
@@ -302,24 +308,24 @@ class AOCalendarApp(tkinter.Tk):
             return None
 
     def update_event(self):
-        self.reset()
+        self.resetFalse()
         self.aoc_action = 'update'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
         this_entry = self.get_entry(daykey)
         if this_entry is None:
-            self.reset()
+            self.resetFalse()
             return
         for field in this_entry.fields:
             self.aoc_field_defaults[field] = getattr(this_entry, field)
         self.event_fields('Update')
 
     def delete_event(self):
-        self.reset()
+        self.resetFalse()
         self.aoc_action = 'delete'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
         this_entry = self.get_entry(daykey)
         if this_entry is None:
-            self.reset()
+            self.resetFalse()
             return
         try:
             self.deleted_event_id = copy(this_entry.event_id)
@@ -332,5 +338,5 @@ class AOCalendarApp(tkinter.Tk):
         verify.grid(row=0, column=0, columnspan=2, sticky="NS")
         submit_button = tkinter.Button(self.frame_update, text="Delete", width=10, command=self.submit)
         submit_button.grid(row=1, column=0, sticky="NS")
-        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, command=self.reset)
+        cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, command=self.resetFalse)
         cancel_button.grid(row=1, column=1, sticky="NS")

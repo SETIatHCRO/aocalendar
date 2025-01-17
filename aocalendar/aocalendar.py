@@ -24,15 +24,14 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
-
+from logger_setup import LOG_FILENAME
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
-AOCLOG_FILENAME = 'aoclog'
 DAYSEC = 24 * 3600
 SIDEREAL_RATE = 23.93447
 
 
-def add_aoc_entry(path='getenv', output='ERROR', **kwargs):
+def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwargs):
     """
     Simple access to AOCalendar to add entry.
 
@@ -42,6 +41,8 @@ def add_aoc_entry(path='getenv', output='ERROR', **kwargs):
         Path to use.  Default retrieves AOCALENDAR from environment
     output : str
         Logging output to use.  Default is ERROR
+    file_logging : str/False
+        If not False, level of file logging
     kwargs : fields for entry.  Must have at least utc_start, utc_stop and one more.
 
     Returns
@@ -53,7 +54,7 @@ def add_aoc_entry(path='getenv', output='ERROR', **kwargs):
     if 'utc_start' not in kwargs:
         logger.error("utc_start not included.")
         return msg
-    cal = Calendar(kwargs['utc_start'], path=path, output=output)
+    cal = Calendar(kwargs['utc_start'], path=path, output=output, file_logging=file_logging, start_new=True)
     is_added = cal.add(**kwargs)
     msg = ''
     if is_added and cal.recent_event.valid:
@@ -89,7 +90,7 @@ class Calendar:
         self.path = tools.determine_path(path, calfile)
         self.refdate = Time.now()
         self.location = None
-        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=AOCLOG_FILENAME, path=self.path)
+        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
 
@@ -177,7 +178,7 @@ class Calendar:
         """
         self.events = {}
         self.straddle = {}
-        self.all_fields =  list(aocentry.ENTRY_FIELDS.keys())  # This is a cheat for now.
+        self.all_fields =  list(aocentry.ENTRY_FIELDS.keys())
         self.all_hash = []
         self.set_calfile(calfile=calfile, path=path)
         if self.calfile is None:
