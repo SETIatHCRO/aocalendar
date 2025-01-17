@@ -9,7 +9,10 @@ from aocalendar import aocalendar, times, tools, logger_setup, __version__, goog
 import logging
 from datetime import datetime
 from copy import copy
-
+try:
+    from odsutils import ods_engine
+except ImportError:
+    ods_engine = None
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
@@ -27,6 +30,7 @@ class AOCalendarApp(tkinter.Tk):
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
         output = kwargs['output'] if 'output' in kwargs else 'INFO'
+        ods = kwargs['ods'] if 'ods' in kwargs else False
         file_logging = kwargs['file_logging'] if 'file_logging' in kwargs else False
         path = tools.determine_path(path=path, fileinfo=calfile)
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=path)
@@ -66,6 +70,11 @@ class AOCalendarApp(tkinter.Tk):
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
         self.tkcal.tag_config('obs', foreground='red')
         self.tkcal.bind("<<CalendarSelected>>", self.show_date)
+        if ods_engine is not None and ods is not None:
+            self.ods_input = ods
+            self.ods = ods_engine.ODS(version='latest', output=output.upper())
+            self.ods_label_update()
+            self.after(60000, self.ods_label_update)
 
         # Buttons/checkbox
         add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
@@ -89,6 +98,17 @@ class AOCalendarApp(tkinter.Tk):
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
         info_text.grid(row=0, column=0)
         self.show_date(self.aoc_day)        
+
+    def ods_label_update(self):
+        active = self.ods.check_active('now', read_from=self.ods_input)
+        if len(active):
+            bg = 'green'
+            text = f"ODS active ({len(active)})"
+        else:
+            bg = 'red'
+            text = f"ODS not active."
+        self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
+        self.ods_label.grid(row=1, column=0)
 
     def on_button_toggle(self):
         self.google_calendar_editing = self.chk_var.get()

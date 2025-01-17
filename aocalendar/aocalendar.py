@@ -429,7 +429,7 @@ class Calendar:
                 except IndexError:
                     pass
             if show_current:
-                row[current] = 'X' if row[current] == '*' else '|'
+                row[current] = '|' if row[current] == '*' else '|'  # Change first '|' to make different.
             ss += f"{colhdr[i]}{''.join(row)}\n"
         ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
