@@ -405,7 +405,7 @@ class Calendar:
                 for j in range(len(t)):
                     trow[tt]['labels'][toff+j] = t[j]
         if show_current:
-            tickrow[current] = '0'
+            tickrow[current] = 'v'
         tickrow = ' ' * stroff + ''.join(tickrow)
         for tt in trow:
             tstr = f"{tt}  "
@@ -431,6 +431,8 @@ class Calendar:
             if show_current:
                 row[current] = '|' if row[current] == '*' else '|'  # Change first '|' to make different.
             ss += f"{colhdr[i]}{''.join(row)}\n"
+        if show_current:
+            tickrow = tickrow.replace('v', '^')
         ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
 
