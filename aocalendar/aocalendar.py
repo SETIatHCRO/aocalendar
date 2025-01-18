@@ -284,6 +284,10 @@ class Calendar:
                     logger.warning(f"This event ({day}:{i}) has same hash as ({oth[0]}:{oth[1]}) and will overwrite.")
                 self.hashmap[this_hash] = (day, i)
 
+    def add_to_existing_ods(self, read_ods_from, write_ods_to):
+        logger.info(f"Updating ods from {read_ods_from} to {write_ods_to}")
+
+
     def sort_day(self, day, straddle=True):
         """
         Sort the events per day by utc_start,utc_stop.
