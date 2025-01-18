@@ -284,7 +284,7 @@ class Calendar:
                     logger.warning(f"This event ({day}:{i}) has same hash as ({oth[0]}:{oth[1]}) and will overwrite.")
                 self.hashmap[this_hash] = (day, i)
 
-    def sort_day(self, day):
+    def sort_day(self, day, straddle=True):
         """
         Sort the events per day by utc_start,utc_stop.
 
@@ -299,16 +299,19 @@ class Calendar:
             List of sorted events
         indmap : dict
             Index map between sorted and stored, key is sorted order.
+        straddle : bool
+            Include previous day for ones going over midnight
 
         """
         day = times.interp_date(day, fmt='%Y-%m-%d')
         sorted_dict = {}
         offset = 0
-        if day in self.straddle:
-            for i, event in enumerate(self.straddle[day]):
-                key = (event.utc_start, event.utc_stop, i)
-                offset += 1
-                sorted_dict[key] = {'event': copy(event), 'index': -offset}
+        if straddle:
+            if day in self.straddle:
+                for i, event in enumerate(self.straddle[day]):
+                    key = (event.utc_start, event.utc_stop, i)
+                    offset += 1
+                    sorted_dict[key] = {'event': copy(event), 'index': -offset}
         if day in self.events:
             for i, event in enumerate(self.events[day]):
                 key = (event.utc_start, event.utc_stop, i)
@@ -320,6 +323,12 @@ class Calendar:
                 sorted_day.append(sorted_dict[key]['event'])
                 indmap[i] = sorted_dict[key]['index']
         return sorted_day, indmap
+
+    def internal_sort_cal(self):
+        new_cal_events = {}
+        for day in sorted(self.events.keys()):
+            new_cal_events[day], _ = self.sort_day(day, straddle=False)
+        self.events = new_cal_events
 
     def list(self, day='today', cols='short'):
         print(self.list_day_events(day=day, cols=cols, return_as='table'))
@@ -485,6 +494,7 @@ class Calendar:
         if not this_event.valid:
             logger.warning(f"Entry invalid:\n{this_event.msg}")
         self.added.append(this_event.hash(cols='web'))
+        self.internal_sort_cal()
         return True
 
     def delete(self, day, nind):
@@ -540,6 +550,7 @@ class Calendar:
             self.delete(day, nind)
         else:
             self.updated[web_hash] = self.events[day][nind].hash(cols='web')
+        self.internal_sort_cal()
         return True
 
     def add_from_file(self, file_name, sep='auto'):
