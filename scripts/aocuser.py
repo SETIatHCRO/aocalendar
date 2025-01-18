@@ -22,8 +22,8 @@ ap.add_argument('-s', '--schedule', help="Schedule ra,dec/source and set duratio
 ap.add_argument('-q', '--quick', help="Quick add a session of #h/m/s length starting now (at least add -n...)", default=False)
 ap.add_argument('--duration', help="Duration of scheduled observation in hours", default=6.0)
 # Event fields
-ap.add_argument('-n', '--name', help="Event field", default=None)
-ap.add_argument('-p', '--pid', help="Event field", default=None)
+ap.add_argument('--program', help="Event field", default=None)
+ap.add_argument('--pid', help="Event field", default=None)
 ap.add_argument('--utc_start', help="Event field", default=None)
 ap.add_argument('--utc_stop', help="Event field", default=None)
 ap.add_argument('--lst_start', help="Event field", default=None)
