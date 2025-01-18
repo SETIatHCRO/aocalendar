@@ -89,7 +89,7 @@ class AOCalendarApp(tkinter.Tk):
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Link", variable=self.chk_var, 
                                           onvalue=True, offvalue=False, command=self.google_calendar_button_toggle)
         checkbutton.grid(row=5, column=0)
-        self.google_calendar_editing = False
+        self.google_calendar_linked = False
         self.google_calendar = None
         self.deleted_event_id = False
 
@@ -113,11 +113,11 @@ class AOCalendarApp(tkinter.Tk):
         self.after(60000, self.ods_label_update)
 
     def google_calendar_button_toggle(self):
-        self.google_calendar_editing = self.chk_var.get()
-        logger.info(f"Google Calendar linking is {'on' if self.google_calendar_editing else 'off'}")
+        self.google_calendar_linked = self.chk_var.get()
+        logger.info(f"Google Calendar linking is {'on' if self.google_calendar_linked else 'off'}")
         self.update_google_calendar()
     def update_google_calendar(self):
-        if self.google_calendar_editing:
+        if self.google_calendar_linked:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
             self.refresh()
@@ -218,7 +218,7 @@ class AOCalendarApp(tkinter.Tk):
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
             self.resetTrue()
-            if self.google_calendar_editing:
+            if self.google_calendar_linked:
                 googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
                 if googlecal:
                     self.update_google_calendar()
