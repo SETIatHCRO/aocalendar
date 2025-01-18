@@ -74,7 +74,6 @@ class AOCalendarApp(tkinter.Tk):
             self.ods_input = ods
             self.ods = ods_engine.ODS(version='latest', output=output.upper())
             self.ods_label_update()
-            self.after(60000, self.ods_label_update)
 
         # Buttons/checkbox
         add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
