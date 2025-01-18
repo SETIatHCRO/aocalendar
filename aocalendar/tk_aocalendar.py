@@ -116,11 +116,11 @@ class AOCalendarApp(tkinter.Tk):
         self.google_calendar_linked = self.chk_var.get()
         logger.info(f"Google Calendar linking is {'on' if self.google_calendar_linked else 'off'}")
         self.reload_google_calendar()
+        self.refresh()
     def reload_google_calendar(self):
         if self.google_calendar_linked:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
-            self.refresh()
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
