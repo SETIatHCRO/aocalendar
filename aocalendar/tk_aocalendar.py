@@ -9,10 +9,7 @@ from aocalendar import aocalendar, times, tools, logger_setup, __version__, goog
 import logging
 from datetime import datetime
 from copy import copy
-try:
-    from odsutils import ods_engine
-except ImportError:
-    ods_engine = None
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
@@ -70,10 +67,10 @@ class AOCalendarApp(tkinter.Tk):
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
         self.tkcal.tag_config('obs', foreground='red')
         self.tkcal.bind("<<CalendarSelected>>", self.show_date)
-        if ods_engine is not None and ods is not None:
+        if ods is not None:
             self.ods_input = ods
-            self.ods = ods_engine.ODS(version='latest', output=output.upper())
-            self.ods_label_update()
+            self.this_cal.start_ods()
+        self.tk_update()
 
         # Buttons/checkbox
         add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
@@ -98,18 +95,19 @@ class AOCalendarApp(tkinter.Tk):
         info_text.grid(row=0, column=0)
         self.show_date(self.aoc_day)        
 
-    def ods_label_update(self):
-        active = self.ods.check_active('now', read_from=self.ods_input)
-        if len(active):
-            bg = 'green'
-            text = f"ODS active ({len(active)})"
-        else:
-            bg = 'red'
-            text = f"ODS not active."
-        self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
-        self.ods_label.grid(row=1, column=0, pady=8)
+    def tk_update(self):
+        if self.this_cal.ods is not None:
+            active = self.this_cal.ods.check_active('now', read_from=self.ods_input)
+            if len(active):
+                bg = 'green'
+                text = f"ODS active ({len(active)})"
+            else:
+                bg = 'red'
+                text = f"ODS not active."
+            self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
+            self.ods_label.grid(row=1, column=0, pady=8)
         self.show_date(self.aoc_day)
-        self.after(60000, self.ods_label_update)
+        self.after(60000, self.tk_update)
 
     def google_calendar_button_toggle(self):
         self.google_calendar_linked = self.chk_var.get()
@@ -208,12 +206,14 @@ class AOCalendarApp(tkinter.Tk):
         elif self.aoc_action == 'add':
             if self.schedule_by == 'source':
                 aoc_day = times.truncate_to_day(kwargs['utc_start'])
-                self.aoc_nind = -1
                 source = self.program_entry.get()
                 ra = self.ra_entry.get()
                 dec = self.dec_entry.get()
                 duration = float(self.duration_entry.get())
                 is_ok = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=aoc_day, duration=duration, **kwargs)
+                newhash = self.this_cal.most_recent_event.hash(cols='web')
+                self.this_cal.make_hash_keymap(cols='web')
+                self.aoc_day, self.aoc_nind = self.this_cal.hashmap[newhash]
             elif self.aoc_action == 'add':
                 aoc_day = times.truncate_to_day(kwargs['utc_start'])
                 is_ok = self.this_cal.add(**kwargs)
@@ -222,8 +222,7 @@ class AOCalendarApp(tkinter.Tk):
             self.this_cal.write_calendar()
             self.resetTrue()
             if self.google_calendar_linked:
-                googlecal = messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar")
-                if googlecal:
+                if messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar?"):
                     self.update_google_calendar()
         else:
             self.resetFalse()

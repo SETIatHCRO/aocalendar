@@ -20,6 +20,10 @@ try:
 except ImportError:
     def check_source(src):
         return 'Not Available'
+try:
+    from odsutils import ods_engine
+except ImportError:
+    ods_engine = None
 
 
 logger = logging.getLogger(__name__)
@@ -57,8 +61,8 @@ def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwarg
     cal = Calendar(kwargs['utc_start'], path=path, output=output, file_logging=file_logging, start_new=True)
     is_added = cal.add(**kwargs)
     msg = ''
-    if is_added and cal.recent_event.valid:
-        logger.info(cal.recent_event)
+    if is_added and cal.most_recent_event.valid:
+        logger.info(cal.most_recent_event)
         cal.write_calendar()
         if len(cal.results['conflict']):
             msg = ','.join([str(x) for x in cal.results['conflict']])
@@ -66,7 +70,7 @@ def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwarg
         else:
             msg = 'ok'
     else:
-        logger.error(f"Entry add was unsuccessful.\n{cal.recent_event.msg}")
+        logger.error(f"Entry add was unsuccessful.\n{cal.most_recent_event.msg}")
     return msg
 
 
@@ -90,9 +94,18 @@ class Calendar:
         self.path = tools.determine_path(path, calfile)
         self.refdate = Time.now()
         self.location = None
+        self.output = output.upper() if isinstance(output, str) else output
+        self.file_logging = file_logging
         logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
+        self.ods = None
+
+    def start_ods(self):
+        if ods_engine is not None:
+            self.ods = ods_engine.ODS(version='latest', output=self.output)
+        else:
+            self.ods = None
 
     def set_calfile(self, calfile, path=None):
         """
@@ -283,10 +296,6 @@ class Calendar:
                     oth = self.hashmap[this_hash]
                     logger.warning(f"This event ({day}:{i}) has same hash as ({oth[0]}:{oth[1]}) and will overwrite.")
                 self.hashmap[this_hash] = (day, i)
-
-    def add_to_existing_ods(self, read_ods_from, write_ods_to):
-        logger.info(f"Updating ods from {read_ods_from} to {write_ods_to}")
-
 
     def sort_day(self, day, straddle=True):
         """
@@ -481,7 +490,7 @@ class Calendar:
         """
         kwargs = self.check_kwargs(kwargs)
         this_event = aocentry.Entry(**kwargs)
-        self.recent_event = this_event  # Used in aocuser.py script
+        self.most_recent_event = this_event  # Used in aocuser.py script
         this_hash = this_event.hash()
         self.results = self.conflicts(this_event, is_new=True)
         if len(self.results['duplicate']):
@@ -501,7 +510,7 @@ class Calendar:
         self.internal_sort_cal()
         return True
 
-    def delete(self, day, nind):
+    def delete(self, day=None, nind=None, hash=None, hashcols='web'):
         """
         Parameters
         ----------
@@ -509,9 +518,22 @@ class Calendar:
             Day input for interp_date
         nind : int
             Index number of that day
+          or
+        hash : str
+            Hash to delete
+        hashcols : str, list
+            Columns to use for hash
 
         """
-        day = times.interp_date(day, fmt='%Y-%m-%d')
+        if hash is not None:
+            self.make_hash_keymap(hashcols)
+            if hash in self.hashmap:
+                day, nind = self.hashmap[hash]
+            else:
+                logger.warning("Hash not found.")
+                return False
+        else:
+            day = times.interp_date(day, fmt='%Y-%m-%d')
         try:
             self.removed.append(self.events[day][nind].hash(cols='web'))
             del(self.events[day][nind])
@@ -520,7 +542,7 @@ class Calendar:
             logger.warning(f"Invalid entry: {day}, {nind}")
             return False
 
-    def update(self, day, nind, **kwargs):
+    def update(self, day=None, nind=None, hash=None, hashcols='web', **kwargs):
         """
         Parameters
         ----------
@@ -529,13 +551,26 @@ class Calendar:
         nind : int
             Index number of that day
         kwargs : fields to add
-
+          or
+        hash : str
+            Hash to delete
+        hashcols : str, list
+            Columns to use for hash
+        
         """
-        day = times.interp_date(day, fmt='%Y-%m-%d')
+        if hash is not None:
+            self.make_hash_keymap(hashcols)
+            if hash in self.hashmap:
+                day, nind = self.hashmap[hash]
+            else:
+                logger.warning("Hash not found.")
+                return False
+        else:
+            day = times.interp_date(day, fmt='%Y-%m-%d')
         kwargs['modified'] = kwargs['modified'] if 'modified' in kwargs else 'now'
         try:
             self.events[day][nind].update(**kwargs)
-            self.recent = self.events[day][nind]
+            self.most_recent_event = self.events[day][nind]
         except (KeyError, IndexError):
             logger.warning(f"{day}, {nind} not found.")
             return False
