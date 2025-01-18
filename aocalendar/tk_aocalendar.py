@@ -115,8 +115,8 @@ class AOCalendarApp(tkinter.Tk):
     def google_calendar_button_toggle(self):
         self.google_calendar_linked = self.chk_var.get()
         logger.info(f"Google Calendar linking is {'on' if self.google_calendar_linked else 'off'}")
-        self.update_google_calendar()
-    def update_google_calendar(self):
+        self.reload_google_calendar()
+    def reload_google_calendar(self):
         if self.google_calendar_linked:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
@@ -129,7 +129,7 @@ class AOCalendarApp(tkinter.Tk):
             for event in events:
                 label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
-        self.update_google_calendar()
+        self.reload_google_calendar()
 
     def teardown_frame_update(self):
         for widget in self.frame_update.winfo_children():
@@ -199,6 +199,10 @@ class AOCalendarApp(tkinter.Tk):
                     'lst_start': self.lstart_entry.get().strip(),
                     'lst_stop': self.lstop_entry.get().strip()
                 })
+            elif self.schedule_by == 'source':
+                kwargs.update({
+                    'utc_start': self.start_entry.get().strip()
+                })
         if self.aoc_action == 'update':
             aoc_day = self.aoc_day
             is_ok = self.this_cal.update(day=aoc_day, nind=self.aoc_nind, **kwargs)
@@ -206,9 +210,9 @@ class AOCalendarApp(tkinter.Tk):
             if self.schedule_by == 'source':
                 aoc_day = times.truncate_to_day(kwargs['utc_start'])
                 self.aoc_nind = -1
-                source = self.source_entry.get()
-                radec = self.radec_entry.get()
-                ra, dec = radec.split(',')
+                source = self.program_entry.get()
+                ra = self.ra_entry.get()
+                dec = self.dec_entry.get()
                 duration = float(self.duration_entry.get())
                 is_ok = self.this_cal.schedule(ra=ra, dec=dec, source=source, day=aoc_day, duration=duration, **kwargs)
             elif self.aoc_action == 'add':
@@ -245,17 +249,20 @@ class AOCalendarApp(tkinter.Tk):
 
     def event_fields(self, gobutton):
         # row 0 - program/pid
-        self.program_entry = self.label_event(0, 0, 'Program', self.aoc_field_defaults['program'])
+        pslbl = 'Source' if self.schedule_by == 'source' else 'Program'
+        self.program_entry = self.label_event(0, 0, pslbl, self.aoc_field_defaults['program'])
         self.pid_entry = self.label_event(0, 2, "pid", self.aoc_field_defaults['pid'])
         # row 1 - utc_start/utc_stop
         if self.aoc_action == 'add':
             addon = 'T00:00' if self.schedule_by == 'utc' else ''
             utcstart = self.aoc_field_defaults['utc_start'] + addon
             utcstop = self.aoc_field_defaults['utc_start'] + addon
+            utclabel = 'UTC start' if self.schedule_by == 'utc' else 'UTC day'
         elif self.aoc_action == 'update':
+            utclabel = 'UTC start'
             utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='minutes')
             utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes')
-        self.start_entry = self.label_event(1, 0, 'UTC start', utcstart)
+        self.start_entry = self.label_event(1, 0, utclabel, utcstart)
         if self.schedule_by == 'utc' or self.aoc_action == 'update':
             self.stop_entry = self.label_event(1, 2, 'UTC stop', utcstop)
         # row 2 - lst_start/lst_stop
@@ -263,9 +270,9 @@ class AOCalendarApp(tkinter.Tk):
             self.lstart_entry = self.label_event(2, 0, 'LST start', '')
             self.lstop_entry = self.label_event(2, 2, 'LST stop', '')
         elif self.schedule_by == 'source':
-            self.source_entry = self.label_event(1, 2, 'Source', '')
-            self.radec_entry = self.label_event(2, 0, 'RA,Dec', '')
-            self.duration_entry = self.label_event(2, 2, 'Duration (hr)', '')
+            self.duration_entry = self.label_event(1, 2, 'Duration (hr)', '12')
+            self.ra_entry = self.label_event(2, 0, 'RA', '')
+            self.dec_entry = self.label_event(2, 2, 'Dec', '')
         # Row 3 - state/note
         self.state_entry = self.label_event(3, 0, 'State', 'primary')
         self.note_entry = self.label_event(3, 2, 'Note', '')
@@ -332,6 +339,7 @@ class AOCalendarApp(tkinter.Tk):
     def update_event(self):
         self.resetFalse()
         self.aoc_action = 'update'
+        self.schedule_by = 'N/A'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
         this_entry = self.get_entry(daykey)
         if this_entry is None:
@@ -344,6 +352,7 @@ class AOCalendarApp(tkinter.Tk):
     def delete_event(self):
         self.resetFalse()
         self.aoc_action = 'delete'
+        self.schedule_by = 'N/A'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
         this_entry = self.get_entry(daykey)
         if this_entry is None:
