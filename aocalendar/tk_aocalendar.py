@@ -66,7 +66,7 @@ class AOCalendarApp(tkinter.Tk):
 
         for day, events in self.this_cal.events.items():
             for event in events:
-                label = f"{event.name}:{event.pid}"
+                label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
         self.tkcal.tag_config('obs', foreground='red')
         self.tkcal.bind("<<CalendarSelected>>", self.show_date)
@@ -127,7 +127,7 @@ class AOCalendarApp(tkinter.Tk):
         self.tkcal.calevent_remove('all')
         for day, events in self.this_cal.events.items():
             for event in events:
-                label = f"{event.name}:{event.pid}"
+                label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
         self.update_google_calendar()
 
@@ -181,7 +181,7 @@ class AOCalendarApp(tkinter.Tk):
             is_ok = self.this_cal.delete(day=aoc_day, nind=self.aoc_nind)
         else:
             kwargs = {
-                'name': self.name_entry.get().strip(),
+                'program': self.program_entry.get().strip(),
                 'pid': self.pid_entry.get().strip(),
                 'state': self.state_entry.get().strip(),
                 'note': self.note_entry.get().strip(),
@@ -244,8 +244,8 @@ class AOCalendarApp(tkinter.Tk):
         return entry
 
     def event_fields(self, gobutton):
-        # row 0 - name/pid
-        self.name_entry = self.label_event(0, 0, 'Name', self.aoc_field_defaults['name'])
+        # row 0 - program/pid
+        self.program_entry = self.label_event(0, 0, 'Program', self.aoc_field_defaults['program'])
         self.pid_entry = self.label_event(0, 2, "pid", self.aoc_field_defaults['pid'])
         # row 1 - utc_start/utc_stop
         if self.aoc_action == 'add':
@@ -353,7 +353,7 @@ class AOCalendarApp(tkinter.Tk):
             self.deleted_event_id = copy(this_entry.event_id)
         except AttributeError:
             self.deleted_event_id = False
-        info = f"{self.aoc_nind} - {this_entry.name}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
+        info = f"{self.aoc_nind} - {this_entry.program}: {this_entry.utc_start.datetime.isoformat(timespec='seconds')}"
         info += f" - {this_entry.utc_stop.datetime.isoformat(timespec='seconds')}"
         verify = tkinter.Label(self.frame_update, text=info, fg='red')
         verify.grid_rowconfigure(0, weight=1)

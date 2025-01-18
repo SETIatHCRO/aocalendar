@@ -349,10 +349,10 @@ class Calendar:
         else:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
     
-    def graph(self, day='today', header_col='name', tz='sys', interval_min=10.0):
+    def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0):
         print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min))
 
-    def graph_day_events(self, day='today', header_col='name', tz='sys', interval_min=10.0):
+    def graph_day_events(self, day='today', header_col='program', tz='sys', interval_min=10.0):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -373,7 +373,7 @@ class Calendar:
         if not len(sorted_day):
             return ' '
         cbuflt, cbufind, cbufrt = 2, 3, 2
-        stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max name
+        stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max program
         colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
@@ -633,7 +633,7 @@ class Calendar:
         kwargs['utc_start'] = srcstart.datetime.isoformat(timespec='seconds')
         kwargs['utc_stop'] = srcstop.datetime.isoformat(timespec='seconds')
 
-        if 'name' not in kwargs or kwargs['name'] is None:  kwargs['name'] = source
+        if 'program' not in kwargs or kwargs['program'] is None:  kwargs['program'] = source
         if 'note' not in kwargs or kwargs['note'] is None : kwargs['note'] = source
         else: kwargs['note'] += f" -- {source}"
         self.add(**kwargs)

@@ -18,10 +18,10 @@ logger.setLevel('DEBUG')  # Set to lowest to enable handlers to setLevel
 
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
-ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'name',
+ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'program',
                'event_id': 'event_id', 'updated': 'created', 'timezone': '_convert2utc', 'description': '_test'}
 ##SHOULD BE COMPATIBLE WITH AOCENTRY.WEB_COMPARE_HASH_LIST -v
-ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'name': 'summary'}
+ATTRIB2PUSH = {'utc_stop': 'end', 'utc_start': 'start', 'program': 'summary'}
 
 DEBUG_SKIP_GC = False  # Disable access Google Calendar for debugging
 if DEBUG_SKIP_GC:
@@ -146,7 +146,7 @@ class SyncCal:
         end = copy(event2add.utc_stop.datetime)
         # creator = copy(event2add.email)
         # description = copy(event2add.pid)
-        summary = copy(event2add.name)
+        summary = copy(event2add.program)
         event2add = Event(summary, start=start, end=end, timezone='GMT')
         try:
             event = self.gc.add_event(event2add, calendar_id=self.gc_cal_id)
@@ -156,7 +156,7 @@ class SyncCal:
     def update_event_on_google_calendar(self, event2update):
         try:
             event = self.gc.get_event(event2update.event_id, calendar_id=self.gc_cal_id)
-            event = Event(event2update.name, start=event2update.utc_start, end=event2update.utc_stop, timezone='GMT')
+            event = Event(event2update.program, start=event2update.utc_start, end=event2update.utc_stop, timezone='GMT')
             event = self.gc.update_event(event)
         except HttpError:
             logger.error(f"Error updating Google Calendar event {event2update.event_id}")

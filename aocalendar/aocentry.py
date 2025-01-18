@@ -8,7 +8,7 @@ from tabulate import tabulate
 from hashlib import sha256
 
 
-ENTRY_FIELDS = {'name': "Name",
+ENTRY_FIELDS = {'program': "program",
                 'pid': "pid",
                 'utc_start': None, 'utc_stop': None,
                 'lst_start': None, 'lst_stop': None,
@@ -19,9 +19,9 @@ ENTRY_FIELDS = {'name': "Name",
                 'recurring': [], 
                 'location': 'ata',
                 'event_id': 'AOC'}
-SHORT_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
-UNIQUE_HASH_LIST = ['name', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
-WEB_COMPARE_HASH_LIST = ['name', 'utc_start', 'utc_stop']
+SHORT_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
+UNIQUE_HASH_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
+WEB_COMPARE_HASH_LIST = ['program', 'utc_start', 'utc_stop']
 META_FIELDS = ['created', 'modified']
 
 
@@ -140,7 +140,7 @@ class Entry:
                 self.valid = False
                 self.msg.append(f"Invalid {key} - {getattr(self, key)}")
         is_ok = 0
-        for key in ['name', 'observer', 'note', 'state']:
+        for key in ['program', 'observer', 'note', 'state']:
             this_attr = getattr(self, key)
             if this_attr is not None and len(this_attr):
                 is_ok += 1
