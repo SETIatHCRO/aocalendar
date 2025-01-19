@@ -11,7 +11,7 @@ class Logger:
         self.conlog = conlog.upper() if isinstance(conlog, str) else False
         self.filelog = filelog.upper() if isinstance(filelog, str) else False
         self.log_filename = log_filename
-        self.path = '' if path in None else path
+        self.path = '' if path is None else path
         handler_names = [x.get_name() for x in logger.handlers]
         if CONSOLE_HANDLER_NAME not in handler_names and isinstance(conlog, str):
             from sys import stdout
