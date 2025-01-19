@@ -101,7 +101,7 @@ class Calendar:
 
     def start_ods(self):
         if ods_engine is not None:
-            self.ods = ods_engine.ODS(version='latest', conlog=self.conlog)
+            self.ods = ods_engine.ODS(version='latest', output=self.logset.conlog)
         else:
             self.ods = None
 
