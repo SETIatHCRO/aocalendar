@@ -176,7 +176,10 @@ class SyncCal:
         changes_add = 0
         for hh in self.aoc_added:
             if hh not in self.gc_web.hashmap and hh not in self.gc_removed:
-                d, n = self.aocal.hashmap[hh]
+                try:
+                    d, n = self.aocal.hashmap[hh]
+                except KeyError:
+                    continue
                 changes_add += 1
                 entry2add = self.aocal.events[d][n].todict(printable=False, include_meta=True)
                 self.gc_web.add(**entry2add)
@@ -189,7 +192,10 @@ class SyncCal:
         changes_del = 0
         for hh in self.aoc_removed:
             if hh in self.gc_web.hashmap and hh not in self.gc_added:
-                d, n = self.gc_web.hashmap[hh]
+                try:
+                    d, n = self.gc_web.hashmap[hh]
+                except KeyError:
+                    continue
                 self.gc_web.delete(d, n)
                 changes_del += 1
                 if update_google_calendar:
