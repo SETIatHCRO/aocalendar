@@ -26,14 +26,14 @@ class AOCalendarApp(tkinter.Tk):
 
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
-        output = kwargs['output'] if 'output' in kwargs else 'INFO'
         ods = kwargs['ods'] if 'ods' in kwargs else False
-        file_logging = kwargs['file_logging'] if 'file_logging' in kwargs else False
+        conlog = kwargs['conlog'] if 'conlog' in kwargs else 'INFO'
+        filelog = kwargs['filelog'] if 'filelog' in kwargs else False
         path = tools.determine_path(path=path, fileinfo=calfile)
-        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=path)
+        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=path)
         logger.info(f"{__name__} ver. {__version__}")
 
-        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, output=output, file_logging=file_logging)
+        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.logset.conlog, filelog=self.logset.filelog)
         self.aoc_day = times.truncate_to_day(self.this_cal.refdate)
         self.schedule_by = 'utc'
 

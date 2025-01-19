@@ -35,7 +35,7 @@ DAYSEC = 24 * 3600
 SIDEREAL_RATE = 23.93447
 
 
-def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwargs):
+def add_aoc_entry(path='getenv', conlog='ERROR', filelog='WARNING', **kwargs):
     """
     Simple access to AOCalendar to add entry.
 
@@ -43,9 +43,9 @@ def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwarg
     ----------
     path : str
         Path to use.  Default retrieves AOCALENDAR from environment
-    output : str
+    conlog : str
         Logging output to use.  Default is ERROR
-    file_logging : str/False
+    filelog : str/False
         If not False, level of file logging
     kwargs : fields for entry.  Must have at least utc_start, utc_stop and one more.
 
@@ -58,7 +58,7 @@ def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwarg
     if 'utc_start' not in kwargs:
         logger.error("utc_start not included.")
         return msg
-    cal = Calendar(kwargs['utc_start'], path=path, output=output, file_logging=file_logging, start_new=True)
+    cal = Calendar(kwargs['utc_start'], path=path, conlog=conlog, filelog=filelog, start_new=True)
     is_added = cal.add(**kwargs)
     msg = ''
     if is_added and cal.most_recent_event.valid:
@@ -77,7 +77,7 @@ def add_aoc_entry(path='getenv', output='ERROR', file_logging='WARNING', **kwarg
 class Calendar:
     meta_fields = ['created', 'modified', 'added', 'removed', 'updated']
 
-    def __init__(self, calfile='now', path='getenv', output='INFO', file_logging=False, start_new=False):
+    def __init__(self, calfile='now', path='getenv', conlog='INFO', filelog=False, start_new=False):
         """
         Parameters
         ----------
@@ -85,7 +85,7 @@ class Calendar:
             interpreted by set_calfile
         path : str
             get path for location of aocal files and logs etc, interpreted by determine_path
-        output : str
+        conlog : str
             Logging output level
         start_new : bool
             Flag to start empty one if file not found.
@@ -94,16 +94,14 @@ class Calendar:
         self.path = tools.determine_path(path, calfile)
         self.refdate = Time.now()
         self.location = None
-        self.output = output.upper() if isinstance(output, str) else output
-        self.file_logging = file_logging
-        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename=LOG_FILENAME, path=self.path)
+        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.ods = None
 
     def start_ods(self):
         if ods_engine is not None:
-            self.ods = ods_engine.ODS(version='latest', output=self.output)
+            self.ods = ods_engine.ODS(version='latest', conlog=self.conlog)
         else:
             self.ods = None
 

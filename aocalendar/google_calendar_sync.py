@@ -35,15 +35,13 @@ if DEBUG_SKIP_GC:
 
 
 class SyncCal:
-    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', output='INFO', file_logging=False):
+    def __init__(self, cal_id=ATA_CAL_ID, attrib2keep=ATTRIB2KEEP, attrib2push=ATTRIB2PUSH, path='getenv', conlog='INFO', filelog=False):
         self.gc_cal_id = cal_id
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
-        self.output = output.upper()
-        self.file_logging = file_logging.upper() if isinstance(file_logging, str) else file_logging
         self.path = tools.determine_path(path, None)
         self.now = times.interp_date('now', fmt='Time')
-        logger_setup.setup(logger, output=output, file_logging=file_logging, log_filename='aoclog', path=self.path)
+        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=self.path)
         logger.info(f"{__name__} ver. {__version__}")
 
         if DEBUG_SKIP_GC:
@@ -63,12 +61,10 @@ class SyncCal:
         self.update_gc(update_google_calendar=update_google_calendar)
         self.rewrite_files()
 
-    def get_aocal(self, calfile='now', path=None, output=None, file_logging=None, start_new=True):
+    def get_aocal(self, calfile='now', path=None, conlog=None, filelog=None, start_new=True):
         """Read in the working aocal, as well as the previous for diff."""
         path = self.path if path is None else path
-        output = self.output if output is None else output
-        file_logging = self.file_logging if file_logging is None else file_logging
-        self.aocal = aocalendar.Calendar(calfile=calfile, path=path, output=output, file_logging=file_logging, start_new=start_new)
+        self.aocal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.logset.conlog, filelog=self.logset.filelog, start_new=start_new)
         self.aocal.make_hash_keymap(cols='web')
         self.aoc_added = copy(self.aocal.added)
         self.aoc_removed = copy(self.aocal.removed)
@@ -83,13 +79,13 @@ class SyncCal:
         """Read in the google calendar and populate the gc local calendar"""
         logger.info("Reading Google Calendar into local calendar.")
         gcname = os.path.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
-        self.gc_local = aocalendar.Calendar(gcname, output=self.output, path=self.path, file_logging=self.file_logging, start_new=True)
+        self.gc_local = aocalendar.Calendar(gcname, conlog=self.logset.conlog, path=self.path, filelog=self.logset.filelog, start_new=True)
         self.gc_local.make_hash_keymap(cols='web')
         if DEBUG_SKIP_GC:
             logger.warning("DEBUG - NOT READING LIVE GOOGLE CALENDAR")
             self.gc_web = self.gc_local
             return
-        self.gc_web = aocalendar.Calendar("WEB", output=self.output, path=self.path, file_logging=self.file_logging, start_new=False)
+        self.gc_web = aocalendar.Calendar("WEB", conlog=self.logset.conlog, path=self.path, filelog=self.logset.filelog, start_new=False)
         tmin = times.interp_date(self.now.datetime.strftime('%Y'), fmt='Time')  # Start of year
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}

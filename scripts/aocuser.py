@@ -10,7 +10,8 @@ from aocalendar import aocalendar
 ap = argparse.ArgumentParser()
 ap.add_argument('calfile', help="Calfile/date to use.", nargs='?', default='now')
 ap.add_argument('--path', help="Path to use", default='getenv')
-ap.add_argument('--output', help="Logging output level", default='INFO')
+ap.add_argument('--conlog', help="Console logging output", default='INFO')
+ap.add_argument('--filelog', help="File logging output", default=False)
 # Actions
 ap.add_argument('-l', '--list', help="List events of day", action='store_true')
 ap.add_argument('-e', '--show_entry', help="Show an entry # on date", default=False)
@@ -40,7 +41,7 @@ if args.add:
         args.utc_start = aocalendar.times.interp_date('now')
     args.calfile = args.utc_start
 
-aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, output=args.output)
+aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, conlog=args.conlog, filelog=args.filelog)
 kwargs = vars(args)
 
 if args.quick:
