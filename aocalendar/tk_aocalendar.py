@@ -73,18 +73,20 @@ class AOCalendarApp(tkinter.Tk):
         self.tk_update()
 
         # Buttons/checkbox
-        add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
-        add_button.grid(row=0, column=0)
-        del_button = tkinter.Button(self.frame_buttons, text = "Delete", width=12, command = self.delete_event)
-        del_button.grid(row=1, column=0)
-        upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.update_event)
-        upd_button.grid(row=2, column=0)
+        today_button = tkinter.Button(self.frame_buttons, text = "Today", width=12, command = self.goto_today)
+        today_button.grid(row=0, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.resetTrue)
-        rst_button.grid(row=4, column=0, pady=15)
+        rst_button.grid(row=1, column=0)
+        add_button = tkinter.Button(self.frame_buttons, text = "New", width=12, command = self.add_event)
+        add_button.grid(row=0, column=1)
+        del_button = tkinter.Button(self.frame_buttons, text = "Delete", width=12, command = self.delete_event)
+        del_button.grid(row=1, column=1)
+        upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.update_event)
+        upd_button.grid(row=2, column=1)
         self.chk_var = tkinter.BooleanVar()
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Link", variable=self.chk_var, 
                                           onvalue=True, offvalue=False, command=self.google_calendar_button_toggle)
-        checkbutton.grid(row=5, column=0)
+        checkbutton.grid(row=5, column=0, columnspan=2, pady=15)
         self.google_calendar_linked = False
         self.google_calendar = None
         self.deleted_event_id = False
@@ -118,6 +120,9 @@ class AOCalendarApp(tkinter.Tk):
         if self.google_calendar_linked:
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
+
+    def goto_today(self):
+        self.show_date('now')
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
@@ -157,6 +162,7 @@ class AOCalendarApp(tkinter.Tk):
             self.aoc_day = datetime(year=2000+int(y), month=int(m), day=int(d))
         else:
             self.aoc_day = times.truncate_to_day(dateinp)
+            self.tkcal.selection_set(self.aoc_day)
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}" + '\n\n'
         try:
             entry_list = self.this_cal.list_day_events(self.aoc_day, return_as='table') + '\n\n'
