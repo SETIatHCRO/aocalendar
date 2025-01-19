@@ -51,7 +51,6 @@ class AOCalendarApp(tkinter.Tk):
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-        #self.grid_rowconfigure(3, weight=2)
         self.columnconfigure(0, weight=2)
         self.columnconfigure(1, weight=1)
 
@@ -126,12 +125,12 @@ class AOCalendarApp(tkinter.Tk):
 
     def refresh(self):
         self.this_cal.read_calendar_events(calfile='refresh')
+        self.reload_google_calendar()
         self.tkcal.calevent_remove('all')
         for day, events in self.this_cal.events.items():
             for event in events:
                 label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
-        self.reload_google_calendar()
 
     def teardown_frame_update(self):
         for widget in self.frame_update.winfo_children():
@@ -319,14 +318,14 @@ class AOCalendarApp(tkinter.Tk):
         cancel_button = tkinter.Button(self.frame_update, text='Cancel', width=10, justify=tkinter.CENTER, command=self.resetFalse)
         cancel_button.grid(row=5, column=0, pady=15)
 
-    def get_entry(self, daykey):
+    def get_entry_nind(self, daykey):
         try:
             num_events = len(self.this_cal.events[daykey])
         except KeyError:
             logger.warning(f"{daykey} does not exist")
             return None
         if  num_events > 1:
-            entry_num = simpledialog.askstring("Input", f"{daykey} entry #", parent=self)
+            entry_num = simpledialog.askstring("Get Entry", f"{daykey} entry #", parent=self)
             try:
                 self.aoc_nind = int(entry_num)
             except (TypeError, ValueError):
@@ -345,7 +344,7 @@ class AOCalendarApp(tkinter.Tk):
         self.aoc_action = 'update'
         self.schedule_by = 'N/A'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
-        this_entry = self.get_entry(daykey)
+        this_entry = self.get_entry_nind(daykey)
         if this_entry is None:
             self.resetFalse()
             return
@@ -358,7 +357,7 @@ class AOCalendarApp(tkinter.Tk):
         self.aoc_action = 'delete'
         self.schedule_by = 'N/A'
         daykey = self.aoc_day.strftime('%Y-%m-%d')
-        this_entry = self.get_entry(daykey)
+        this_entry = self.get_entry_nind(daykey)
         if this_entry is None:
             self.resetFalse()
             return
