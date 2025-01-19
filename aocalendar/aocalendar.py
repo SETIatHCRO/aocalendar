@@ -372,7 +372,7 @@ class Calendar:
     def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0):
         print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min))
 
-    def graph_day_events(self, day='today', header_col='program', tz='sys', interval_min=10.0):
+    def graph_day_events(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=False):
         """
         Text-based graph of schedule sorted by start/stop times.
 
@@ -390,11 +390,15 @@ class Calendar:
         """
         tz, tzoff = times.get_tz(tz, times.interp_date(day, fmt='Time').datetime)
         sorted_day, indmap = self.sort_day(day)
-        if not len(sorted_day):
+        if not len(sorted_day) and not return_anyway:
             return ' '
         cbuflt, cbufind, cbufrt = 2, 3, 2
-        stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max program
-        colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
+        if len(sorted_day):
+            stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max program
+            colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
+        else:
+            stroff = 15
+            colhdr = []
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
         day = times.interp_date(day, fmt='%Y-%m-%d')
@@ -451,8 +455,13 @@ class Calendar:
             if show_current:
                 row[current] = '|' if row[current] == '*' else '|'  # Change first '|' to make different.
             ss += f"{colhdr[i]}{''.join(row)}\n"
+        if not len(sorted_day):
+            row = ['.'] * numpoints
+            if show_current:
+                row[current] = '|'
         if show_current:
             tickrow = tickrow.replace('v', '^')
+            ss += f"{' '*stroff}{''.join(row)}\n"
         ss += f"{tickrow}\n{trow['LST']['labels']}"
         return ss
 

@@ -166,7 +166,7 @@ class AOCalendarApp(tkinter.Tk):
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}" + '\n\n'
         try:
             entry_list = self.this_cal.list_day_events(self.aoc_day, return_as='table') + '\n\n'
-            entry_graph = self.this_cal.graph_day_events(self.aoc_day, tz='US/Pacific', interval_min=15.0)
+            entry_graph = self.this_cal.graph_day_events(self.aoc_day, tz='US/Pacific', interval_min=15.0, return_anyway=True)
         except KeyError:
             entry_list = "No entry."
             entry_graph = ''
