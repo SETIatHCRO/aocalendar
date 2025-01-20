@@ -12,7 +12,7 @@ from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
 from os import path as op
-from numpy import floor, round
+from numpy import floor, round, ceil
 from numpy import where as npwhere
 from . import __version__, aocentry, tools, logger_setup, times
 try:
@@ -405,21 +405,21 @@ class Calendar:
         start_of_day = Time(day)
         end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
         interval_sec = interval_min * 60.0
-        numpoints = int(DAYSEC / interval_sec)
-        dt = ((end_of_day - start_of_day) / (numpoints-1)).to('second').value
+        numpoints = int(DAYSEC / interval_sec) + 1
+        dt = ((end_of_day - start_of_day) / (numpoints)).to('second').value
 
-        current = int((Time.now() - start_of_day).to('second').value / dt)
+        current = tools.cursor_position_t(t1=start_of_day, t2=Time.now(), T=1.0, N=numpoints, func=round)
         show_current = True if (current > -1 and current < numpoints) else False
 
         # Set up ticks/labels
         sm = numpoints + 5
-        tickrow = [' '] * (numpoints + 1)
+        tickrow = [' '] * (numpoints + 3)
         trow = {'UTC': {'labels': [' ']*sm}, 'LST': {'labels': [' ']*sm}, tz: {'labels': [' ']*sm}}
         trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
         trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=self.location.loc)
         trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(tzoff*3600, format='sec')
         for i, utc in enumerate(trow['UTC']['times']):
-            toff = int(round(24.0 * (utc - start_of_day).value) * 3600.0 / dt)
+            toff = tools.cursor_position_t(t1=start_of_day, t2=utc, T=1.0, N=numpoints, func=round)
             tickrow[toff] = '|'
             for tt in trow:
                 if tt == 'LST':
@@ -441,12 +441,15 @@ class Calendar:
         else:
             ss = f"\n\n{' '*stroff}{day} at interval {interval_min:.0f}m\n{trow['UTC']['labels']}\n{tickrow}\n"
         for i, entry in enumerate(sorted_day):
-            row = ['.'] * numpoints
+            row = ['.'] * (numpoints + 1)
             if entry.utc_start < start_of_day:
                 starting = 0
             else:
-                starting = int(floor((entry.utc_start  -  start_of_day).to('second').value / dt))
-            ending = int(floor((entry.utc_stop - start_of_day).to('second').value / dt)) + 1
+                starting = tools.cursor_position_t(t1=start_of_day, t2=entry.utc_start, T=1.0, N=numpoints, func=floor)
+            if entry.utc_stop > end_of_day:
+                ending = numpoints - 1
+            else:
+                ending = tools.cursor_position_t(t1=start_of_day, t2=entry.utc_stop, T=1.0, N=numpoints, func=ceil)
             for star in range(starting, ending):
                 try:
                     row[star] = '*'
@@ -456,7 +459,7 @@ class Calendar:
                 row[current] = '|' if row[current] == '*' else '|'  # Change first '|' to make different.
             ss += f"{colhdr[i]}{''.join(row)}\n"
         if not len(sorted_day):
-            row = ['.'] * numpoints
+            row = ['.'] * (numpoints + 1)
             if show_current:
                 row[current] = '|'
         if show_current:
