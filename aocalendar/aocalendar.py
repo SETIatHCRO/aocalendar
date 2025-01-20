@@ -31,8 +31,6 @@ logger.setLevel('DEBUG')  # Set to lowest
 from .logger_setup import LOG_FILENAME
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
-DAYSEC = 24 * 3600
-SIDEREAL_RATE = 23.93447
 
 
 def add_aoc_entry(path='getenv', conlog='ERROR', filelog='WARNING', **kwargs):
@@ -98,6 +96,7 @@ class Calendar:
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.ods = None
+        self.calgraph = times.Graph('AOCalendar Graph')
 
     def start_ods(self):
         if ods_engine is not None:
@@ -369,8 +368,8 @@ class Calendar:
         else:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
     
-    def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0):
-        print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min))
+    def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=True):
+        print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min, return_anyway=return_anyway))
 
     def graph_day_events(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=False):
         """
@@ -388,85 +387,25 @@ class Calendar:
             interval for graph in min
 
         """
-        tz, tzoff = times.get_tz(tz, times.interp_date(day, fmt='Time').datetime)
+        self.calgraph.setup(day, dt_min=interval_min, duration_days=1.0)
+        
         sorted_day, indmap = self.sort_day(day)
         if not len(sorted_day) and not return_anyway:
             return ' '
-        cbuflt, cbufind, cbufrt = 2, 3, 2
-        if len(sorted_day):
-            stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max program
-            colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
-        else:
-            stroff = 8
-            colhdr = []
-        stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
-
-        day = times.interp_date(day, fmt='%Y-%m-%d')
-        start_of_day = Time(day)
-        end_of_day = start_of_day + TimeDelta(DAYSEC, format='sec')
-        interval_sec = interval_min * 60.0
-        numpoints = int(DAYSEC / interval_sec) + 1
-        dt = ((end_of_day - start_of_day) / (numpoints)).to('second').value
-
-        current = tools.cursor_position_t(t1=start_of_day, t2=Time.now(), T=1.0, N=numpoints, func=round)
-        show_current = True if (current > -1 and current < numpoints) else False
-
-        # Set up ticks/labels
-        sm = numpoints + 5
-        tickrow = [' '] * (numpoints + 3)
-        trow = {'UTC': {'labels': [' ']*sm}, 'LST': {'labels': [' ']*sm}, tz: {'labels': [' ']*sm}}
-        trow['UTC']['times'] = Time([start_of_day + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 25, 2)])
-        trow['LST']['times'] =  trow['UTC']['times'].sidereal_time('mean', longitude=self.location.loc)
-        trow[tz]['times'] = trow['UTC']['times'] + TimeDelta(tzoff*3600, format='sec')
-        for i, utc in enumerate(trow['UTC']['times']):
-            toff = tools.cursor_position_t(t1=start_of_day, t2=utc, T=1.0, N=numpoints, func=round)
-            tickrow[toff] = '|'
-            for tt in trow:
-                if tt == 'LST':
-                    t = f"{trow[tt]['times'][i].value:.1f}"
-                else:
-                    t = f"{trow[tt]['times'][i].datetime.hour}"
-                for j in range(len(t)):
-                    trow[tt]['labels'][toff+j] = t[j]
-        if show_current:
-            tickrow[current] = 'v'
-        tickrow = ' ' * stroff + ''.join(tickrow)
-        for tt in trow:
-            tstr = f"{tt}  "
-            trow[tt]['labels'] = ' ' * (stroff - len(tstr)) + tstr + ''.join(trow[tt]['labels'])
-        
-        # Get table string
-        if tz != 'UTC':
-            ss = f"\n\n{' '*stroff}{day} at interval {interval_min:.0f}m\n{trow['UTC']['labels']}\n{trow[tz]['labels']}\n{tickrow}\n"
-        else:
-            ss = f"\n\n{' '*stroff}{day} at interval {interval_min:.0f}m\n{trow['UTC']['labels']}\n{tickrow}\n"
+        rowhdr = []
         for i, entry in enumerate(sorted_day):
-            row = ['.'] * (numpoints + 1)
-            if entry.utc_start < start_of_day:
-                starting = 0
-            else:
-                starting = tools.cursor_position_t(t1=start_of_day, t2=entry.utc_start, T=1.0, N=numpoints, func=floor)
-            if entry.utc_stop > end_of_day:
-                ending = numpoints - 1
-            else:
-                ending = tools.cursor_position_t(t1=start_of_day, t2=entry.utc_stop, T=1.0, N=numpoints, func=ceil)
-            for star in range(starting, ending):
-                try:
-                    row[star] = '*'
-                except IndexError:
-                    pass
-            if show_current:
-                row[current] = '|' if row[current] == '*' else '|'  # Change first '|' to make different.
-            ss += f"{colhdr[i]}{''.join(row)}\n"
-        if not len(sorted_day):
-            row = ['.'] * (numpoints + 1)
-            if show_current:
-                row[current] = '|'
-        if show_current:
-            tickrow = tickrow.replace('v', '^')
-            ss += f"{' '*stroff}{''.join(row)}\n"
-        ss += f"{tickrow}\n{trow['LST']['labels']}"
-        return ss
+            rowhdr.append([indmap[i], getattr(entry, header_col)])
+        if not len(rowhdr):
+            rowhdr = [None]
+        self.calgraph.ticks_labels(tz, location=self.location.loc, rowhdr=rowhdr)
+
+        if len(sorted_day):
+            for i, entry in enumerate(sorted_day):
+                self.calgraph.row(entry.utc_start, entry.utc_stop)
+        else:
+            self.calgraph.row()
+
+        return self.calgraph.make_table()
 
     def check_kwargs(self, kwargs):
         try:
@@ -485,7 +424,7 @@ class Calendar:
             utc_start = self.get_utc_from_lst(lst_start, utc_start)
             utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
             if utc_stop < utc_start:
-                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(DAYSEC, format='sec'))
+                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(times.DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         kwargs['location'] = kwargs['location'] if 'location' in kwargs else 'ata'
         kwargs['recurring'] = kwargs['recurring'] if 'recurring' in kwargs else []

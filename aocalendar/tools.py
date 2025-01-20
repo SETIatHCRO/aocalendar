@@ -19,9 +19,6 @@ def determine_path(path, fileinfo=None):
             path = dn
     return '' if path is None else path
 
-def cursor_position_t(t1, t2, T, N, func):
-    dt = (t2 - t1).to('day').value
-    return int(func( (dt/T) * N) )
 
 def boolcheck(x):
     try:

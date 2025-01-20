@@ -3,12 +3,113 @@
 # Licensed under the MIT license.
 
 from astropy.time import Time, TimeDelta
+import astropy.units as u
+from astropy.coordinates import Angle
 from zoneinfo import available_timezones, ZoneInfo, ZoneInfoNotFoundError
-from datetime import datetime
+from datetime import datetime, timedelta
+from numpy import argmin, round, ceil, floor
 
 
 INTERPRETABLE_DATES = ['now', 'current', 'today', 'yesterday', 'tomorrow']
+DAYSEC = 24 * 3600
+SIDEREAL_RATE = 23.93447
 
+class Graph:
+    def __init__(self, title="Graph"):
+        self.title = title
+
+    def setup(self, start, dt_min=10.0, duration_days=1.0):
+        daystart = interp_date(interp_date(start, '%Y-%m-%d'), fmt='Time')
+        self.start = Time(daystart.datetime.replace(hour=daystart.datetime.hour))
+        self.end = self.start + TimeDelta(duration_days * DAYSEC, format='sec')
+        self.T = duration_days
+        self.N = int(DAYSEC / (dt_min * 60.0)) + 1
+        self.N_calc = int(DAYSEC / 60) + 1
+
+    def ticks_labels(self, tz, location, rowhdr, int_hr=2):
+        self.rowhdr = rowhdr
+        self.rows = []
+        self.current = self.cursor_position_t(interp_date('now', fmt='Time'), round)
+        self.show_current = self.current > -1 and self.current <= self.N
+        tz, tzoff = get_tz(tz, self.start)
+        utc_t = Time([self.start + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 26, int_hr)])
+        self.lst = utc_t.sidereal_time('mean', longitude=location)
+        lstday = argmin(self.lst[:-1])
+        lsteq = datetime(year=self.start.datetime.year, month=self.start.datetime.month, day=self.start.datetime.day,
+                         hour=int(self.lst[0].hms.h), minute=int(self.lst[0].hms.m), second=int(self.lst[0].hms.s))
+        if lstday: lsteq = lsteq - timedelta(days=1)
+        elapsed = TimeDelta(((utc_t - utc_t[0]).to('second').value) * (1.0 - SIDEREAL_RATE/24.0), format='sec')
+        lsts = Time([Time(lsteq.replace(minute=0, second=0, microsecond=0)) + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 27, int_hr)])
+        lstoff = (Time(lsteq) - lsts[0]) - elapsed
+        utcs = utc_t - TimeDelta(lstoff, format='sec')
+        self.tzinfo = {'UTC': 0.0, tz: tzoff, 'LST': lstoff}
+        self.ticks = {'UTC': {'utc': utc_t,
+                              'times': utc_t,
+                              'current': 'v'},
+                      tz:    {'utc': utc_t,
+                              'times': utc_t + TimeDelta(self.tzinfo[tz] * 3600.0, format='sec'),
+                              'current': 'v'},
+                      'LST': {'utc': utcs,
+                              'times': lsts,
+                              'current': '^'}}
+        for tz_tz in self.tzinfo:
+            self.ticks[tz_tz]['labels'] = [' '] * (self.N + 5)
+            self.ticks[tz_tz]['ticks'] =[' '] * (self.N + 3)
+            for i, utc in enumerate(utc_t):
+                toff = self.cursor_position_t(self.ticks[tz_tz]['utc'][i], func=round)
+                if toff < 0 or toff > self.N:
+                    continue
+                self.ticks[tz_tz]['ticks'][toff] = '|'
+                try:
+                    t = f"{self.ticks[tz_tz]['times'][i].datetime.hour}"
+                except IndexError:
+                    continue
+                for j in range(len(t)):
+                    self.ticks[tz_tz]['labels'][toff+j] = t[j]
+            if self.show_current:
+                self.ticks[tz_tz]['ticks'][self.current] = self.ticks[tz_tz]['current']
+
+    def cursor_position_t(self, t, func):
+        dt = (t - self.start).to('day').value
+        return int(func( (dt/self.T) * self.N) )
+
+    def row(self, estart=None, estop=None):
+        row = ['.'] * (self.N + 1)
+        if estart is None or estop is None:
+            pass
+        else:
+            if estart < self.start:
+                starting = 0
+            else:
+                starting = self.cursor_position_t(estart, func=floor)
+            if estop > self.end:
+                ending = self.N
+            else:
+                ending = self.cursor_position_t(estop, func=ceil)
+            for star in range(starting, ending):
+                try:
+                    row[star] = '*'
+                except IndexError:
+                    pass
+        if self.show_current:
+            row[self.current] = '|'
+        self.rows.append(row)
+
+    def make_table(self):
+        import tabulate
+        tabulate.PRESERVE_WHITESPACE = True
+        table = []
+        for tz_tz in self.tzinfo:
+            if tz_tz == 'LST': continue
+            table.append([' ', tz_tz, ''.join(self.ticks[tz_tz]['labels'])])
+        table.append([' ', ' ', ''.join(self.ticks['UTC']['ticks'])])
+        for i, row in enumerate(self.rows):
+            srh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][1]
+            enh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][0]
+            table.append([enh, srh, ''.join(row)])
+        table.append([' ', ' ', ''.join(self.ticks['LST']['ticks'])])
+        table.append([' ', 'LST', ''.join(self.ticks['LST']['labels'])])
+        return tabulate.tabulate(table, tablefmt='plain', colalign=('right', 'right', 'left'))
 
 def all_timezones():
     """
@@ -46,17 +147,14 @@ def get_tz(tz='sys', dt=None):
     Returns tz_name, offset_hours
 
     """
+    if dt is None:
+        dt = datetime.now()
+    elif isinstance(dt, Time):
+        dt = dt.datetime
     if tz == 'sys':
-        import time
-        if dt is None:
-            local_time = time.localtime()
-        else:
-            local_time = dt.timetuple()
-            if local_time.tm_gmtoff is None:
-                print("WARNING - No timezone set, using system 'now'")
-                local_time = time.localtime()
-        tz = time.tzname[local_time.tm_isdst]
-        tzoff = local_time.tm_gmtoff / 3600.0
+        tzinfo = dt.astimezone().tzinfo
+        tz = tzinfo.tzname(dt)
+        tzoff = tzinfo.utcoffset(dt).total_seconds()/3600.0
         return tz, tzoff
     timezones, tz_offsets = all_timezones()
     if tz in tz_offsets:
