@@ -15,12 +15,12 @@ ENTRY_FIELDS = {'program': "program",
                 'observer': '',
                 'email': '',
                 'note': '',
-                'state': 'primary', 
+                'commensal': 'primary', 
                 'recurring': [], 
                 'location': 'ata',
                 'event_id': 'AOC'}
-SHORT_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'state']
-UNIQUE_HASH_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'state']
+SHORT_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'lst_start', 'lst_stop', 'observer', 'commensal']
+UNIQUE_HASH_LIST = ['program', 'pid', 'utc_start', 'utc_stop', 'observer', 'note', 'commensal']
 WEB_COMPARE_HASH_LIST = ['program', 'utc_start', 'utc_stop']
 META_FIELDS = ['created', 'modified']
 
@@ -140,7 +140,7 @@ class Entry:
                 self.valid = False
                 self.msg.append(f"Invalid {key} - {getattr(self, key)}")
         is_ok = 0
-        for key in ['program', 'observer', 'note', 'state']:
+        for key in ['program', 'observer', 'note', 'commensal']:
             this_attr = getattr(self, key)
             if this_attr is not None and len(this_attr):
                 is_ok += 1

@@ -194,9 +194,9 @@ class AOCalendarApp(tkinter.Tk):
         info_text_t.insert(0, entry_title)
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
         table(self.frame_table, header=header, data=entry_list, width=width, start=1)
-        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
-        info_text_g.insert(tkinter.INSERT, entry_graph)
+        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, height=15, yscrollcommand=True)
         info_text_g.grid(row=0, column=0)
+        info_text_g.insert(tkinter.INSERT, entry_graph)
 
     def submit(self):
         if self.aoc_action == 'delete':
@@ -206,7 +206,7 @@ class AOCalendarApp(tkinter.Tk):
             kwargs = {
                 'program': self.program_entry.get().strip(),
                 'pid': self.pid_entry.get().strip(),
-                'state': self.state_entry.get().strip(),
+                'commensal': self.commensal_entry.get().strip(),
                 'note': self.note_entry.get().strip(),
                 'observer': self.obs_entry.get().strip(),
                 'email': self.email_entry.get().strip()
@@ -297,8 +297,8 @@ class AOCalendarApp(tkinter.Tk):
             self.duration_entry = self.label_event(1, 2, 'Duration (hr)', '12')
             self.ra_entry = self.label_event(2, 0, 'RA', '')
             self.dec_entry = self.label_event(2, 2, 'Dec', '')
-        # Row 3 - state/note
-        self.state_entry = self.label_event(3, 0, 'State', 'primary')
+        # Row 3 - commensal/note
+        self.commensal_entry = self.label_event(3, 0, 'State', 'primary')
         self.note_entry = self.label_event(3, 2, 'Note', '')
         # Row 4 - observer/email
         self.obs_entry = self.label_event(4, 0, 'Observer', '')
