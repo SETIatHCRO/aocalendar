@@ -31,7 +31,6 @@ class Graph:
         self.rows = []
         self.current = self.cursor_position_t(interp_date('now', fmt='Time'), round)
         self.show_current = self.current > -1 and self.current <= self.N
-        tz, tzoff = get_tz(tz, self.start)
         utc_t = Time([self.start + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 26, int_hr)])
         self.lst = utc_t.sidereal_time('mean', longitude=location)
         lstday = argmin(self.lst[:-1])
@@ -39,19 +38,24 @@ class Graph:
                          hour=int(self.lst[0].hms.h), minute=int(self.lst[0].hms.m), second=int(self.lst[0].hms.s))
         if lstday: lsteq = lsteq - timedelta(days=1)
         elapsed = TimeDelta(((utc_t - utc_t[0]).to('second').value) * (1.0 - SIDEREAL_RATE/24.0), format='sec')
-        lsts = Time([Time(lsteq.replace(minute=0, second=0, microsecond=0)) + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 27, int_hr)])
-        lstoff = (Time(lsteq) - lsts[0]) - elapsed
-        utcs = utc_t - TimeDelta(lstoff, format='sec')
-        self.tzinfo = {'UTC': 0.0, tz: tzoff, 'LST': lstoff}
+        lst_l = Time([Time(lsteq.replace(minute=0, second=0, microsecond=0)) + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 27, int_hr)])
+        lstoff = (Time(lsteq) - lst_l[0]) - elapsed
+        utc_l = utc_t - TimeDelta(lstoff, format='sec')
+        self.tzorder = ['UTC', 'LST']
+        self.tzinfo = {'UTC': 0.0, 'LST': lstoff}
         self.ticks = {'UTC': {'utc': utc_t,
                               'times': utc_t,
                               'current': 'v'},
-                      tz:    {'utc': utc_t,
-                              'times': utc_t + TimeDelta(self.tzinfo[tz] * 3600.0, format='sec'),
-                              'current': 'v'},
-                      'LST': {'utc': utcs,
-                              'times': lsts,
+                      'LST': {'utc': utc_l,
+                              'times': lst_l,
                               'current': '^'}}
+        if tz != 'UTC':
+            tz, tzoff = get_tz(tz, self.start)
+            self.tzorder = ['UTC', tz, 'LST']
+            self.tzinfo[tz] = tzoff
+            self.ticks[tz] = {'utc': utc_t,
+                              'times': utc_t + TimeDelta(self.tzinfo[tz] * 3600.0, format='sec'),
+                              'current': 'v'}
         for tz_tz in self.tzinfo:
             self.ticks[tz_tz]['labels'] = [' '] * (self.N + 5)
             self.ticks[tz_tz]['ticks'] =[' '] * (self.N + 3)
@@ -99,7 +103,7 @@ class Graph:
         import tabulate
         tabulate.PRESERVE_WHITESPACE = True
         table = []
-        for tz_tz in self.tzinfo:
+        for tz_tz in self.tzorder:
             if tz_tz == 'LST': continue
             table.append([' ', tz_tz, ''.join(self.ticks[tz_tz]['labels'])])
         table.append([' ', ' ', ''.join(self.ticks['UTC']['ticks'])])
