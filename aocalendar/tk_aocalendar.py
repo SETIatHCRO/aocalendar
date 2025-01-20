@@ -15,13 +15,28 @@ logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
 
 
+def table(frame, header, data, start=0, width=10, fg='black', bg='white'):
+    if isinstance(width, int):
+        width = [width] * len(data[0])
+    if len(header):
+        for j, h in enumerate(header):
+            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=('Arial', 12, 'bold'))
+            entry.grid(row=start, column=j)
+            entry.insert(tkinter.END, h)
+    for i, this_row in enumerate(data):
+        for j, this_entry in enumerate(this_row):
+            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=('Arial', 12))
+            entry.grid(row=i+start+1, column=j)
+            entry.insert(tkinter.END, this_entry)
+
+
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
         self.title("Allen Telescope Array Observing Calendar")
 
         # Set window size to 1200x900
-        self.geometry("900x820")
+        #self.geometry("1000x820")
         self.resizable(0, 0)
 
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
@@ -38,19 +53,22 @@ class AOCalendarApp(tkinter.Tk):
         self.schedule_by = 'utc'
 
         # Create all of the frames
-        self.frame_calendar = tkinter.Frame(self, height=50)
+        self.frame_calendar = tkinter.Frame(self)
         self.frame_calendar.grid(row=0, column=0)
-        self.frame_buttons = tkinter.Frame(self, height=50)
+        self.frame_buttons = tkinter.Frame(self)
         self.frame_buttons.grid(row=0, column=1)   
-        self.frame_info = tkinter.Frame(self, height=50, borderwidth=2, relief='groove')
-        self.frame_info.grid(row=1, column=0, columnspan=2)
-        self.frame_update = tkinter.Frame(self, height=50)
-        self.frame_update.grid(row=2, column=0, columnspan=2)
+        self.frame_table = tkinter.Frame(self, borderwidth=2, relief='groove')
+        self.frame_table.grid(row=1, column=0, columnspan=2)
+        self.frame_graph = tkinter.Frame(self, borderwidth=2, relief='groove')
+        self.frame_graph.grid(row=2, column=0, columnspan=2)
+        self.frame_update = tkinter.Frame(self)
+        self.frame_update.grid(row=3, column=0, columnspan=2)
 
         # Layout all of the frames 4 rows, 1 column
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
+        self.rowconfigure(3, weight=1)
         self.columnconfigure(0, weight=2)
         self.columnconfigure(1, weight=1)
 
@@ -60,7 +78,7 @@ class AOCalendarApp(tkinter.Tk):
                               showothermonthdays=False)
         self.tkcal.grid(row=0, column=0)
 
-        for day, events in self.this_cal.events.items():
+        for _, events in self.this_cal.events.items():
             for event in events:
                 label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
@@ -91,7 +109,7 @@ class AOCalendarApp(tkinter.Tk):
         self.deleted_event_id = False
 
         # Info
-        info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
+        info_text = tkinter.Text(self.frame_table, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
         info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
         info_text.grid(row=0, column=0)
         self.show_date(self.aoc_day)        
@@ -106,7 +124,7 @@ class AOCalendarApp(tkinter.Tk):
                 bg = 'red'
                 text = f"ODS not active."
             self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
-            self.ods_label.grid(row=1, column=0, pady=8)
+            self.ods_label.grid(row=1, column=0)
         self.show_date(self.aoc_day)
         self.after(60000, self.tk_update)
 
@@ -152,8 +170,10 @@ class AOCalendarApp(tkinter.Tk):
         self.teardown_frame_update()
 
     def show_date(self, dateinp=None):
-        """Show date in frame_info."""
-        for widget in self.frame_info.winfo_children():
+        """Show date in frame_table/frame_graph"""
+        for widget in self.frame_table.winfo_children():
+            widget.destroy()
+        for widget in self.frame_graph.winfo_children():
             widget.destroy()
         if str(dateinp)[0] == '<' or dateinp is None:
             mdy = self.tkcal.get_date()
@@ -162,20 +182,21 @@ class AOCalendarApp(tkinter.Tk):
         else:
             self.aoc_day = times.truncate_to_day(dateinp)
             self.tkcal.selection_set(self.aoc_day)
-        entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}" + '\n\n'
+        entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}"
         try:
-            entry_list = self.this_cal.list_day_events(self.aoc_day, return_as='table') + '\n\n'
+            entry_list, header = self.this_cal.list_day_events(self.aoc_day, return_as='list')
             entry_graph = self.this_cal.graph_day_events(self.aoc_day, tz='US/Pacific', interval_min=15.0, return_anyway=True)
         except KeyError:
             entry_list = "No entry."
             entry_graph = ''
-        info_text = tkinter.Text(self.frame_info, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
-        info_text.grid(row=0, column=0)
-        info_text.insert(tkinter.INSERT, entry_title)
-        info_text.grid(row=1, column=0)
-        info_text.insert(tkinter.INSERT, entry_list)
-        info_text.grid(row=2, column=0, pady=6)
-        info_text.insert(tkinter.INSERT, entry_graph)
+        info_text_t = tkinter.Entry(self.frame_table, width=60, justify='center')
+        info_text_t.grid(row=0, column=0, columnspan=9)
+        info_text_t.insert(0, entry_title)
+        width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
+        table(self.frame_table, header=header, data=entry_list, width=width, start=1)
+        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
+        info_text_g.insert(tkinter.INSERT, entry_graph)
+        info_text_g.grid(row=0, column=0)
 
     def submit(self):
         if self.aoc_action == 'delete':
