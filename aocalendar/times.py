@@ -23,8 +23,8 @@ class Graph:
         self.start = Time(daystart.datetime.replace(hour=daystart.datetime.hour))
         self.end = self.start + TimeDelta(duration_days * DAYSEC, format='sec')
         self.T = duration_days
-        self.N = int(DAYSEC / (dt_min * 60.0)) + 1
-        self.N_calc = int(DAYSEC / 60) + 1
+        self.N = int(self.T * DAYSEC / (dt_min * 60.0)) + 1
+        # self.N_calc = int(DAYSEC / 60) + 1
 
     def ticks_labels(self, tz, location, rowhdr, int_hr=2):
         self.rowhdr = rowhdr
