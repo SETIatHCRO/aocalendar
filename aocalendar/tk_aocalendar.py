@@ -194,7 +194,8 @@ class AOCalendarApp(tkinter.Tk):
         info_text_t.insert(0, entry_title)
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
         table(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=11)
-        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, height=15, yscrollcommand=True)
+        font = 'Courier New'
+        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, height=15, yscrollcommand=True, font=(font, 12))
         info_text_g.grid(row=0, column=0)
         info_text_g.insert(tkinter.INSERT, entry_graph)
 
