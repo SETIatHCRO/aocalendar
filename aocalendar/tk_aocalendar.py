@@ -109,9 +109,6 @@ class AOCalendarApp(tkinter.Tk):
         self.deleted_event_id = False
 
         # Info
-        info_text = tkinter.Text(self.frame_table, borderwidth=2, relief='groove', width=130, yscrollcommand=True)
-        info_text.insert(tkinter.INSERT, f"CALENDAR DATE INFORMATION: {self.this_cal.calfile_fullpath}")
-        info_text.grid(row=0, column=0)
         self.show_date(self.aoc_day)        
 
     def tk_update(self):
@@ -195,7 +192,8 @@ class AOCalendarApp(tkinter.Tk):
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
         table(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=12)
         font = 'Courier New'
-        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, height=15, yscrollcommand=True, font=(font, 12))
+        width = max([len(x.strip()) for x in entry_graph.splitlines()]) + 8
+        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=width, height=15, yscrollcommand=True, font=(font, 12))
         info_text_g.grid(row=0, column=0)
         info_text_g.insert(tkinter.INSERT, entry_graph)
 
