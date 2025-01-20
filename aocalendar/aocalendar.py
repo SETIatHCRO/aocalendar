@@ -397,7 +397,7 @@ class Calendar:
             stroff = max([len(getattr(x, header_col)) for x in sorted_day])  # This is max program
             colhdr = [f"{cbuflt*' '}{indmap[i]:>{cbufind-1}d}-{getattr(x, header_col):{stroff}s}{cbufrt*' '}" for i, x in enumerate(sorted_day)]
         else:
-            stroff = 15
+            stroff = 8
             colhdr = []
         stroff += (cbuflt + cbufind + cbufrt)  # Now add the extra
 
