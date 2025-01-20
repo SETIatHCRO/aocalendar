@@ -15,17 +15,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
 
 
-def table(frame, header, data, start=0, width=10, fg='black', bg='white'):
+def table(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
     if isinstance(width, int):
         width = [width] * len(data[0])
     if len(header):
         for j, h in enumerate(header):
-            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=('Arial', 12, 'bold'))
+            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=(font, fontsize, 'bold'))
             entry.grid(row=start, column=j)
             entry.insert(tkinter.END, h)
     for i, this_row in enumerate(data):
         for j, this_entry in enumerate(this_row):
-            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=('Arial', 12))
+            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=(font, fontsize))
             entry.grid(row=i+start+1, column=j)
             entry.insert(tkinter.END, this_entry)
 
@@ -189,11 +189,11 @@ class AOCalendarApp(tkinter.Tk):
         except KeyError:
             entry_list = "No entry."
             entry_graph = ''
-        info_text_t = tkinter.Entry(self.frame_table, width=60, justify='center')
+        info_text_t = tkinter.Entry(self.frame_table, width=len(entry_title), justify='center', font=('Arial', 12, 'bold'))
         info_text_t.grid(row=0, column=0, columnspan=9)
         info_text_t.insert(0, entry_title)
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
-        table(self.frame_table, header=header, data=entry_list, width=width, start=1)
+        table(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=11)
         info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=130, height=15, yscrollcommand=True)
         info_text_g.grid(row=0, column=0)
         info_text_g.insert(tkinter.INSERT, entry_graph)
