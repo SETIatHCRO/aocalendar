@@ -49,29 +49,29 @@ class Graph:
                       'LST': {'utc': utc_l,
                               'times': lst_l,
                               'current': '^'}}
-        if tz != 'UTC':
+        if tz.upper() != 'UTC':
             tz, tzoff = get_tz(tz, self.start)
             self.tzorder = ['UTC', tz, 'LST']
             self.tzinfo[tz] = tzoff
             self.ticks[tz] = {'utc': utc_t,
                               'times': utc_t + TimeDelta(self.tzinfo[tz] * 3600.0, format='sec'),
                               'current': 'v'}
-        for tz_tz in self.tzinfo:
-            self.ticks[tz_tz]['labels'] = [' '] * (self.N + 5)
-            self.ticks[tz_tz]['ticks'] =[' '] * (self.N + 3)
+        for this_tz in self.tzinfo:
+            self.ticks[this_tz]['labels'] = [' '] * (self.N + 5)
+            self.ticks[this_tz]['ticks'] =[' '] * (self.N + 3)
             for i, utc in enumerate(utc_t):
-                toff = self.cursor_position_t(self.ticks[tz_tz]['utc'][i], func=round)
+                toff = self.cursor_position_t(self.ticks[this_tz]['utc'][i], func=round)
                 if toff < 0 or toff > self.N:
                     continue
-                self.ticks[tz_tz]['ticks'][toff] = '|'
+                self.ticks[this_tz]['ticks'][toff] = '|'
                 try:
-                    t = f"{self.ticks[tz_tz]['times'][i].datetime.hour}"
+                    t = f"{self.ticks[this_tz]['times'][i].datetime.hour}"
                 except IndexError:
                     continue
                 for j in range(len(t)):
-                    self.ticks[tz_tz]['labels'][toff+j] = t[j]
+                    self.ticks[this_tz]['labels'][toff+j] = t[j]
             if self.show_current:
-                self.ticks[tz_tz]['ticks'][self.current] = self.ticks[tz_tz]['current']
+                self.ticks[this_tz]['ticks'][self.current] = self.ticks[this_tz]['current']
 
     def cursor_position_t(self, t, func):
         dt = (t - self.start).to('day').value
@@ -82,19 +82,10 @@ class Graph:
         if estart is None or estop is None:
             pass
         else:
-            if estart < self.start:
-                starting = 0
-            else:
-                starting = self.cursor_position_t(estart, func=floor)
-            if estop > self.end:
-                ending = self.N
-            else:
-                ending = self.cursor_position_t(estop, func=ceil)
+            starting = 0 if estart < self.start else self.cursor_position_t(estart, func=floor)
+            ending = self.N if estop > self.end else self.cursor_position_t(estop, func=ceil)
             for star in range(starting, ending):
-                try:
-                    row[star] = '*'
-                except IndexError:
-                    pass
+                row[star] = '*'
         if self.show_current:
             row[self.current] = '|'
         self.rows.append(row)
@@ -103,9 +94,9 @@ class Graph:
         import tabulate
         tabulate.PRESERVE_WHITESPACE = True
         table = []
-        for tz_tz in self.tzorder:
-            if tz_tz == 'LST': continue
-            table.append([' ', tz_tz, ''.join(self.ticks[tz_tz]['labels'])])
+        for this_tz in self.tzorder:
+            if this_tz == 'LST': continue
+            table.append([' ', this_tz, ''.join(self.ticks[this_tz]['labels'])])
         table.append([' ', ' ', ''.join(self.ticks['UTC']['ticks'])])
         for i, row in enumerate(self.rows):
             srh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][1]
