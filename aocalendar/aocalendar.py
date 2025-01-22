@@ -96,6 +96,7 @@ class Calendar:
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.ods = None
+        self.most_recent_event = None
         self.calgraph = times.Graph('AOCalendar Graph')
 
     def start_ods(self):
