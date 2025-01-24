@@ -153,6 +153,19 @@ class AOCalendarApp(tkinter.Tk):
             self.google_calendar = google_calendar_sync.SyncCal()
             self.google_calendar.sequence(update_google_calendar=False)
 
+    def update_clock(self):
+        lbl = tkinter.Label(self.frame_buttons, text='UTC', width=10)
+        lbl.grid(row=6, column=0)
+        utc_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        utc_clock.grid(row=7, column=0)
+        utc_clock.insert(tkinter.END, 'utc')
+
+        lbl = tkinter.Label(self.frame_buttons, text='LST', width=10)
+        lbl.grid(row=6, column=1)
+        lst_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        lst_clock.grid(row=7, column=1)
+        lst_clock.insert(tkinter.END, 'lst')
+
     def goto_today(self):
         self.show_date('now')
 
@@ -165,12 +178,13 @@ class AOCalendarApp(tkinter.Tk):
                 label = f"{event.program}:{event.pid}"
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
 
-    def teardown_frame_update(self):
-        # for widget in self.frame_update.winfo_children():
-        #     widget.destroy()
-        self.frame_update.destroy()
-        self.frame_update = tkinter.Frame(self)
-        self.frame_update.grid(row=3, column=0, columnspan=2)
+    def teardown_frame(self, frame):
+        for widget in frame.winfo_children():
+            widget.destroy()
+    def rebuild_frame(self, frame, row, column, columnspan=1, borderwidth=2, relief='groove'):
+        frame.destroy()
+        frame = tkinter.Frame(self, borderwidth=borderwidth, relief=relief)
+        frame.grid(row=row, column=column, columnspan=columnspan)
 
     def resetFalse(self):
         self.reset(refresh_flag=False)
@@ -185,28 +199,13 @@ class AOCalendarApp(tkinter.Tk):
             self.aoc_field_defaults[key] = ''
         self.aoc_nind = 0
         self.deleted_event_id = False
-        self.teardown_frame_update()
+        self.teardown_frame(self.frame_update)
 
     def show_date(self, dateinp=None):
         """Show date in frame_table/frame_graph"""
-        lbl = tkinter.Label(self.frame_buttons, text='UTC', width=10)
-        lbl.grid(row=6, column=0)
-        utc_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
-        utc_clock.grid(row=7, column=0)
-        utc_clock.insert(tkinter.END, 'utc')
-
-        lbl = tkinter.Label(self.frame_buttons, text='LST', width=10)
-        lbl.grid(row=6, column=1)
-        lst_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
-        lst_clock.grid(row=7, column=1)
-        lst_clock.insert(tkinter.END, 'lst')
-
-        self.frame_table.destroy()
-        self.frame_table = tkinter.Frame(self, borderwidth=2, relief='groove')
-        self.frame_table.grid(row=1, column=0, columnspan=2)
-        self.frame_graph.destroy()
-        self.frame_graph = tkinter.Frame(self, borderwidth=2, relief='groove')
-        self.frame_graph.grid(row=2, column=0, columnspan=2)
+        self.update_clock()
+        #self.rebuild_frame(self.frame_table, row=1, column=0, columnspan=2, borderwidth=2, relief='groove')
+        #self.rebuild_frame(self.frame_graph, row=2, column=0, columnspan=2, borderwidth=2, relief='groove')
         if str(dateinp)[0] == '<' or dateinp is None:
             mdy = self.tkcal.get_date()
             m,d,y = mdy.split('/')
@@ -348,15 +347,15 @@ class AOCalendarApp(tkinter.Tk):
         cancel_button.grid(row=5, column=3)
 
     def schedule_by_utc(self):
-        self.teardown_frame_update()
+        self.teardown_frame(self.frame_update)
         self.schedule_by = 'utc'
         self.event_fields('Add')
     def schedule_by_lst(self):
-        self.teardown_frame_update()
+        self.teardown_frame(self.frame_update)
         self.schedule_by = 'lst'
         self.event_fields('Add')
     def schedule_by_src(self):
-        self.teardown_frame_update()
+        self.teardown_frame(self.frame_update)
         self.schedule_by = 'source'
         self.event_fields('Add')
 
