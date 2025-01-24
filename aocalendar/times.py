@@ -31,7 +31,7 @@ class Graph:
         self.rows = []
         self.current = self.cursor_position_t(interp_date('now', fmt='Time'), round)
         self.show_current = self.current > -1 and self.current <= self.N
-        utc_t = Time([self.start + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 26, int_hr)])
+        utc_t = Time([self.start + TimeDelta(int(x)*3600.0, format='sec') for x in range(0, 26, int_hr)], scale='utc')
         self.lst = utc_t.sidereal_time('mean', longitude=location)
         lstday = argmin(self.lst[:-1])
         lsteq = datetime(year=self.start.datetime.year, month=self.start.datetime.month, day=self.start.datetime.day,
@@ -58,6 +58,7 @@ class Graph:
                               'current': 'v'}
         for this_tz in self.tzinfo:
             self.ticks[this_tz]['labels'] = [' '] * (self.N + 5)
+            self.ticks[this_tz]['labels_as_list'] = [' '] * (self.N + 1)
             self.ticks[this_tz]['ticks'] =[' '] * (self.N + 3)
             for i, utc in enumerate(utc_t):
                 toff = self.cursor_position_t(self.ticks[this_tz]['utc'][i], func=round)
@@ -68,6 +69,7 @@ class Graph:
                     t = f"{self.ticks[this_tz]['times'][i].datetime.hour}"
                 except IndexError:
                     continue
+                self.ticks[this_tz]['labels_as_list'][toff] = t
                 for j in range(len(t)):
                     self.ticks[this_tz]['labels'][toff+j] = t[j]
             if self.show_current:
@@ -87,22 +89,32 @@ class Graph:
             for star in range(starting, ending):
                 row[star] = '*'
         if self.show_current:
-            row[self.current] = '|'
+            row[self.current] = '@'
         self.rows.append(row)
 
     def make_table(self):
         import tabulate
         tabulate.PRESERVE_WHITESPACE = True
+        if self.rowhdr is None or self.rowhdr[0] is None:
+            maxrhdr = 4
+        else:
+            maxrhdr = max([len(x[1]) for x in self.rowhdr])
+        self.g_info = {'width': [2, maxrhdr] + [1] * self.N, 'rows': []}
         table = []
         for this_tz in self.tzorder:
             if this_tz == 'LST': continue
+            self.g_info['rows'].append([' ', this_tz] + self.ticks[this_tz]['labels'])
             table.append([' ', this_tz, ''.join(self.ticks[this_tz]['labels'])])
+        self.g_info['rows'].append([' ', ' '] + self.ticks['UTC']['ticks'])
         table.append([' ', ' ', ''.join(self.ticks['UTC']['ticks'])])
         for i, row in enumerate(self.rows):
             srh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][1]
             enh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][0]
+            self.g_info['rows'].append([enh, srh] + row)
             table.append([enh, srh, ''.join(row)])
+        self.g_info['rows'].append([' ', ' '] + self.ticks['LST']['ticks'])
         table.append([' ', ' ', ''.join(self.ticks['LST']['ticks'])])
+        self.g_info['rows'].append([' ', 'LST'] + self.ticks['LST']['labels'])
         table.append([' ', 'LST', ''.join(self.ticks['LST']['labels'])])
         return tabulate.tabulate(table, tablefmt='plain', colalign=('right', 'right', 'left'))
 

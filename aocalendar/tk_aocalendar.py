@@ -10,13 +10,14 @@ import logging
 from datetime import datetime
 from copy import copy
 
+UPDATE_TK = 300000
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
 
 
-def table(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
-    if isinstance(width, int):
+def etable(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
+    if isinstance(width, int) and isinstance(data, list):
         width = [width] * len(data[0])
     if len(header):
         for j, h in enumerate(header):
@@ -29,6 +30,22 @@ def table(frame, header, data, start=0, width=10, fg='black', bg='white', font='
             entry.grid(row=i+start+1, column=j)
             entry.insert(tkinter.END, this_entry)
 
+def egraph(frame, header, data, fg='black', font='Arial', fontsize=10):
+    bgclr = {'v': 'red', '^': 'red', '@': 'red', '.': 'grey', '*': 'blue', ' ': 'white'}
+    #maxline = max([len(x) for x in data.rows])
+    maxline = data.N + 4
+    for i in range(len(data.g_info['rows'])):
+        for j in range(maxline):
+            try:
+                this_char = data.g_info['rows'][i][j]
+                this_width = data.g_info['width'][j]
+            except IndexError:
+                this_char, this_width = ' ', 1
+            bg = bgclr[this_char] if this_char in bgclr else 'white'
+            if bg == 'red': this_char = ' '
+            entry = tkinter.Entry(frame, fg=fg, bg=bg, width=this_width, font=(font, fontsize), borderwidth=0, highlightthickness=0, justify='right')
+            entry.grid(row=i, column=j)
+            entry.insert(tkinter.END, this_char)
 
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
@@ -89,7 +106,7 @@ class AOCalendarApp(tkinter.Tk):
             self.this_cal.start_ods()
         self.tk_update()
 
-        # Buttons/checkbox
+        # Buttons/checkbox/clock
         today_button = tkinter.Button(self.frame_buttons, text = "Today", width=12, command = self.goto_today)
         today_button.grid(row=0, column=0)
         rst_button = tkinter.Button(self.frame_buttons, text = "Reset", width=12, command = self.resetTrue)
@@ -123,7 +140,8 @@ class AOCalendarApp(tkinter.Tk):
             self.ods_label = tkinter.Label(self.frame_calendar, text=text, bg=bg, width=20)
             self.ods_label.grid(row=1, column=0)
         self.show_date(self.aoc_day)
-        self.after(60000, self.tk_update)
+        self.update_idletasks()
+        self.after(UPDATE_TK, self.tk_update)
 
     def google_calendar_button_toggle(self):
         self.google_calendar_linked = self.chk_var.get()
@@ -148,8 +166,11 @@ class AOCalendarApp(tkinter.Tk):
                 self.tkcal.calevent_create(event.utc_start.datetime, label, 'obs')
 
     def teardown_frame_update(self):
-        for widget in self.frame_update.winfo_children():
-            widget.destroy()
+        # for widget in self.frame_update.winfo_children():
+        #     widget.destroy()
+        self.frame_update.destroy()
+        self.frame_update = tkinter.Frame(self)
+        self.frame_update.grid(row=3, column=0, columnspan=2)
 
     def resetFalse(self):
         self.reset(refresh_flag=False)
@@ -168,10 +189,24 @@ class AOCalendarApp(tkinter.Tk):
 
     def show_date(self, dateinp=None):
         """Show date in frame_table/frame_graph"""
-        for widget in self.frame_table.winfo_children():
-            widget.destroy()
-        for widget in self.frame_graph.winfo_children():
-            widget.destroy()
+        lbl = tkinter.Label(self.frame_buttons, text='UTC', width=10)
+        lbl.grid(row=6, column=0)
+        utc_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        utc_clock.grid(row=7, column=0)
+        utc_clock.insert(tkinter.END, 'utc')
+
+        lbl = tkinter.Label(self.frame_buttons, text='LST', width=10)
+        lbl.grid(row=6, column=1)
+        lst_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        lst_clock.grid(row=7, column=1)
+        lst_clock.insert(tkinter.END, 'lst')
+
+        self.frame_table.destroy()
+        self.frame_table = tkinter.Frame(self, borderwidth=2, relief='groove')
+        self.frame_table.grid(row=1, column=0, columnspan=2)
+        self.frame_graph.destroy()
+        self.frame_graph = tkinter.Frame(self, borderwidth=2, relief='groove')
+        self.frame_graph.grid(row=2, column=0, columnspan=2)
         if str(dateinp)[0] == '<' or dateinp is None:
             mdy = self.tkcal.get_date()
             m,d,y = mdy.split('/')
@@ -190,12 +225,15 @@ class AOCalendarApp(tkinter.Tk):
         info_text_t.grid(row=0, column=0, columnspan=9)
         info_text_t.insert(0, entry_title)
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
-        table(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=12)
-        font = ('Courier New', 14)
-        width = max([len(x) for x in entry_graph.splitlines()])
-        info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=width, height=12, yscrollcommand=True, font=font)
-        info_text_g.grid(row=0, column=0)
-        info_text_g.insert(tkinter.INSERT, entry_graph)
+        etable(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=12)
+        if True:
+            egraph(self.frame_graph, header=[], data=self.this_cal.calgraph, font='Arial', fontsize=10)
+        else:
+            font = ('Courier New', 14)
+            width = max([len(x) for x in entry_graph.splitlines()])
+            info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=width, height=12, yscrollcommand=True, font=font)
+            info_text_g.grid(row=0, column=0)
+            info_text_g.insert(tkinter.INSERT, entry_graph)
 
     def submit(self):
         if self.aoc_action == 'delete':
@@ -262,11 +300,11 @@ class AOCalendarApp(tkinter.Tk):
         elif self.aoc_action == 'delete' and self.deleted_event_id:
             self.google_calendar.delete_event_from_google_calendar(self.deleted_event_id)
 
-    def label_event(self, row, col, elbl, lentry):
-        lbl = tkinter.Label(self.frame_update, text=elbl, width=10, anchor='e')
+    def label_event(self, frame, row, col, elbl, lentry):
+        lbl = tkinter.Label(frame, text=elbl, width=10, anchor='e')
         lbl.grid(row=row, column=col)
         if len(elbl.strip()):
-            entry = tkinter.Entry(self.frame_update, width=20)
+            entry = tkinter.Entry(frame, width=20)
             entry.grid(row=row, column=col+1)
             entry.insert(0, lentry)
         return entry
@@ -274,8 +312,8 @@ class AOCalendarApp(tkinter.Tk):
     def event_fields(self, gobutton):
         # row 0 - program/pid
         pslbl = 'Source' if self.schedule_by == 'source' else 'Program'
-        self.program_entry = self.label_event(0, 0, pslbl, self.aoc_field_defaults['program'])
-        self.pid_entry = self.label_event(0, 2, "pid", self.aoc_field_defaults['pid'])
+        self.program_entry = self.label_event(self.frame_update, 0, 0, pslbl, self.aoc_field_defaults['program'])
+        self.pid_entry = self.label_event(self.frame_update, 0, 2, "pid", self.aoc_field_defaults['pid'])
         # row 1 - utc_start/utc_stop
         if self.aoc_action == 'add':
             addon = 'T00:00' if self.schedule_by == 'utc' else ''
@@ -286,23 +324,23 @@ class AOCalendarApp(tkinter.Tk):
             utclabel = 'UTC start'
             utcstart = self.aoc_field_defaults['utc_start'].datetime.isoformat(timespec='minutes')
             utcstop = self.aoc_field_defaults['utc_stop'].datetime.isoformat(timespec='minutes')
-        self.start_entry = self.label_event(1, 0, utclabel, utcstart)
+        self.start_entry = self.label_event(self.frame_update, 1, 0, utclabel, utcstart)
         if self.schedule_by == 'utc' or self.aoc_action == 'update':
-            self.stop_entry = self.label_event(1, 2, 'UTC stop', utcstop)
+            self.stop_entry = self.label_event(self.frame_update, 1, 2, 'UTC stop', utcstop)
         # row 2 - lst_start/lst_stop
         if self.schedule_by == 'lst':
-            self.lstart_entry = self.label_event(2, 0, 'LST start', '')
-            self.lstop_entry = self.label_event(2, 2, 'LST stop', '')
+            self.lstart_entry = self.label_event(self.frame_update, 2, 0, 'LST start', '')
+            self.lstop_entry = self.label_event(self.frame_update, 2, 2, 'LST stop', '')
         elif self.schedule_by == 'source':
-            self.duration_entry = self.label_event(1, 2, 'Duration (hr)', '12')
-            self.ra_entry = self.label_event(2, 0, 'RA', '')
-            self.dec_entry = self.label_event(2, 2, 'Dec', '')
+            self.duration_entry = self.label_event(self.frame_update, 1, 2, 'Duration (hr)', '12')
+            self.ra_entry = self.label_event(self.frame_update, 2, 0, 'RA', '')
+            self.dec_entry = self.label_event(self.frame_update, 2, 2, 'Dec', '')
         # Row 3 - commensal/note
-        self.commensal_entry = self.label_event(3, 0, 'State', 'primary')
-        self.note_entry = self.label_event(3, 2, 'Note', '')
+        self.commensal_entry = self.label_event(self.frame_update, 3, 0, 'State', 'primary')
+        self.note_entry = self.label_event(self.frame_update, 3, 2, 'Note', '')
         # Row 4 - observer/email
-        self.obs_entry = self.label_event(4, 0, 'Observer', '')
-        self.email_entry = self.label_event(4, 2, 'E-mail', '')
+        self.obs_entry = self.label_event(self.frame_update, 4, 0, 'Observer', '')
+        self.email_entry = self.label_event(self.frame_update, 4, 2, 'E-mail', '')
         # Row 5
         submit_button = tkinter.Button(self.frame_update, text=gobutton, width=10, justify=tkinter.CENTER, command=self.submit)
         submit_button.grid(row=5, column=1)
