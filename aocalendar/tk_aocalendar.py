@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from copy import copy
 
-UPDATE_TK = 300000
+UPDATE_TK = 60000
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
@@ -30,7 +30,7 @@ def etable(frame, header, data, start=0, width=10, fg='black', bg='white', font=
             entry = tkinter.Label(frame, text=this_entry, width=width[j], fg=fg, bg=bg, font=(font, fontsize), justify='left')
             entry.grid(row=i+start+1, column=j)
 
-def egraph(frame, header, data, fg='black', font='Arial', fontsize=10):
+def egraph(frame, data, fg='black', font='Arial', fontsize=10):
     bgclr = {'@': 'red', '.': 'grey', '*': 'blue', ' ': 'white'}
     for i, row in enumerate(data.tabulated.splitlines()):
         for j, this_entry in enumerate(row):
@@ -146,17 +146,20 @@ class AOCalendarApp(tkinter.Tk):
             self.google_calendar.sequence(update_google_calendar=False)
 
     def update_clock(self):
-        lbl = tkinter.Label(self.frame_buttons, text='UTC', width=10)
+        self.this_cal.get_current_time()
+        lbl = tkinter.Label(self.frame_buttons, text='UTC', width=6)
         lbl.grid(row=6, column=0)
-        utc_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        utc_clock = tkinter.Entry(self.frame_buttons, width=6, fg='black', bg='white', font=('Arial', 11), justify='center')
         utc_clock.grid(row=7, column=0)
-        utc_clock.insert(tkinter.END, 'utc')
+        utc = self.this_cal.current_time.datetime.strftime('%H:%M')
+        utc_clock.insert(tkinter.END, utc)
 
-        lbl = tkinter.Label(self.frame_buttons, text='LST', width=10)
+        lbl = tkinter.Label(self.frame_buttons, text='LST', width=6)
         lbl.grid(row=6, column=1)
-        lst_clock = tkinter.Entry(self.frame_buttons, width=10, fg='black', bg='white', font=('Arial', 11))
+        lst_clock = tkinter.Entry(self.frame_buttons, width=6, fg='black', bg='white', font=('Arial', 11), justify='center')
         lst_clock.grid(row=7, column=1)
-        lst_clock.insert(tkinter.END, 'lst')
+        lst = f"{int(self.this_cal.current_lst.hms.h):02d}:{int(self.this_cal.current_lst.hms.m):02d}"
+        lst_clock.insert(tkinter.END, lst)
 
     def goto_today(self):
         self.show_date('now')
@@ -174,9 +177,9 @@ class AOCalendarApp(tkinter.Tk):
         for widget in frame.winfo_children():
             widget.destroy()
     def rebuild_frame(self, frame, row, column, columnspan=1, borderwidth=2, relief='groove'):
-        frame.destroy()
-        frame = tkinter.Frame(self, borderwidth=borderwidth, relief=relief)
-        frame.grid(row=row, column=column, columnspan=columnspan)
+        getattr(self, frame).destroy()
+        setattr(self, frame, tkinter.Frame(self, borderwidth=borderwidth, relief=relief))
+        getattr(self, frame).grid(row=row, column=column, columnspan=columnspan)
 
     def resetFalse(self):
         self.reset(refresh_flag=False)
@@ -191,13 +194,13 @@ class AOCalendarApp(tkinter.Tk):
             self.aoc_field_defaults[key] = ''
         self.aoc_nind = 0
         self.deleted_event_id = False
-        self.teardown_frame(self.frame_update)
-
+        self.rebuild_frame('frame_update', 3, 0, 2)
+        
     def show_date(self, dateinp=None):
         """Show date in frame_table/frame_graph"""
         self.update_clock()
-        #self.rebuild_frame(self.frame_table, row=1, column=0, columnspan=2, borderwidth=2, relief='groove')
-        #self.rebuild_frame(self.frame_graph, row=2, column=0, columnspan=2, borderwidth=2, relief='groove')
+        self.rebuild_frame('frame_table', row=1, column=0, columnspan=2, borderwidth=2, relief='groove')
+        self.rebuild_frame('frame_graph', row=2, column=0, columnspan=2, borderwidth=2, relief='groove')
         if str(dateinp)[0] == '<' or dateinp is None:
             mdy = self.tkcal.get_date()
             m,d,y = mdy.split('/')
@@ -218,7 +221,7 @@ class AOCalendarApp(tkinter.Tk):
         width = [2, 18, 7, 18, 18, 10, 10, 15, 10]
         etable(self.frame_table, header=header, data=entry_list, width=width, start=1, fontsize=12)
         if True:
-            egraph(self.frame_graph, header=[], data=self.this_cal.calgraph, font='Arial', fontsize=10)
+            egraph(self.frame_graph, data=self.this_cal.calgraph, font='Arial', fontsize=10)
         else:
             font = ('Courier New', 14)
             width = max([len(x) for x in entry_graph.splitlines()])

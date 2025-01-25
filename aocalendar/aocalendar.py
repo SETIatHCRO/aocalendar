@@ -295,6 +295,10 @@ class Calendar:
                     logger.warning(f"This event ({day}:{i}) has same hash as ({oth[0]}:{oth[1]}) and will overwrite.")
                 self.hashmap[this_hash] = (day, i)
 
+    def get_current_time(self):
+        self.current_time = Time.now()
+        self.current_lst = self.current_time.sidereal_time('mean', longitude=self.location.loc)
+
     def sort_day(self, day, straddle=True):
         """
         Sort the events per day by utc_start,utc_stop.
