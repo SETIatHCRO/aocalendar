@@ -45,33 +45,26 @@ class Graph:
         self.tzinfo = {'UTC': 0.0, 'LST': lstoff}
         self.ticks = {'UTC': {'utc': utc_t,
                               'times': utc_t,
-                              'current': 'v'},
+                              'current': '@'},
                       'LST': {'utc': utc_l,
                               'times': lst_l,
-                              'current': '^'}}
+                              'current': '@'}}
         if tz.upper() != 'UTC':
             tz, tzoff = get_tz(tz, self.start)
             self.tzorder = ['UTC', tz, 'LST']
             self.tzinfo[tz] = tzoff
             self.ticks[tz] = {'utc': utc_t,
                               'times': utc_t + TimeDelta(self.tzinfo[tz] * 3600.0, format='sec'),
-                              'current': 'v'}
+                              'current': '@'}
         for this_tz in self.tzinfo:
-            self.ticks[this_tz]['labels'] = [' '] * (self.N + 5)
-            self.ticks[this_tz]['labels_as_list'] = [' '] * (self.N + 1)
-            self.ticks[this_tz]['ticks'] =[' '] * (self.N + 3)
-            for i, utc in enumerate(utc_t):
+            self.ticks[this_tz]['labels'] = [' '] * (self.N + 1)
+            self.ticks[this_tz]['ticks'] =[' '] * (self.N + 1)
+            for i in range(len(utc_t)):
                 toff = self.cursor_position_t(self.ticks[this_tz]['utc'][i], func=round)
                 if toff < 0 or toff > self.N:
                     continue
                 self.ticks[this_tz]['ticks'][toff] = '|'
-                try:
-                    t = f"{self.ticks[this_tz]['times'][i].datetime.hour}"
-                except IndexError:
-                    continue
-                self.ticks[this_tz]['labels_as_list'][toff] = t
-                for j in range(len(t)):
-                    self.ticks[this_tz]['labels'][toff+j] = t[j]
+                self.ticks[this_tz]['labels'][toff] = f"{self.ticks[this_tz]['times'][i].datetime.hour:02d}"
             if self.show_current:
                 self.ticks[this_tz]['ticks'][self.current] = self.ticks[this_tz]['current']
 
@@ -95,28 +88,27 @@ class Graph:
     def make_table(self):
         import tabulate
         tabulate.PRESERVE_WHITESPACE = True
-        if self.rowhdr is None or self.rowhdr[0] is None:
-            maxrhdr = 4
-        else:
-            maxrhdr = max([len(x[1]) for x in self.rowhdr])
-        self.g_info = {'width': [2, maxrhdr] + [1] * self.N, 'rows': []}
-        table = []
+        maxrhdr = 4 if (self.rowhdr is None or self.rowhdr[0] is None) else max([len(x[1]) for x in self.rowhdr])
+        self.g_info = {'width': [2, maxrhdr] + [1] * (self.N+1), 'rows': []}
         for this_tz in self.tzorder:
             if this_tz == 'LST': continue
             self.g_info['rows'].append([' ', this_tz] + self.ticks[this_tz]['labels'])
-            table.append([' ', this_tz, ''.join(self.ticks[this_tz]['labels'])])
         self.g_info['rows'].append([' ', ' '] + self.ticks['UTC']['ticks'])
-        table.append([' ', ' ', ''.join(self.ticks['UTC']['ticks'])])
         for i, row in enumerate(self.rows):
             srh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][1]
             enh = ' ' if self.rowhdr[i] is None else self.rowhdr[i][0]
             self.g_info['rows'].append([enh, srh] + row)
-            table.append([enh, srh, ''.join(row)])
         self.g_info['rows'].append([' ', ' '] + self.ticks['LST']['ticks'])
-        table.append([' ', ' ', ''.join(self.ticks['LST']['ticks'])])
         self.g_info['rows'].append([' ', 'LST'] + self.ticks['LST']['labels'])
-        table.append([' ', 'LST', ''.join(self.ticks['LST']['labels'])])
-        return tabulate.tabulate(table, tablefmt='plain', colalign=('right', 'right', 'left'))
+
+        table = []
+        for rowstr in self.g_info['rows']:
+            d0 = [x[0] for x in rowstr[2:]] + [' ']
+            d1 = [' '] + [x[1] if len(x) > 1 else ' ' for x in rowstr[2:]]
+            xx = [aa if aa != ' ' else bb for aa, bb in zip(d0, d1)]
+            this_row = [rowstr[0], rowstr[1], ''.join(xx)]
+            table.append(this_row)
+        self.tabulated = tabulate.tabulate(table, tablefmt='plain', colalign=('right', 'right', 'left'))
 
 def all_timezones():
     """

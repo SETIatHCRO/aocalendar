@@ -17,35 +17,27 @@ logger.setLevel('DEBUG')
 
 
 def etable(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
+    if not len(data):
+        return
     if isinstance(width, int) and isinstance(data, list):
         width = [width] * len(data[0])
     if len(header):
         for j, h in enumerate(header):
-            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=(font, fontsize, 'bold'))
+            entry = tkinter.Label(frame, text=h, width=width[j], fg=fg, bg=bg, font=(font, fontsize, 'bold'), justify='left')
             entry.grid(row=start, column=j)
-            entry.insert(tkinter.END, h)
     for i, this_row in enumerate(data):
         for j, this_entry in enumerate(this_row):
-            entry = tkinter.Entry(frame, width=width[j], fg=fg, bg=bg, font=(font, fontsize))
+            entry = tkinter.Label(frame, text=this_entry, width=width[j], fg=fg, bg=bg, font=(font, fontsize), justify='left')
             entry.grid(row=i+start+1, column=j)
-            entry.insert(tkinter.END, this_entry)
 
 def egraph(frame, header, data, fg='black', font='Arial', fontsize=10):
-    bgclr = {'v': 'red', '^': 'red', '@': 'red', '.': 'grey', '*': 'blue', ' ': 'white'}
-    #maxline = max([len(x) for x in data.rows])
-    maxline = data.N + 4
-    for i in range(len(data.g_info['rows'])):
-        for j in range(maxline):
-            try:
-                this_char = data.g_info['rows'][i][j]
-                this_width = data.g_info['width'][j]
-            except IndexError:
-                this_char, this_width = ' ', 1
-            bg = bgclr[this_char] if this_char in bgclr else 'white'
-            if bg == 'red': this_char = ' '
-            entry = tkinter.Entry(frame, fg=fg, bg=bg, width=this_width, font=(font, fontsize), borderwidth=0, highlightthickness=0, justify='right')
+    bgclr = {'@': 'red', '.': 'grey', '*': 'blue', ' ': 'white'}
+    for i, row in enumerate(data.tabulated.splitlines()):
+        for j, this_entry in enumerate(row):
+            bg = bgclr[this_entry] if this_entry in bgclr else 'white'
+            if bg == 'red': this_entry = ' '
+            entry = tkinter.Label(frame, text=this_entry, fg=fg, bg=bg, width=1, font=(font, fontsize), borderwidth=0, highlightthickness=0)
             entry.grid(row=i, column=j)
-            entry.insert(tkinter.END, this_char)
 
 class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
@@ -216,7 +208,7 @@ class AOCalendarApp(tkinter.Tk):
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}"
         try:
             entry_list, header = self.this_cal.list_day_events(self.aoc_day, return_as='list')
-            entry_graph = self.this_cal.graph_day_events(self.aoc_day, tz='US/Pacific', interval_min=15.0, return_anyway=True)
+            self.this_cal.graph_day_events(self.aoc_day, tz='US/Pacific', interval_min=15.0, return_anyway=True)
         except KeyError:
             entry_list = "No entry."
             entry_graph = ''
@@ -232,7 +224,7 @@ class AOCalendarApp(tkinter.Tk):
             width = max([len(x) for x in entry_graph.splitlines()])
             info_text_g = tkinter.Text(self.frame_graph, borderwidth=2, relief='groove', width=width, height=12, yscrollcommand=True, font=font)
             info_text_g.grid(row=0, column=0)
-            info_text_g.insert(tkinter.INSERT, entry_graph)
+            info_text_g.insert(tkinter.INSERT, self.this_cal.calgraph.tabulated)
 
     def submit(self):
         if self.aoc_action == 'delete':

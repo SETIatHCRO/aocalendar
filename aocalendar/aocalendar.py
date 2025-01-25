@@ -370,7 +370,8 @@ class Calendar:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
     
     def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=True):
-        print(self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min, return_anyway=return_anyway))
+        self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min, return_anyway=return_anyway)
+        print(self.calgraph.tabulated)
 
     def graph_day_events(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=False):
         """
