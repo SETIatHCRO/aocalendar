@@ -13,13 +13,12 @@ from astropy.time import Time
 from astropy import units as u
 from os import path as op
 from numpy import where as npwhere
-from . import __version__, aocentry, tools, logger_setup, times
+from . import __version__, aocentry, tools, times
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
     def check_source(src):
         return 'Not Available'
-
 from odsutils import ods_engine, logger_setup
 
 
