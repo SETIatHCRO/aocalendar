@@ -12,7 +12,6 @@ from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 from astropy import units as u
 from os import path as op
-from numpy import floor, round, ceil
 from numpy import where as npwhere
 from . import __version__, aocentry, tools, logger_setup, times
 try:
@@ -20,15 +19,13 @@ try:
 except ImportError:
     def check_source(src):
         return 'Not Available'
-try:
-    from odsutils import ods_engine
-except ImportError:
-    ods_engine = None
+
+from odsutils import ods_engine, logger_setup
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
-from .logger_setup import LOG_FILENAME
+from . import LOG_FILENAME
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 
