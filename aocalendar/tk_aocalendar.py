@@ -5,7 +5,7 @@
 import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
-from aocalendar import aocalendar, times, tools, __version__, google_calendar_sync
+from aocalendar import aocalendar, tools, __version__, google_calendar_sync
 import logging
 from datetime import datetime
 from copy import copy
@@ -362,8 +362,8 @@ class AOCalendarApp(tkinter.Tk):
     def add_event(self):
         self.resetFalse()
         self.aoc_action = 'add'
-        self.aoc_field_defaults['utc_start'] = times.interp_date(self.aoc_day, fmt='%Y-%m-%d')
-        self.aoc_field_defaults['utc_stop'] = times.interp_date(self.aoc_day, fmt='%Y-%m-%d')
+        self.aoc_field_defaults['utc_start'] = ods_timetools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
+        self.aoc_field_defaults['utc_stop'] = ods_timetools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
         sched_label = tkinter.Label(self.frame_update, text='Schedule by:')
         sched_label.grid(row=0, column=0, padx=5)
         fgclr = 'black'

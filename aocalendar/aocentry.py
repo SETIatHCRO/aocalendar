@@ -3,9 +3,10 @@
 # Licensed under the MIT license.
 from copy import copy
 from astropy.time import Time
-from . import times, tools, locations
+from . import tools, locations
 from tabulate import tabulate
 from hashlib import sha256
+from odsutils import ods_timetools
 
 
 ENTRY_FIELDS = {'program': "program",
@@ -40,7 +41,7 @@ class Entry:
         self.fields = list(ENTRY_FIELDS.keys())
         self.update(**ENTRY_FIELDS)
         kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
-        self.created = times.interp_date(kwargs['created'], fmt='Time')
+        self.created = ods_timetools.interpret_date(kwargs['created'], fmt='Time')
         if len(kwargs):
             self.update(**kwargs)
 
@@ -81,7 +82,7 @@ class Entry:
                 return 'None'
 
         try:
-             new_Time = times.interp_date(time_input, fmt='Time')
+             new_Time = ods_timetools.interpret_date(time_input, fmt='Time')
         except ValueError:
             try:
                 new_Time = getattr(self, key)
@@ -121,7 +122,7 @@ class Entry:
                 updated_kwargs[key] = val
             elif key in self.meta_fields:
                 if key == 'modified':
-                    self.modified = times.interp_date(val, fmt='Time')
+                    self.modified = ods_timetools.interpret_date(val, fmt='Time')
         if 'utc_start' in kwargs:
             updated_kwargs['utc_start'] = self.__Time(kwargs['utc_start'], 'utc_start', to_string=False)
         if 'utc_stop' in kwargs:
@@ -149,7 +150,7 @@ class Entry:
             self.msg.append("Need at least one non-Time entry")
 
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
-        self.modified = times.interp_date('now', fmt='Time')
+        self.modified = ods_timetools.interpret_date('now', fmt='Time')
         # Always recompute LST
         self.update_lst()
 

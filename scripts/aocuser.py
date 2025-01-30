@@ -5,6 +5,7 @@
 
 import argparse
 from aocalendar import aocalendar
+from odsutils import ods_timetools
 
 
 ap = argparse.ArgumentParser()
@@ -38,15 +39,15 @@ args = ap.parse_args()
 
 if args.add:
     if args.utc_start is None:
-        args.utc_start = aocalendar.times.interp_date('now')
+        args.utc_start = ods_timetools.interpret_date('now')
     args.calfile = args.utc_start
 
 aoc = aocalendar.Calendar(calfile=args.calfile, path=args.path, conlog=args.conlog, filelog=args.filelog)
 kwargs = vars(args)
 
 if args.quick:
-    args.utc_start = aocalendar.times.interp_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
-    args.utc_stop = aocalendar.times.interp_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_start = ods_timetools.interpret_date('now', fmt='Time').datetime.isoformat(timespec='seconds')
+    args.utc_stop = ods_timetools.interpret_date(f"now/{args.quick}", fmt='Time').datetime.isoformat(timespec='seconds')
     args.add = True
 
 if args.list:
