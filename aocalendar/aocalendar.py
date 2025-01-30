@@ -13,13 +13,14 @@ from astropy.time import Time
 from astropy import units as u
 from os import path as op
 from numpy import where as npwhere
-from . import __version__, aocentry, tools, times
+from . import __version__, aocentry, tools
+from odsutils import ods_engine, logger_setup, ods_timetools, tgraph
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
     def check_source(src):
         return 'Not Available'
-from odsutils import ods_engine, logger_setup, ods_timetools
+
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class Calendar:
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.ods = None
         self.most_recent_event = None
-        self.calgraph = times.Graph('AOCalendar Graph')
+        self.calgraph = tgraph.Graph('AOCalendar Graph')
 
     def start_ods(self):
         if ods_engine is not None:
@@ -426,7 +427,7 @@ class Calendar:
             utc_start = self.get_utc_from_lst(lst_start, utc_start)
             utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
             if utc_stop < utc_start:
-                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(times.DAYSEC, format='sec'))
+                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(ods_timetools.DAYSEC, format='sec'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         kwargs['location'] = kwargs['location'] if 'location' in kwargs else 'ata'
         kwargs['recurring'] = kwargs['recurring'] if 'recurring' in kwargs else []

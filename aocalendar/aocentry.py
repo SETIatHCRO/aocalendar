@@ -3,10 +3,10 @@
 # Licensed under the MIT license.
 from copy import copy
 from astropy.time import Time
-from . import tools, locations
+from . import tools
 from tabulate import tabulate
 from hashlib import sha256
-from odsutils import ods_timetools
+from odsutils import ods_timetools, locations
 
 
 ENTRY_FIELDS = {'program': "program",
