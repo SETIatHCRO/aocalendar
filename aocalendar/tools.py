@@ -26,6 +26,7 @@ def boolcheck(x):
     except ValueError:
         return True
 
+
 def proc_angle(**kwargs):
     if 'unit' in kwargs:
         unit = kwargs['unit']
