@@ -5,15 +5,20 @@
 import tkinter
 from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
-from aocalendar import aocalendar, times, tools, logger_setup, __version__, google_calendar_sync
+from aocalendar import aocalendar, times, tools, __version__, google_calendar_sync
 import logging
 from datetime import datetime
 from copy import copy
+from odsutils import logger_setup, ods_timetools
 
 UPDATE_TK = 60000
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
+
+
+def truncate_to_day(dt):
+    return ods_timetools.interpret_date(ods_timetools.interpret_date(dt, fmt='%Y-%m-%d'), fmt='datetime')
 
 
 def etable(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
@@ -58,7 +63,7 @@ class AOCalendarApp(tkinter.Tk):
         logger.info(f"{__name__} ver. {__version__}")
 
         self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.logset.conlog, filelog=self.logset.filelog)
-        self.aoc_day = times.truncate_to_day(self.this_cal.refdate)
+        self.aoc_day = truncate_to_day(self.this_cal.refdate)
         self.schedule_by = 'utc'
 
         # Create all of the frames
@@ -206,7 +211,7 @@ class AOCalendarApp(tkinter.Tk):
             m,d,y = mdy.split('/')
             self.aoc_day = datetime(year=2000+int(y), month=int(m), day=int(d))
         else:
-            self.aoc_day = times.truncate_to_day(dateinp)
+            self.aoc_day = truncate_to_day(dateinp)
             self.tkcal.selection_set(self.aoc_day)
         entry_title = f"{self.this_cal.calfile_fullpath} SCHEDULE FOR {self.aoc_day.strftime('%Y-%m-%d')}"
         try:
@@ -262,7 +267,7 @@ class AOCalendarApp(tkinter.Tk):
             is_ok = self.this_cal.update(day=aoc_day, nind=self.aoc_nind, **kwargs)
         elif self.aoc_action == 'add':
             if self.schedule_by == 'source':
-                aoc_day = times.truncate_to_day(kwargs['utc_start'])
+                aoc_day = truncate_to_day(kwargs['utc_start'])
                 source = self.program_entry.get()
                 ra = self.ra_entry.get()
                 dec = self.dec_entry.get()
@@ -273,7 +278,7 @@ class AOCalendarApp(tkinter.Tk):
                     self.this_cal.make_hash_keymap(cols='web')
                     self.aoc_day, self.aoc_nind = self.this_cal.hashmap[newhash]
             elif self.aoc_action == 'add':
-                aoc_day = times.truncate_to_day(kwargs['utc_start'])
+                aoc_day = truncate_to_day(kwargs['utc_start'])
                 is_ok = self.this_cal.add(**kwargs)
         if is_ok:
             self.show_date(aoc_day)

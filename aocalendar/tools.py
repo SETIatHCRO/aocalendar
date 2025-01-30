@@ -92,34 +92,3 @@ def read_data_file(file_name, sep='auto'):
         data.append(row.to_dict())
 
     return data
-
-
-def listify(x, d={}, sep=','):
-    """
-    Convert input to list.
-
-    Parameters
-    ----------
-    x : *
-        Input to listify
-    d : dict
-        Default/other values for conversion.
-    sep : str
-        Separator to use if str
-    
-    Return
-    ------
-    list : converted x (or d[x])
-
-    """
-    if x is None:
-        return []
-    if isinstance(x, list):
-        return x
-    if isinstance(x, str) and x in d:
-        return d[x]
-    if isinstance(x, str):
-        if sep == 'auto':
-            sep = ','
-        return x.split(sep)
-    return [x]

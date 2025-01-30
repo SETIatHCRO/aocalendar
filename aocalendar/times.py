@@ -164,33 +164,6 @@ def get_tz(tz='sys', dt=None):
         return this_tz.tzname(dt), this_tz.utcoffset(dt).total_seconds() / 3600.0
     raise ValueError("Invalid timezone designation.")
 
-
-def same_date(t1, t2, timespec='day'):
-    """
-    Return bool on equality of e1 == e2 for timespec.
-
-    Parameters
-    ----------
-    t1 : interp_date
-        Date to be checked
-    t2 : interp_date
-        Date to be checked
-    timespec : str
-        Precision of check
-    
-    """
-    t1 = interp_date(t1, fmt='Time')
-    t2 = interp_date(t2, fmt='Time')
-    if timespec == 'exact':
-        return t1 == t2
-    fs = {'year': '%Y', 'month': '%Y-%m', 'day': '%Y-%m-%d',
-          'hour': '%Y-%m-%dT%H', 'minute': '%Y-%m-%dT%H:%M', 'second': '%Y-%m-%dT%H:%M:%S'}
-    return t1.datetime.strftime(fs[timespec]) == t2.datetime.strftime(fs[timespec])
-
-def truncate_to_day(td):
-    td = interp_date(td, fmt='Time')
-    return datetime(year=td.datetime.year, month=td.datetime.month, day=td.datetime.day)
-
 def interp_date(iddate, fmt='%Y-%m-%d'):
     """
     Interpret 'iddate' and return time or formated string.

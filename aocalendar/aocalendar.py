@@ -19,7 +19,7 @@ try:
 except ImportError:
     def check_source(src):
         return 'Not Available'
-from odsutils import ods_engine, logger_setup
+from odsutils import ods_engine, logger_setup, ods_timetools
 
 
 logger = logging.getLogger(__name__)
@@ -223,7 +223,7 @@ class Calendar:
                         self.all_hash.append(this_hash)
                     if not this_event.valid:
                         logger.warning(f"Entry {key}:{i} invalid")
-                    if not times.same_date(keydate, this_event.utc_start, timespec='day'):
+                    if ods_timetools.interpret_date(keydate, fmt='%Y%m%d') != ods_timetools.interpret_date(this_event.utc_start, fmt='%Y%m%d'):
                         keystr = times.interp_date(this_event.utc_start, fmt="%Y-%m-%d")
                         logger.info(f"{keystr} in wrong day.")
                     else:
