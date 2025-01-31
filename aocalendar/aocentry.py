@@ -2,11 +2,11 @@
 # Copyright 2025 David R DeBoer
 # Licensed under the MIT license.
 from copy import copy
-from astropy.time import Time
 from . import tools
 from tabulate import tabulate
 from hashlib import sha256
-from odsutils import ods_timetools, locations
+from odsutils import locations
+from odsutils import ods_timetools as ttools
 
 
 ENTRY_FIELDS = {'program': "program",
@@ -41,7 +41,7 @@ class Entry:
         self.fields = list(ENTRY_FIELDS.keys())
         self.update(**ENTRY_FIELDS)
         kwargs['created'] = kwargs['created'] if 'created' in kwargs else 'now'
-        self.created = ods_timetools.interpret_date(kwargs['created'], fmt='Time')
+        self.created = ttools.interpret_date(kwargs['created'], fmt='Time')
         if len(kwargs):
             self.update(**kwargs)
 
@@ -76,14 +76,9 @@ class Entry:
     def __Time(self, time_input, key, to_string=False):
         """Take in a time input and return Time"""
         if to_string:
-            try:
-                return time_input.datetime.isoformat(timespec='seconds')
-            except (AttributeError, ValueError):
-                return 'None'
-
-        try:
-             new_Time = ods_timetools.interpret_date(time_input, fmt='Time')
-        except ValueError:
+            return ttools.interpret_date(time_input, fmt='isoformat', NoneReturn='None')
+        new_Time = ttools.interpret_date(time_input, fmt='Time', NoneReturn=None)
+        if new_Time is None:
             try:
                 new_Time = getattr(self, key)
             except AttributeError:
@@ -122,7 +117,7 @@ class Entry:
                 updated_kwargs[key] = val
             elif key in self.meta_fields:
                 if key == 'modified':
-                    self.modified = ods_timetools.interpret_date(val, fmt='Time')
+                    self.modified = ttools.interpret_date(val, fmt='Time')
         if 'utc_start' in kwargs:
             updated_kwargs['utc_start'] = self.__Time(kwargs['utc_start'], 'utc_start', to_string=False)
         if 'utc_stop' in kwargs:
@@ -150,7 +145,7 @@ class Entry:
             self.msg.append("Need at least one non-Time entry")
 
         self.msg = 'ok' if self.valid else '\n'.join(self.msg)
-        self.modified = ods_timetools.interpret_date('now', fmt='Time')
+        self.modified = ttools.interpret_date('now', fmt='Time')
         # Always recompute LST
         self.update_lst()
 
@@ -220,8 +215,9 @@ class Entry:
         """Update the LSTs."""
         for key in ['utc_start', 'utc_stop']:
             try:
-                utc = Time(getattr(self, key))
-            except ValueError:
-                continue
-            lst = f"lst_{key.split('_')[1]}"
-            setattr(self, lst, utc.sidereal_time('mean', longitude=self.location.loc))
+                utc = ttools.interpret_date(getattr(self, key), fmt='Time')
+            except AttributeError:
+                utc = None
+            if utc is not None:
+                lst = f"lst_{key.split('_')[1]}"
+                setattr(self, lst, utc.sidereal_time('mean', longitude=self.location.loc))

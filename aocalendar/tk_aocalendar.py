@@ -7,9 +7,9 @@ from tkinter import simpledialog, messagebox
 from tkcalendar import Calendar
 from aocalendar import aocalendar, tools, __version__, google_calendar_sync
 import logging
-from datetime import datetime
 from copy import copy
-from odsutils import logger_setup, ods_timetools
+from odsutils import logger_setup
+from odsutils import ods_timetools as ttools
 
 UPDATE_TK = 60000
 
@@ -18,7 +18,7 @@ logger.setLevel('DEBUG')
 
 
 def truncate_to_day(dt):
-    return ods_timetools.interpret_date(ods_timetools.interpret_date(dt, fmt='%Y-%m-%d'), fmt='datetime')
+    return ttools.interpret_date(ttools.interpret_date(dt, fmt='%Y-%m-%d'), fmt='datetime')
 
 
 def etable(frame, header, data, start=0, width=10, fg='black', bg='white', font='Arial', fontsize=10):
@@ -209,7 +209,7 @@ class AOCalendarApp(tkinter.Tk):
         if str(dateinp)[0] == '<' or dateinp is None:
             mdy = self.tkcal.get_date()
             m,d,y = mdy.split('/')
-            self.aoc_day = datetime(year=2000+int(y), month=int(m), day=int(d))
+            self.aoc_day = ttools.interpret_date(f"{2000+int(y)}-{int(m)}-{int(d)}", fmt='datetime')
         else:
             self.aoc_day = truncate_to_day(dateinp)
             self.tkcal.selection_set(self.aoc_day)
@@ -362,8 +362,8 @@ class AOCalendarApp(tkinter.Tk):
     def add_event(self):
         self.resetFalse()
         self.aoc_action = 'add'
-        self.aoc_field_defaults['utc_start'] = ods_timetools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
-        self.aoc_field_defaults['utc_stop'] = ods_timetools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
+        self.aoc_field_defaults['utc_start'] = ttools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
+        self.aoc_field_defaults['utc_stop'] = ttools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
         sched_label = tkinter.Label(self.frame_update, text='Schedule by:')
         sched_label.grid(row=0, column=0, padx=5)
         fgclr = 'black'

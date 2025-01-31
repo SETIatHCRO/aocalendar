@@ -3,8 +3,6 @@
 # Licensed under the MIT license.
 
 import json
-from astropy.time import Time, TimeDelta
-from datetime import datetime
 from tabulate import tabulate
 from copy import copy
 import logging
@@ -14,7 +12,8 @@ from astropy import units as u
 from os import path as op
 from numpy import where as npwhere
 from . import __version__, aocentry, tools
-from odsutils import ods_engine, logger_setup, ods_timetools, tgraph
+from odsutils import ods_engine, logger_setup, tgraph
+from odsutils import ods_timetools as ttools
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
@@ -86,7 +85,7 @@ class Calendar:
 
         """
         self.path = tools.determine_path(path, calfile)
-        self.refdate = Time.now()
+        self.refdate = ttools.interpret_date('now')
         self.location = None
         self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
@@ -106,7 +105,7 @@ class Calendar:
         Parameters
         ----------
         calfile : str
-            calfile or something interpretable by ods_timetools.interpret_date
+            calfile or something interpretable by ttools.interpret_date
         path : str
             path or 'getenv' - if calfile has path, gets overwritten, if None use self.path
 
@@ -116,7 +115,7 @@ class Calendar:
             Basename of calfile
         calfile_fullpath : str
             path/calfile
-        refdate : Time
+        refdate : interpret_date
             reference date for calfile
 
         """
@@ -130,11 +129,11 @@ class Calendar:
             calfile = op.basename(calfile)
             try:
                 year = int(calfile.split('.')[0][-4:])
-                self.refdate = Time(datetime(year=year, month=1, day=1))
+                self.refdate = ttools.interpret_date(year, fmt='Time')
             except ValueError:
-                self.refdate = Time.now()
+                self.refdate = ttools.interpret_date('now', fmt='Time')
         else:
-            self.refdate = ods_timetools.interpret_date(calfile, 'Time')
+            self.refdate = ttools.interpret_date(calfile, 'Time')
             if self.refdate is None:
                 calfile = None
             else:
@@ -147,11 +146,11 @@ class Calendar:
 
     def init_calendar(self, created=None):
         if created is None:
-            self.created = Time.now()
+            self.created = ttools.interpret_date('now')
             self.modified = copy(self.created)
         else:
-            self.created = ods_timetools.interpret_date(created, fmt='Time')
-            self.modified = Time.now()
+            self.created = ttools.interpret_date(created, fmt='Time')
+            self.modified = ttools.interpret_date('now')
         self.added, self.removed, self.updated = [], [], {}
         return {'created': self.created.datetime.isoformat(timespec='seconds'),
                 'modified': self.modified.datetime.isoformat(timespec='seconds'),
@@ -209,7 +208,7 @@ class Calendar:
             if key in self.meta_fields:
                 setattr(self, key, entries)
             else:
-                keydate = Time(key)
+                keydate = ttools.interpret_date(key)
                 self.events.setdefault(key, [])
                 for i, event in enumerate(entries):
                     this_event = aocentry.Entry(**event)
@@ -223,15 +222,15 @@ class Calendar:
                         self.all_hash.append(this_hash)
                     if not this_event.valid:
                         logger.warning(f"Entry {key}:{i} invalid")
-                    if ods_timetools.interpret_date(keydate, fmt='%Y%m%d') != ods_timetools.interpret_date(this_event.utc_start, fmt='%Y%m%d'):
-                        keystr = ods_timetools.interpret_date(this_event.utc_start, fmt="%Y-%m-%d")
+                    if ttools.interpret_date(keydate, fmt='%Y%m%d') != ttools.interpret_date(this_event.utc_start, fmt='%Y%m%d'):
+                        keystr = ttools.interpret_date(this_event.utc_start, fmt="%Y-%m-%d")
                         logger.info(f"{keystr} in wrong day.")
                     else:
-                        keystr = ods_timetools.interpret_date(keydate, fmt="%Y-%m-%d")
+                        keystr = ttools.interpret_date(keydate, fmt="%Y-%m-%d")
                     self.events.setdefault(keystr, [])
                     self.events[keystr].append(this_event)
                     try:
-                        endkeystr = ods_timetools.interpret_date(this_event.utc_stop, fmt="%Y-%m-%d")
+                        endkeystr = ttools.interpret_date(this_event.utc_stop, fmt="%Y-%m-%d")
                         if endkeystr != keystr:
                             self.straddle.setdefault(endkeystr, [])
                             self.straddle[endkeystr].append(this_event)
@@ -257,7 +256,7 @@ class Calendar:
         full_events = {}
         for md in self.meta_fields:
             if md == 'modified':
-                self.modified = Time.now()
+                self.modified = ttools.interpret_date('now')
             try:
                 this_attr = getattr(self, md)
             except AttributeError:
@@ -292,7 +291,7 @@ class Calendar:
                 self.hashmap[this_hash] = (day, i)
 
     def get_current_time(self):
-        self.current_time = Time.now()
+        self.current_time = ttools.interpret_date('now')
         self.current_lst = self.current_time.sidereal_time('mean', longitude=self.location.loc)
 
     def sort_day(self, day, straddle=True):
@@ -314,7 +313,7 @@ class Calendar:
             Include previous day for ones going over midnight
 
         """
-        day = ods_timetools.interpret_date(day, fmt='%Y-%m-%d')
+        day = ttools.interpret_date(day, fmt='%Y-%m-%d')
         sorted_dict = {}
         offset = 0
         if straddle:
@@ -411,12 +410,12 @@ class Calendar:
 
     def check_kwargs(self, kwargs):
         try:
-            utc_start = ods_timetools.interpret_date(kwargs['utc_start'], fmt='Time')
+            utc_start = ttools.interpret_date(kwargs['utc_start'], fmt='Time')
         except KeyError:
             logger.error(f"Need a utc_start.")
             return False, kwargs
         utc_stop = kwargs['utc_stop'] if 'utc_stop' in kwargs else None
-        utc_stop = ods_timetools.interpret_date(utc_stop, fmt='Time') if tools.boolcheck(utc_stop) else None
+        utc_stop = ttools.interpret_date(utc_stop, fmt='Time') if tools.boolcheck(utc_stop) else None
         if utc_stop is None:
             lst_start = tools.proc_angle(lst_start=kwargs, unit=u.hourangle)
             lst_stop = tools.proc_angle(lst_stop=kwargs, unit=u.hourangle)
@@ -426,7 +425,7 @@ class Calendar:
             utc_start = self.get_utc_from_lst(lst_start, utc_start)
             utc_stop = self.get_utc_from_lst(lst_stop, utc_start)
             if utc_stop < utc_start:
-                utc_stop = self.get_utc_from_lst(lst_stop, utc_start + TimeDelta(ods_timetools.DAYSEC, format='sec'))
+                utc_stop = self.get_utc_from_lst(lst_stop, ttools.t_delta(utc_start, 1.0, 'day'))
         kwargs['utc_start'], kwargs['utc_stop'] = utc_start, utc_stop
         kwargs['location'] = kwargs['location'] if 'location' in kwargs else 'ata'
         kwargs['recurring'] = kwargs['recurring'] if 'recurring' in kwargs else []
@@ -451,7 +450,7 @@ class Calendar:
         if len(self.results['conflict']):
             suf = 'y' if len(self.results['conflict']) == 1 else 'ies'
             logger.warning(f"Overlaps with entr{suf}: {', '.join([str(x) for x in self.results['conflict']])}.")
-        day = ods_timetools.interpret_date(this_event.utc_start, fmt='%Y-%m-%d')
+        day = ttools.interpret_date(this_event.utc_start, fmt='%Y-%m-%d')
         self.events.setdefault(day, [])
         self.events[day].append(this_event)
         self.all_hash.append(this_hash)                
@@ -466,7 +465,7 @@ class Calendar:
         Parameters
         ----------
         day : str, etc
-            Day input for ods_timetools.interpret_date
+            Day input for ttools.interpret_date
         nind : int
             Index number of that day
           or
@@ -484,7 +483,7 @@ class Calendar:
                 logger.warning("Hash not found.")
                 return False
         else:
-            day = ods_timetools.interpret_date(day, fmt='%Y-%m-%d')
+            day = ttools.interpret_date(day, fmt='%Y-%m-%d')
         try:
             self.removed.append(self.events[day][nind].hash(cols='web'))
             del(self.events[day][nind])
@@ -498,7 +497,7 @@ class Calendar:
         Parameters
         ----------
         day : str, etc
-            Day input for ods_timetools.interpret_date
+            Day input for ttools.interpret_date
         nind : int
             Index number of that day
         kwargs : fields to add
@@ -517,7 +516,7 @@ class Calendar:
                 logger.warning("Hash not found.")
                 return False
         else:
-            day = ods_timetools.interpret_date(day, fmt='%Y-%m-%d')
+            day = ttools.interpret_date(day, fmt='%Y-%m-%d')
         kwargs['modified'] = kwargs['modified'] if 'modified' in kwargs else 'now'
         try:
             self.events[day][nind].update(**kwargs)
@@ -531,7 +530,7 @@ class Calendar:
             logger.warning(f"You made {day}, {nind} a duplicate.")
         else:
             self.all_hash.append(this_hash)
-        event_day = ods_timetools.interpret_date(self.events[day][nind].utc_start, fmt='%Y-%m-%d')
+        event_day = ttools.interpret_date(self.events[day][nind].utc_start, fmt='%Y-%m-%d')
         if day != event_day:
             logger.info(f"Changed day from {day} to {event_day}")
             move_entry = self.events[day][nind].todict(printable=False)
@@ -565,7 +564,7 @@ class Calendar:
         return obs.obstime[maxalt]
 
     def get_obs(self, ra, dec, source, day, dt = 10.0):
-        day = ods_timetools.interpret_date(day, fmt='Time')
+        day = ttools.interpret_date(day, fmt='%Y-%m-%d')
         if tools.boolcheck(ra) and tools.boolcheck(dec):
             pass
         else:
@@ -579,9 +578,9 @@ class Calendar:
         dec = tools.proc_angle(dec=dec, unit=u.deg)
         source = source if source is not None else f"{ra.to_string(precision=0)},{dec.to_string(precision=0)}"
 
-        start = Time(datetime(year=day.datetime.year, month=day.datetime.month, day=day.datetime.day))
-        stop = start + TimeDelta(24 * 3600, format='sec')
-        dt = TimeDelta(dt * 60, format='sec')  # Use 10min
+        start = ttools.interpret_date(day, fmt='Time')
+        stop = ttools.t_delta(start, 1, 'day')
+        dt = ttools.t_delta(None, dt, format='min')
         current, otimes = copy(start), []
         while current < stop:
             otimes.append(current)
@@ -603,7 +602,7 @@ class Calendar:
         source : str/None
             Source name (if ATATools.ata_sources is available)
         day : str/Time
-            Day of observation (UTC).  Interpreted by ods_timetools.interpret_dates
+            Day of observation (UTC).  Interpreted by ttools.interpret_dates
         duration : float
             Length of observation in hours
         el_limit : float
@@ -615,7 +614,7 @@ class Calendar:
         source, obs = self.get_obs(ra=ra, dec=dec, source=source, day=day)
         if obs is None:
             return False
-        duration = TimeDelta(duration * 3600.0, format='sec')
+        duration = ttools.t_delta(None, duration, 'hour')
         above = npwhere(obs.alt.value > el_limit)[0]
         if not len(above):
             logger.warning(f"{source} never above the elevation limit of {el_limit}.")
@@ -657,7 +656,7 @@ class Calendar:
         dict : results with keys 'duplcate' and 'conflict'
 
         """
-        day = ods_timetools.interpret_date(check_event.utc_start, fmt='%Y-%m-%d')
+        day = ttools.interpret_date(check_event.utc_start, fmt='%Y-%m-%d')
         this_hash = check_event.hash()
         results = {'duplicate': [], 'conflict': []}
         if day not in self.events:

@@ -10,7 +10,7 @@ from aocalendar import aocalendar, tools
 from copy import copy
 import os
 import logging
-from odsutils import ods_timetools
+from odsutils import ods_timetools as ttools
 from . import __version__, logger_setup
 
 logger = logging.getLogger(__name__)
