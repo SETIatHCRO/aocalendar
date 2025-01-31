@@ -22,7 +22,6 @@ except ImportError:
         return 'Not Available'
 
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
 from . import LOG_FILENAME
