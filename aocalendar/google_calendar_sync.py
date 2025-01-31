@@ -40,7 +40,7 @@ class SyncCal:
         self.attrib2keep = attrib2keep
         self.attrib2push = list(attrib2push.keys())
         self.path = tools.determine_path(path, None)
-        self.now = ods_timetools.interpret_date('now', fmt='Time')
+        self.now = ttools.interpret_date('now', fmt='Time')
         self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=self.path)
         logger.info(f"{__name__} ver. {__version__}")
 
@@ -86,7 +86,7 @@ class SyncCal:
             self.gc_web = self.gc_local
             return
         self.gc_web = aocalendar.Calendar("WEB", conlog=self.logset.conlog, path=self.path, filelog=self.logset.filelog, start_new=False)
-        tmin = ods_timetools.interpret_date(self.now.datetime.strftime('%Y'), fmt='Time')  # Start of year
+        tmin = ttools.interpret_date(self.now.datetime.strftime('%Y'), fmt='Time')  # Start of year
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
             for key, val in self.attrib2keep.items():
