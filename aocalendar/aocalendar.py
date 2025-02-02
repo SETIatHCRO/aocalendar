@@ -12,13 +12,13 @@ from astropy import units as u
 from os import path as op
 from numpy import where as npwhere
 from . import __version__, aocentry, tools
-from odsutils import ods_engine, logger_setup, tgraph
+from odsutils import ods_engine, logger_setup, tgraph, locations
 from odsutils import ods_timetools as ttools
 try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
     def check_source(src):
-        return 'Not Available'
+        return "'check_source' not available"
 
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def add_aoc_entry(path='getenv', conlog='ERROR', filelog='WARNING', **kwargs):
 class Calendar:
     meta_fields = ['created', 'modified', 'added', 'removed', 'updated']
 
-    def __init__(self, calfile='now', path='getenv', conlog='INFO', filelog=False, start_new=False):
+    def __init__(self, calfile='now', path='getenv', conlog='INFO', filelog=False, start_new=False, loc='ata'):
         """
         Parameters
         ----------
@@ -86,8 +86,9 @@ class Calendar:
         """
         self.path = tools.determine_path(path, calfile)
         self.refdate = ttools.interpret_date('now')
-        self.location = None
-        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
+        self.location = locations.Location()
+        self.location.get_location(loc)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.ods = None
@@ -96,7 +97,7 @@ class Calendar:
 
     def start_ods(self):
         if ods_engine is not None:
-            self.ods = ods_engine.ODS(version='latest', output=self.logset.conlog)
+            self.ods = ods_engine.ODS(version='latest', output=self.log_settings.conlog)
         else:
             self.ods = None
 

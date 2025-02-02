@@ -32,6 +32,8 @@ if DEBUG_SKIP_GC:
             print("DEBUG: SKIP ADD!")
         def delete_event(self, a, calendar_id):
             print("DEBUG: SKIP DELETE!")
+        def update_event(self, a):
+            print("DEBUG: SKIP UPDATE")
 
 
 class SyncCal:
@@ -41,7 +43,7 @@ class SyncCal:
         self.attrib2push = list(attrib2push.keys())
         self.path = tools.determine_path(path, None)
         self.now = ttools.interpret_date('now', fmt='Time')
-        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=self.path)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=self.path)
         logger.info(f"{__name__} ver. {__version__}")
 
         if DEBUG_SKIP_GC:
@@ -64,7 +66,7 @@ class SyncCal:
     def get_aocal(self, calfile='now', path=None, conlog=None, filelog=None, start_new=True):
         """Read in the working aocal, as well as the previous for diff."""
         path = self.path if path is None else path
-        self.aocal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.logset.conlog, filelog=self.logset.filelog, start_new=start_new)
+        self.aocal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.log_settings.conlog, filelog=self.log_settings.filelog, start_new=start_new)
         self.aocal.make_hash_keymap(cols='web')
         self.aoc_added = copy(self.aocal.added)
         self.aoc_removed = copy(self.aocal.removed)
@@ -79,13 +81,13 @@ class SyncCal:
         """Read in the google calendar and populate the gc local calendar"""
         logger.info("Reading Google Calendar into local calendar.")
         gcname = os.path.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
-        self.gc_local = aocalendar.Calendar(gcname, conlog=self.logset.conlog, path=self.path, filelog=self.logset.filelog, start_new=True)
+        self.gc_local = aocalendar.Calendar(gcname, conlog=self.log_settings.conlog, path=self.path, filelog=self.log_settings.filelog, start_new=True)
         self.gc_local.make_hash_keymap(cols='web')
         if DEBUG_SKIP_GC:
-            logger.warning("DEBUG - NOT READING LIVE GOOGLE CALENDAR")
+            logger.warning("DEBUG MODE - NOT READING LIVE GOOGLE CALENDAR")
             self.gc_web = self.gc_local
             return
-        self.gc_web = aocalendar.Calendar("WEB", conlog=self.logset.conlog, path=self.path, filelog=self.logset.filelog, start_new=False)
+        self.gc_web = aocalendar.Calendar("WEB", conlog=self.log_settings.conlog, path=self.path, filelog=self.log_settings.filelog, start_new=False)
         tmin = ttools.interpret_date(self.now.datetime.strftime('%Y'), fmt='Time')  # Start of year
         for event in self.gc.get_events(calendar_id=ATA_CAL_ID, single_events=True, time_min=tmin.datetime):
             entry = {}
@@ -165,7 +167,7 @@ class SyncCal:
         try:
             self.gc.delete_event(event_id, calendar_id=self.gc_cal_id)
         except HttpError:
-            logger.error(f"Error updating Google Calendar event {event_id}")
+            logger.error(f"Error deleting Google Calendar event {event_id}")
 
     def update_gc(self, update_google_calendar=False):
         """Update the google aocal with the updated aocal from self.update_aoc and sync up to Google Calendar"""

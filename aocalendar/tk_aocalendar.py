@@ -59,10 +59,10 @@ class AOCalendarApp(tkinter.Tk):
         conlog = kwargs['conlog'] if 'conlog' in kwargs else 'INFO'
         filelog = kwargs['filelog'] if 'filelog' in kwargs else False
         path = tools.determine_path(path=path, fileinfo=calfile)
-        self.logset = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=path)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=path)
         logger.info(f"{__name__} ver. {__version__}")
 
-        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.logset.conlog, filelog=self.logset.filelog)
+        self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.log_settings.conlog, filelog=self.log_settings.filelog)
         self.aoc_day = truncate_to_day(self.this_cal.refdate)
         self.schedule_by = 'utc'
 
@@ -283,19 +283,20 @@ class AOCalendarApp(tkinter.Tk):
         if is_ok:
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
-            self.resetTrue()
             if self.google_calendar_linked:
                 if messagebox.askyesno("Google Calendar", "Do you wish to update Google Calendar?"):
                     self.update_google_calendar()
+            self.resetTrue()
         else:
             self.resetFalse()
             logger.warning("Did not succeed.")
 
     def update_google_calendar(self):
+        aoc_day = ttools.interpret_date(self.aoc_day, fmt='%Y-%m-%d')
         if self.aoc_action == 'add':
-            self.google_calendar.add_event_to_google_calendar(self.this_cal[self.aoc_day][self.aoc_nind])
+            self.google_calendar.add_event_to_google_calendar(self.this_cal.events[aoc_day][self.aoc_nind])
         elif self.aoc_action == 'update':
-            self.google_calendar.update_event_on_google_calendar(self.this_cal[self.aoc_day][self.aoc_nind])
+            self.google_calendar.update_event_on_google_calendar(self.this_cal.events[aoc_day][self.aoc_nind])
         elif self.aoc_action == 'delete' and self.deleted_event_id:
             self.google_calendar.delete_event_from_google_calendar(self.deleted_event_id)
 
