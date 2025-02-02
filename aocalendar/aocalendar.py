@@ -87,13 +87,12 @@ class Calendar:
         self.path = tools.determine_path(path, calfile)
         self.refdate = ttools.interpret_date('now')
         self.location = locations.Location()
-        self.location.get_location(loc)
         self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
-        self.ods = None
         self.most_recent_event = None
         self.calgraph = tgraph.Graph('AOCalendar Graph')
+        self.start_ods()
 
     def start_ods(self):
         if ods_engine is not None:
@@ -103,10 +102,12 @@ class Calendar:
 
     def set_calfile(self, calfile, path=None):
         """
+        Get the path/name of the calfile (typically aocalYYYY.json) and set some top-level parameters.
+
         Parameters
         ----------
         calfile : str
-            calfile or something interpretable by ttools.interpret_date
+            calfile or something interpretable by ttools.interpret_date or a filename
         path : str
             path or 'getenv' - if calfile has path, gets overwritten, if None use self.path
 
@@ -146,17 +147,36 @@ class Calendar:
             self.calfile_fullpath = op.join(path, calfile)
 
     def init_calendar(self, created=None):
+        """
+        Create parameters to Initialize a new calendar file.  If created is None the created timestamp is now, which is generally right.
+
+        Parameter
+        ---------
+        created : interpret_date
+            date to assign as created
+
+        Return
+        ------
+        dictionary
+            Contains parameters for a new calendar file.
+            
+        Attributes
+        ----------
+        created : Time
+            Date denoted as created
+        modified : Time
+            Date modified (will always be now.)
+
+        """
         if created is None:
-            self.created = ttools.interpret_date('now')
-            self.modified = copy(self.created)
+            self.created = ttools.interpret_date('now', fmt='Time')
         else:
             self.created = ttools.interpret_date(created, fmt='Time')
-            self.modified = ttools.interpret_date('now')
+        self.modified = ttools.interpret_date('now', fmt='Time')
         self.added, self.removed, self.updated = [], [], {}
         return {'created': self.created.datetime.isoformat(timespec='seconds'),
                 'modified': self.modified.datetime.isoformat(timespec='seconds'),
                 'added': self.added, 'removed': self.removed, 'updated': self.updated}
-         
 
     def read_calendar_events(self, calfile, path=None, skip_duplicates=True, start_new=False):
         """
@@ -281,6 +301,11 @@ class Calendar:
         """
         For purposes of checking calendars etc, make a hash-key to entry (day, #) map
 
+        Parameter
+        ---------
+        cols : list, str
+            List containing the column headers to use or 'all'
+
         """
         self.hashmap = {}
         for day, events in self.events.items():
@@ -292,7 +317,7 @@ class Calendar:
                 self.hashmap[this_hash] = (day, i)
 
     def get_current_time(self):
-        self.current_time = ttools.interpret_date('now')
+        self.current_time = ttools.interpret_date('now', fmt='Time')
         self.current_lst = self.current_time.sidereal_time('mean', longitude=self.location.loc)
 
     def sort_day(self, day, straddle=True):
@@ -336,12 +361,17 @@ class Calendar:
         return sorted_day, indmap
 
     def internal_sort_cal(self):
+        """
+        Sort and reset the events for the entire calendar.
+
+        """
         new_cal_events = {}
         for day in sorted(self.events.keys()):
             new_cal_events[day], _ = self.sort_day(day, straddle=False)
         self.events = new_cal_events
 
     def list(self, day='today', cols='short'):
+        """Prints the list generated below."""
         print(self.list_day_events(day=day, cols=cols, return_as='table'))
 
     def list_day_events(self, day='today', cols='short', return_as='table'):
@@ -350,7 +380,7 @@ class Calendar:
 
         Parameters
         ----------
-        day : str/Time/etc
+        day : interpret_date
             Day to use.
         cols : str/list
             Columns to use or 'all' or 'short'
@@ -370,6 +400,7 @@ class Calendar:
             return [[indmap[i]] + event.row(cols, printable=True, include_meta=False) for i, event in enumerate(sorted_day)], hdr
     
     def graph(self, day='today', header_col='program', tz='sys', interval_min=10.0, return_anyway=True):
+        """Prints the graph generated below."""
         self.graph_day_events(day=day, header_col=header_col, tz=tz, interval_min=interval_min, return_anyway=return_anyway)
         print(self.calgraph.tabulated)
 
@@ -410,6 +441,20 @@ class Calendar:
         return self.calgraph.make_table()
 
     def check_kwargs(self, kwargs):
+        """
+        Check inputs for completeness, format, etc.  Is somewhat ad hoc...
+
+        Parameter
+        ---------
+        kwargs : dict
+            Dictionary of calendar record inputs.
+
+        Return
+        ------
+        dictionary
+            updated kwargs
+
+        """
         try:
             utc_start = ttools.interpret_date(kwargs['utc_start'], fmt='Time')
         except KeyError:
