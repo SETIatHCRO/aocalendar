@@ -132,7 +132,7 @@ class AOCalendarApp(tkinter.Tk):
             if len(active):
                 aa = [self.this_cal.ods['check_active'].entries[i]['src_id'] for i in active]
                 bg = 'green'
-                #text = f"ODS active ({len(active)})"
+                # text = f"ODS active ({len(active)})"
                 text = f"ODS active: {','.join(aa)}"
             else:
                 bg = 'red'

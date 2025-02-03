@@ -18,7 +18,8 @@ try:
     from ATATools.ata_sources import check_source  # type: ignore
 except ImportError:
     def check_source(src):
-        return "'check_source' not available"
+        logger.warning("'check_source' not available")
+        return None
 
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class Calendar:
         self.location = locations.Location()
         self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path,
                                                 conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
-        logger.debug(f"{__name__} ver. {__version__}")
+        logger.info(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.most_recent_event = None
         self.calgraph = tgraph.Graph('AOCalendar Graph')
@@ -616,8 +617,7 @@ class Calendar:
             pass
         else:
             src = check_source(source)
-            if src == 'Not Available':
-                logger.error("Sources not available.")
+            if src is None:
                 return None, None
             ra = src['ra']
             dec = src['dec']
