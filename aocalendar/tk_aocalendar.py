@@ -15,7 +15,7 @@ UPDATE_TK = 60000
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
-
+from . import LOG_FILENAME, LOG_FORMATS
 
 def truncate_to_day(dt):
     return ttools.interpret_date(ttools.interpret_date(dt, fmt='%Y-%m-%d'), fmt='datetime')
@@ -59,7 +59,8 @@ class AOCalendarApp(tkinter.Tk):
         conlog = kwargs['conlog'] if 'conlog' in kwargs else 'INFO'
         filelog = kwargs['filelog'] if 'filelog' in kwargs else False
         path = tools.determine_path(path=path, fileinfo=calfile)
-        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=path)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=path,
+                                                conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
         logger.info(f"{__name__} ver. {__version__}")
 
         self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.log_settings.conlog, filelog=self.log_settings.filelog)
@@ -129,8 +130,10 @@ class AOCalendarApp(tkinter.Tk):
         if self.this_cal.ods is not None:
             active = self.this_cal.ods.check_active('now', read_from=self.ods_input)
             if len(active):
+                aa = [self.this_cal.ods['check_active'].entries[i]['src_id'] for i in active]
                 bg = 'green'
-                text = f"ODS active ({len(active)})"
+                #text = f"ODS active ({len(active)})"
+                text = f"ODS active: {','.join(aa)}"
             else:
                 bg = 'red'
                 text = f"ODS not active."

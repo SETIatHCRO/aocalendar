@@ -23,7 +23,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest
-from . import LOG_FILENAME
+from . import LOG_FILENAME, LOG_FORMATS
 PATH_ENV = 'AOCALENDAR'
 AOC_PREFIX = 'aocal'
 
@@ -87,7 +87,8 @@ class Calendar:
         self.path = tools.determine_path(path, calfile)
         self.refdate = ttools.interpret_date('now')
         self.location = locations.Location()
-        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path,
+                                                conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
         logger.debug(f"{__name__} ver. {__version__}")
         self.read_calendar_events(calfile=calfile, path=None, skip_duplicates=True, start_new=start_new)
         self.most_recent_event = None

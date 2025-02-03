@@ -8,7 +8,7 @@ from gcsa.event import Event
 from googleapiclient.errors import HttpError
 from aocalendar import aocalendar, tools
 from copy import copy
-import os.path as osp
+import os.path
 from os import remove
 import logging
 from odsutils import ods_timetools as ttools
@@ -18,7 +18,7 @@ from . import __version__
 
 logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')  # Set to lowest to enable handlers to setLevel
-
+from . import LOG_FILENAME, LOG_FORMATS
 
 ATA_CAL_ID = 'jhutdq684fs4hq7hpr3rutcj5o@group.calendar.google.com'
 ATTRIB2KEEP = {'creator': 'email', 'end': 'utc_stop', 'start': 'utc_start', 'summary': 'program',
@@ -46,7 +46,8 @@ class SyncCal:
         self.attrib2push = list(attrib2push.keys())
         self.path = tools.determine_path(path, None)
         self.now = ttools.interpret_date('now', fmt='Time')
-        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename='aoclog', path=self.path)
+        self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path,
+                                                conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
         logger.info(f"{__name__} ver. {__version__}")
 
         if DEBUG_SKIP_GC:
@@ -83,7 +84,7 @@ class SyncCal:
     def get_google_calendar(self):
         """Read in the google calendar and populate the gc local calendar"""
         logger.info("Reading Google Calendar into local calendar.")
-        gcname = osp.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
+        gcname = os.path.join(self.path, f"{self.google_cal_name.replace(' ', '_')}.json")
         self.gc_local = aocalendar.Calendar(gcname, conlog=self.log_settings.conlog, path=self.path, filelog=self.log_settings.filelog, start_new=True)
         self.gc_local.make_hash_keymap(cols='web')
         if DEBUG_SKIP_GC:
@@ -205,12 +206,12 @@ class SyncCal:
         logger.info(f"{action} {changes_del}")
 
     def rewrite_files(self):
-        if osp.exists(self.aocal.calfile_fullpath):
+        if os.path.exists(self.aocal.calfile_fullpath):
             remove(self.aocal.calfile_fullpath)
         self.aocal.init_calendar(self.aocal.created)
         self.aocal.write_calendar(calfile=self.aocal.calfile_fullpath)  # Get rid of added/removed/updated in aocal
 
-        if osp.exists(self.gc_local.calfile_fullpath):
+        if os.path.exists(self.gc_local.calfile_fullpath):
             remove(self.gc_local.calfile_fullpath)
         self.gc_web.init_calendar(self.gc_local.created)
         self.gc_web.write_calendar(calfile=self.gc_local.calfile_fullpath)  # Move web to local
