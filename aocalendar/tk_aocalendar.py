@@ -280,9 +280,13 @@ class AOCalendarApp(tkinter.Tk):
                     newhash = self.this_cal.most_recent_event.hash(cols='web')
                     self.this_cal.make_hash_keymap(cols='web')
                     self.aoc_day, self.aoc_nind = self.this_cal.hashmap[newhash]
-            elif self.aoc_action == 'add':
+            else:
                 aoc_day = truncate_to_day(kwargs['utc_start'])
                 is_ok = self.this_cal.add(**kwargs)
+                if is_ok:
+                    newhash = self.this_cal.most_recent_event.hash(cols='web')
+                    self.this_cal.make_hash_keymap(cols='web')
+                    self.aoc_day, self.aoc_nind = self.this_cal.hashmap[newhash]
         if is_ok:
             self.show_date(aoc_day)
             self.this_cal.write_calendar()
