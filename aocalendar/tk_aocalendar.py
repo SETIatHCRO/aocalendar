@@ -10,6 +10,7 @@ import logging
 from copy import copy
 from odsutils import logger_setup
 from odsutils import ods_timetools as ttools
+import socket
 
 UPDATE_TK = 60000
 
@@ -48,6 +49,11 @@ class AOCalendarApp(tkinter.Tk):
     def __init__(self, **kwargs):
         super().__init__()
         self.title("Allen Telescope Array Observing Calendar")
+
+        if kwargs['allow_observer']:
+            self.hostname = socket.gethostname()
+        else:
+            self.hostname = 'N/A'
 
         # Set window size to 1200x900
         #self.geometry("1000x820")
@@ -115,6 +121,9 @@ class AOCalendarApp(tkinter.Tk):
         del_button.grid(row=1, column=1)
         upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.update_event)
         upd_button.grid(row=2, column=1)
+        if self.hostname in ['obs-node1', 'DAVIDs-MacBook-M1Pro.local']:
+            ono_button = tkinter.Button(self.frame_buttons, text = "Observe", width=12, command = self.observe)
+            ono_button.grid(row=2, column=0)
         self.chk_var = tkinter.BooleanVar()
         checkbutton = tkinter.Checkbutton(self.frame_buttons, text="Google Calendar Link", variable=self.chk_var, 
                                           onvalue=True, offvalue=False, command=self.google_calendar_button_toggle)
@@ -125,6 +134,20 @@ class AOCalendarApp(tkinter.Tk):
 
         # Info
         self.show_date(self.aoc_day)        
+
+    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054', ants='2k,2m', ods2use='test_ods.json'):
+        if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
+            return
+        ods2use = 'test_ods.json'
+        ods_active = "https://www.seti.org/sites/default/files/HCRO/ods.json"
+        ods_upload = "/opt/mnt/share/ods_upload/ods.json"
+        from obsnerd import ono_observer
+        observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
+        observer.get_ods(ods2use, defaults='defaults.json')
+        observer.get_obs_from_ods(add_to_calendar=True)
+        # observer.update_ods(ods_active, ods_upload)
+        print("SKIPPING UPDATE_ODS FOR NOW")
+        observer.observe(False)
 
     def tk_update(self):
         if self.this_cal.ods is not None:
