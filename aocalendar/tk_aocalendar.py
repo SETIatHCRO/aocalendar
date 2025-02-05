@@ -140,6 +140,8 @@ class AOCalendarApp(tkinter.Tk):
                 ods2use='/opt/mnt/share/ods_rados/ods_rados.json'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
+        if self.hostname == "Davids-MacBook-M1Pro.local":
+            ods2use = 'test_ods.json'
         ods_active = "https://www.seti.org/sites/default/files/HCRO/ods.json"
         ods_upload = "/opt/mnt/share/ods_upload/ods.json"
         from obsnerd import ono_observer
