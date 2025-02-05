@@ -50,11 +50,6 @@ class AOCalendarApp(tkinter.Tk):
         super().__init__()
         self.title("Allen Telescope Array Observing Calendar")
 
-        if kwargs['allow_observer']:
-            self.hostname = socket.gethostname()
-        else:
-            self.hostname = 'N/A'
-
         # Set window size to 1200x900
         #self.geometry("1000x820")
         self.resizable(0, 0)
@@ -68,6 +63,12 @@ class AOCalendarApp(tkinter.Tk):
         self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=path,
                                                 conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
         logger.info(f"{__name__} ver. {__version__}")
+
+        if kwargs['allow_observer']:
+            self.hostname = socket.gethostname()
+            logger.info(f"Hostname: {self.hostname}")
+        else:
+            self.hostname = 'N/A'
 
         self.this_cal = aocalendar.Calendar(calfile=calfile, path=path, conlog=self.log_settings.conlog, filelog=self.log_settings.filelog)
         self.aoc_day = truncate_to_day(self.this_cal.refdate)
@@ -140,8 +141,9 @@ class AOCalendarApp(tkinter.Tk):
                 ods2use='/opt/mnt/share/ods_rados/ods_rados.json'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
-        if self.hostname == "Davids-MacBook-M1Pro.local":
+        if self.hostname == 'DAVIDs-MacBook-M1Pro.local':
             ods2use = 'test_ods.json'
+            logger.warning(f"Reset ods2use to {ods2use}.")
         ods_active = "https://www.seti.org/sites/default/files/HCRO/ods.json"
         ods_upload = "/opt/mnt/share/ods_upload/ods.json"
         from obsnerd import ono_observer
