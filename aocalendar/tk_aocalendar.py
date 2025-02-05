@@ -64,7 +64,7 @@ class AOCalendarApp(tkinter.Tk):
                                                 conlog_format=LOG_FORMATS['conlog_format'], filelog_format=LOG_FORMATS['filelog_format'])
         logger.info(f"{__name__} ver. {__version__}")
 
-        if kwargs['allow_observer']:
+        if kwargs['enable_rados']:
             self.hostname = socket.gethostname()
             logger.info(f"Hostname: {self.hostname}")
         else:
