@@ -135,18 +135,19 @@ class AOCalendarApp(tkinter.Tk):
         # Info
         self.show_date(self.aoc_day)        
 
-    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054', ants='2k,2m', ods2use='test_ods.json'):
+    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054',
+                ants='2a,2b,2k,2m',
+                ods2use='/opt/mnt/share/ods_rados/ods_rados.json'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
-        ods2use = 'test_ods.json'
         ods_active = "https://www.seti.org/sites/default/files/HCRO/ods.json"
         ods_upload = "/opt/mnt/share/ods_upload/ods.json"
         from obsnerd import ono_observer
         observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
         observer.get_ods(ods2use, defaults='defaults.json')
         observer.get_obs_from_ods(add_to_calendar=True)
-        # observer.update_ods(ods_active, ods_upload)
-        print("SKIPPING UPDATE_ODS FOR NOW")
+        if ods2use != 'test_ods.json':
+            observer.update_ods(ods_active, ods_upload)
         observer.observe(False)
 
     def tk_update(self):
