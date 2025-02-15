@@ -152,7 +152,7 @@ class AOCalendarApp(tkinter.Tk):
         observer.get_obs_from_ods(add_to_calendar=True)
         if ods2use != 'test_ods.json':
             observer.update_ods(ods_active, ods_upload)
-        observer.observe(False)
+        observer.observe(True)
 
     def tk_update(self):
         if self.this_cal.ods is not None:
