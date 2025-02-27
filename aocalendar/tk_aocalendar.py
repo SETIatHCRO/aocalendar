@@ -137,7 +137,7 @@ class AOCalendarApp(tkinter.Tk):
         self.show_date(self.aoc_day)        
 
     def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054',
-                ants='all',
+                ants='rfsoc_active',
                 ods2use='/opt/mnt/share/ods_rados/ods_rados.json'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
