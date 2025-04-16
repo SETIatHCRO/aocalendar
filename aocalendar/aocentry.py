@@ -66,11 +66,10 @@ class Entry:
         if to_string:
             return loc_input.stringify()
         new_location = locations.Location(loc_input)
-        if not new_location.valid:
-            try:
-                new_location = getattr(self, 'location')
-            except AttributeError:
-                new_location = "None"
+        try:
+            new_location = new_location
+        except AttributeError:
+            new_location = "None"
         return new_location
     
     def __Time(self, time_input, key, to_string=False):

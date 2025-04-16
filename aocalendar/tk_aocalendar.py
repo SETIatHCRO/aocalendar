@@ -66,7 +66,7 @@ class AOCalendarApp(tkinter.Tk):
 
         if kwargs['enable_rados']:
             self.hostname = socket.gethostname()
-            logger.info(f"Hostname: {self.hostname}")
+            logger.info(f"Enabled rados on {self.hostname}")
         else:
             self.hostname = 'N/A'
 
@@ -122,7 +122,7 @@ class AOCalendarApp(tkinter.Tk):
         del_button.grid(row=1, column=1)
         upd_button = tkinter.Button(self.frame_buttons, text = "Edit", width=12, command = self.update_event)
         upd_button.grid(row=2, column=1)
-        if self.hostname in ['obs-node1', 'DAVIDs-MacBook-M1Pro.local']:
+        if self.hostname != 'N/A':
             ono_button = tkinter.Button(self.frame_buttons, text = "Observe", width=12, command = self.observe)
             ono_button.grid(row=2, column=0)
         self.chk_var = tkinter.BooleanVar()
@@ -141,12 +141,10 @@ class AOCalendarApp(tkinter.Tk):
             return
         if not messagebox.askyesno("ODS CONFIRMATION", "Have you run the 'on_obs_prep.py' script?", icon='warning'):
             return
-        if self.hostname == 'DAVIDs-MacBook-M1Pro.local':
-            return
         self.tk_update()
-        #from obsnerd import ono_observer
-        #observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
-        #observer.observe(True)
+        from obsnerd import ono_observer
+        observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
+        observer.observe(True)
 
     def tk_update(self):
         if self.this_cal.ods is not None:

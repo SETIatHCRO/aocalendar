@@ -86,6 +86,7 @@ class Calendar:
 
         """
         self.path = tools.determine_path(path, calfile)
+        
         self.refdate = ttools.interpret_date('now')
         self.location = locations.Location()
         self.log_settings = logger_setup.Logger(logger, conlog=conlog, filelog=filelog, log_filename=LOG_FILENAME, path=self.path,
