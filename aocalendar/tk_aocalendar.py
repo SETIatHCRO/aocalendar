@@ -134,25 +134,19 @@ class AOCalendarApp(tkinter.Tk):
         self.deleted_event_id = False
 
         # Info
-        self.show_date(self.aoc_day)        
+        self.show_date(self.aoc_day)
 
-    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054',
-                ants='rfsoc_active',
-                ods2use='/opt/mnt/share/ods_rados/ods_rados.json'):
+    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054', ants='rfsoc_active'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
+        if not messagebox.askyesno("ODS CONFIRMATION", "Have you run the 'on_obs_prep.py' script?", icon='warning'):
+            return
         if self.hostname == 'DAVIDs-MacBook-M1Pro.local':
-            ods2use = 'test_ods.json'
-            logger.warning(f"Reset ods2use to {ods2use}.")
-        ods_active = "https://www.seti.org/sites/default/files/HCRO/ods.json"
-        ods_upload = "/opt/mnt/share/ods_upload/ods.json"
-        from obsnerd import ono_observer
-        observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
-        observer.get_ods(ods2use, defaults='defaults.json')
-        observer.get_obs_from_ods(add_to_calendar=True)
-        if ods2use != 'test_ods.json':
-            observer.update_ods(ods_active, ods_upload)
-        observer.observe(True)
+            return
+        self.tk_update()
+        #from obsnerd import ono_observer
+        #observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
+        #observer.observe(True)
 
     def tk_update(self):
         if self.this_cal.ods is not None:
