@@ -57,6 +57,7 @@ class AOCalendarApp(tkinter.Tk):
         calfile = kwargs['calfile'] if 'calfile' in kwargs else 'now'
         path = kwargs['path'] if 'path' in kwargs else 'getenv'
         ods = kwargs['ods'] if 'ods' in kwargs else False
+        ods = None if ods in [False, 'none', 'disable'] else ods
         conlog = kwargs['conlog'] if 'conlog' in kwargs else 'INFO'
         filelog = kwargs['filelog'] if 'filelog' in kwargs else False
         path = tools.determine_path(path=path, fileinfo=calfile)
@@ -109,6 +110,8 @@ class AOCalendarApp(tkinter.Tk):
         if ods is not None:
             self.ods_input = ods
             self.this_cal.start_ods()
+        else:
+            self.ods_input = None
         self.tk_update()
 
         # Buttons/checkbox/clock
