@@ -8,7 +8,7 @@ from aocalendar.tk_aocalendar import AOCalendarApp
 
 ap = argparse.ArgumentParser()
 ap.add_argument('calfile', help="Calendar file to use/find.", nargs='?', default='now')
-ap.add_argument('--ods', help="Name of ODS file/url to check.", default="https://www.seti.org/sites/default/files/HCRO/ods.json")
+ap.add_argument('--ods', help="Name of ODS file/url to check.", default="https://www.hcro.org/ods.json")
 ap.add_argument('--path', help="path to use", default='getenv')
 ap.add_argument('--enable-rados', dest='enable_rados', help="Activate the RADOS observe button", action='store_true')
 ap.add_argument('--conlog', help="Output console logging level", default='WARNING')
