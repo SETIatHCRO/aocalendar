@@ -139,14 +139,14 @@ class AOCalendarApp(tkinter.Tk):
         # Info
         self.show_date(self.aoc_day)
 
-    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054', ants=':ant_file.dat'):
+    def observe(self, observer='RADOS', project_name="SatSpot", project_id='p054'):
         if not messagebox.askyesno("OBSERVE CONFIRMATION", "Are you SURE that you are authorized and prepared to observe?", icon='warning'):
             return
         if not messagebox.askyesno("ODS CONFIRMATION", "Have you run the 'on_obs_prep.py' script?", icon='warning'):
             return
         self.tk_update()
         from obsnerd import ono_observer
-        observer = ono_observer.Observer(observer=observer, project_name=project_name, project_id=project_id, ants=ants)
+        observer = ono_observer.Observer(obsfile='obsinfo_rados.json', observer=observer, project_name=project_name, project_id=project_id)
         observer.observe(True)
 
     def tk_update(self):
