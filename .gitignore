@@ -3,3 +3,4 @@ build/
 *.json
 *.bak
 aocalendar.egg-info/
+.vscode/
