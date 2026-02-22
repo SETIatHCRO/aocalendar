@@ -146,7 +146,7 @@ class AOCalendarApp(tkinter.Tk):
             return
         self.tk_update()
         from obsnerd import ono_observer
-        observer = ono_observer.Observer(obsfile='obsinfo_rados.npz:data', observer=observer, project_name=project_name, project_id=project_id)
+        observer = ono_observer.Observer(obsfile='obsinfo_rados.npz:data')
         observer.get_obs()
         observer.observe(True)
 
